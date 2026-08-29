@@ -262,7 +262,8 @@ textarea {
   font-size: 0.95rem;
 }
 
-.track {
+.track,
+.work {
   font-family: "Bebas Neue", sans-serif;
   font-size: 2.2rem;
   letter-spacing: 0.04em;
@@ -272,29 +273,20 @@ textarea {
 
 .track span {
   color: var(--fog);
-  font-size: 1.4rem;
 }
 
-.track .now {
+.track .now,
+.track .mid,
+.work {
   color: var(--cream);
 }
 
 .track .mid {
-  color: var(--cream);
   opacity: 0.7;
 }
 
 .track .end {
   color: var(--fog);
-}
-
-.work {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 2rem;
-  letter-spacing: 0.04em;
-  line-height: 1;
-  margin: 10px 0 14px;
-  color: var(--cream);
 }
 
 .actions {

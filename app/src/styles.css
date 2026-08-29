@@ -56,6 +56,7 @@ textarea {
   display: block;
   color: var(--cream);
   flex: 0 0 24px;
+  pointer-events: none;
 }
 
 .ico-sage {
@@ -228,8 +229,8 @@ textarea {
 }
 
 .dot-btn {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 0;
   background: transparent;
   color: var(--fog);
@@ -284,6 +285,14 @@ textarea {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+.btn,
+.nb,
+.dot-btn,
+.chip,
+.nav button {
+  touch-action: manipulation;
 }
 
 .btn {

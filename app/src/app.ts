@@ -11,6 +11,7 @@ import { formatLong, formatShort, todayISO } from "./dates";
 import {
   createCloudStore,
   createLocalStore,
+  ensureOwnTenant,
   hasLocalSession,
   resolveStore,
   type Store,
@@ -336,7 +337,8 @@ export async function start(): Promise<void> {
   render();
   client.auth.onAuthStateChange(async (_event, session) => {
     if (session?.user && gate !== "app") {
-      await enterApp(createCloudStore(client!, session.user));
+      const tenantId = await ensureOwnTenant(client!);
+      await enterApp(createCloudStore(client!, session.user, tenantId));
     }
   });
 }

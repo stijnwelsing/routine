@@ -15,6 +15,7 @@ function event(
 ): LogEvent {
   return {
     id: partial.id ?? crypto.randomUUID(),
+    tenant_id: partial.tenant_id ?? "t1",
     user_id: "u1",
     value: partial.value ?? null,
     skip_reason: partial.skip_reason ?? null,
@@ -25,6 +26,7 @@ function event(
 
 const vector: Vector = {
   id: "v1",
+  tenant_id: "t1",
   user_id: "u1",
   domain: "strength",
   a: SEED.a,
@@ -35,6 +37,7 @@ const vector: Vector = {
 
 const stage: Stage = {
   id: "s1",
+  tenant_id: "t1",
   vector_id: "v1",
   milestone: SEED.milestone,
   started_on: "2026-08-20",
@@ -50,7 +53,11 @@ describe("seed", () => {
     expect(SEED.b).toBe(50);
     expect(SEED.setsPerDay).toBe(1);
     expect(SEED.unit).toBe("reps");
-    const fresh = seedSnapshot("u1");
+    const fresh = seedSnapshot("u1", "2026-08-29", "tenant-a");
+    expect(fresh.profile.tenant_id).toBe("tenant-a");
+    expect(fresh.vector.tenant_id).toBe("tenant-a");
+    expect(fresh.stage.tenant_id).toBe("tenant-a");
+    expect(fresh.profile.display_name).toBeNull();
     expect(fresh.vector.a).toBe(40);
     expect(fresh.stage.milestone).toBe(45);
     expect(fresh.vector.b).toBe(50);

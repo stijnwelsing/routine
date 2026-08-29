@@ -49,12 +49,14 @@ Zonder `.env.local` is er **geen nep-Supabase**. De app zegt dat er geen project
 
 ## Supabase
 
-1. Nieuw project (niet KitchenOS/ScreenOS hergebruiken).
+Multi-tenant vanaf dag 1. Functies in de app; inrichting (A/B/etappe, identity, vector, constraints) en alle rijen per tenant. Geen tenantnaam in schema of productcode.
+
+1. Nieuw project. Niet een bestaand project hergebruiken.
 2. Authentication → URL configuration:
    - Site URL: je app-URL (`http://localhost:5173` lokaal).
    - Redirect URLs: dezelfde origin, plus later GitHub Pages als die de ochtendroute wordt.
 3. Authentication → Providers → Email: Magic link aan.
-4. SQL: plak beide bestanden in `supabase/migrations/` in de SQL editor (eerst core, dan horizon), of:
+4. SQL: alle drie de bestanden in `supabase/migrations/` in de SQL editor (core → horizon → multi_tenant), of:
 
    ```bash
    npx supabase login
@@ -69,9 +71,9 @@ Zonder `.env.local` is er **geen nep-Supabase**. De app zegt dat er geen project
    VITE_SUPABASE_ANON_KEY=...
    ```
 
-6. Restart `npm run dev`. Log in met magic link. RLS gebruikt `auth.uid()`. Geen hardcoded `user_id` in app-logica.
+6. Restart `npm run dev`. Log in met magic link. Eerste login roept `ensure_own_tenant()` aan (generieke tenant, geen naam). RLS: alleen rijen van de tenant waar `auth.uid()` lid van is.
 
-Tabellen: `profiles`, `vectors`, `stages`, `events`. Geen `memory_notes`. Experiments wachten.
+Tabellen: `tenants`, `tenant_members`, `profiles`, `vectors`, `stages`, `events`. Geen `memory_notes`. Geen Stripe, GTM, waitlist. Experiments wachten.
 
 ## Export
 

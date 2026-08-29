@@ -26,6 +26,7 @@ export type TrendArrow = "↑" | "→" | "↓";
 
 export interface Profile {
   id: string;
+  tenant_id: string;
   display_name: string | null;
   identity_anti: string | null;
   identity_new: string | null;
@@ -35,6 +36,7 @@ export interface Profile {
 
 export interface Vector {
   id: string;
+  tenant_id: string;
   user_id: string;
   domain: Domain;
   a: number;
@@ -45,6 +47,7 @@ export interface Vector {
 
 export interface Stage {
   id: string;
+  tenant_id: string;
   vector_id: string;
   milestone: number;
   started_on: string;
@@ -55,6 +58,7 @@ export interface Stage {
 
 export interface LogEvent {
   id: string;
+  tenant_id: string;
   user_id: string;
   date: string;
   kind: EventKind;
@@ -89,7 +93,7 @@ export interface LoopView {
   suggestedMilestone: number | null;
 }
 
-/** Lock 29 aug 2026: one set of 40 now. A is start and current. 35 is past. */
+/** Empty-tenant inrichting defaults. Live A/B/milestone come from tenant rows. */
 export const SEED = {
   a: 40,
   b: 50,
@@ -103,4 +107,5 @@ export const SEED = {
 
 export const LOCAL_STORAGE_KEY = "routine_loop_v3";
 export const LOCAL_USER_KEY = "routine_local_user_id";
+export const LOCAL_TENANT_KEY = "routine_local_tenant_id";
 export const LOCAL_CHOSEN_KEY = "routine_local_chosen";

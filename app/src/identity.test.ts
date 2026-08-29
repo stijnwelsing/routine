@@ -12,6 +12,7 @@ import type { LogEvent } from "./types";
 function skip(reason: LogEvent["skip_reason"], date = "2026-08-29"): LogEvent {
   return {
     id: crypto.randomUUID(),
+    tenant_id: "t1",
     user_id: "u1",
     date,
     kind: "skip",

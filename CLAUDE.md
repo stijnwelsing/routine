@@ -9,14 +9,16 @@ Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra s
 ## Stack
 
 - Frontend: Vite, vanilla TypeScript, geen framework
-- Data: Supabase, magic link, RLS op `auth.uid()`
+- Data: Supabase, magic link, multi-tenant
+- RLS: `auth.uid()` lidmaatschap van een tenant, geen hardcoded `user_id`
+- Functies in de app (zelfde voor elke tenant). Inrichting en data per tenant in Supabase
 - Zonder env: eerlijke lokale modus, geen nep-cloud
 - Fonts: Bebas Neue + DM Sans
 - Taal: Nederlands, iPhone-first
 
 ## Niet in deze fase
 
-GTM, Stripe, landing, waitlist, App Store, HealthKit, AI-coach, chatbot, Memory/Obsidian, XP/levels, 8-oefeningen-checklist, avond-duplicaat, streak-als-kern, confetti, hardcoded `user_id`, Koe, Human 3.0, 1 Day Protocol, 12-vragen, AI-anti-visie, Herijk, Memory-vault, gallery.
+GTM, Stripe, landing, waitlist, App Store, HealthKit, AI-coach, chatbot, Memory/Obsidian, XP/levels, 8-oefeningen-checklist, avond-duplicaat, streak-als-kern, confetti, hardcoded `user_id` / tenantnaam, Koe, Human 3.0, 1 Day Protocol, 12-vragen, AI-anti-visie, Herijk, Memory-vault, gallery.
 
 ## Schermen
 
@@ -46,11 +48,17 @@ Nieuwe etappe/B: waarschuw als constraint is gezet, geen blokkade. Horizon leeg 
 
 ## Data
 
-- `profiles` (id, display_name, identity_anti, identity_new, identity_constraint, horizon_1y)
-- `vectors` (user_id, domain strength, a, b, unit reps, pace_constraint)
-- `stages` (vector_id, milestone, started_on, deadline, status, stage_type Build)
-- `events` (user_id, date, kind, value, skip_reason)
+Multi-tenant vanaf dag 1. Geen tenantnaam, geen `stijn`, geen zaaknaam in productcode.
 
-Seed lock 29 aug 2026: A (start / huidige) = 40, etappe = 45, B = 50. Eén set, niet verspreid. Unit = reps. 35 is fout. Vandaag toont `40 → 45 → 50`. Etappe schuift niet automatisch door.
+- `tenants` (id, created_at) — geen name-kolom
+- `tenant_members` (tenant_id, user_id) — één tenant per user; `ensure_own_tenant()` maakt de eerste aan
+- `profiles` (id, tenant_id, display_name, identity_anti, identity_new, identity_constraint, horizon_1y)
+- `vectors` (tenant_id, user_id, domain strength, a, b, unit reps, pace_constraint) — één strength-vector per tenant
+- `stages` (tenant_id, vector_id, milestone, started_on, deadline, status, stage_type Build)
+- `events` (tenant_id, user_id, date, kind, value, skip_reason)
+
+RLS: rij zichtbaar als `tenant_id = private.current_tenant_id()` (lidmaatschap via `auth.uid()`). Events-insert eist ook `user_id = auth.uid()`.
+
+Seed lock 29 aug 2026: A (start / huidige) = 40, etappe = 45, B = 50. Eén set, niet verspreid. Unit = reps. 35 is fout. Dat zijn **lege-tenant inrichting-defaults** (`SEED`), geen UI-constanten. Live A/B/etappe komen uit tenantrijen. Vandaag toont die rijen. Etappe schuift niet automatisch door.
 
 Gear down: slaap &lt; 6u of energie laag → etappe mag niet omhoog; volgende actie kleiner of herstel. Geen stop.

@@ -5,6 +5,7 @@ import { applySeedLock, emptyProfile, seedSnapshot, seedStage } from "./seed";
 import {
   LOCAL_CHOSEN_KEY,
   LOCAL_STORAGE_KEY,
+  LOCAL_TENANT_KEY,
   LOCAL_USER_KEY,
   type LogEvent,
   type Profile,
@@ -17,9 +18,14 @@ export type SessionMode = "local" | "cloud";
 export interface Store {
   mode: SessionMode;
   userId: string;
+  tenantId: string;
   email: string | null;
   load(): Promise<Snapshot>;
-  addEvent(event: Omit<LogEvent, "id" | "user_id" | "created_at"> & { id?: string }): Promise<LogEvent>;
+  addEvent(
+    event: Omit<LogEvent, "id" | "user_id" | "tenant_id" | "created_at"> & {
+      id?: string;
+    },
+  ): Promise<LogEvent>;
   saveProfile(profile: Profile): Promise<void>;
   saveVectorConstraint(vectorId: string, paceConstraint: string | null): Promise<void>;
   advanceStage(current: Stage, nextMilestone: number): Promise<Stage>;
@@ -34,16 +40,25 @@ function readLocalUserId(): string {
   return id;
 }
 
+function readLocalTenantId(): string {
+  const existing = localStorage.getItem(LOCAL_TENANT_KEY);
+  if (existing) return existing;
+  const id = newId();
+  localStorage.setItem(LOCAL_TENANT_KEY, id);
+  return id;
+}
+
 function writeLocal(snapshot: Snapshot): void {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
 }
 
-function normalizeSnapshot(raw: Snapshot, userId: string): Snapshot {
+function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Snapshot {
   return {
     ...raw,
     profile: {
-      ...emptyProfile(userId),
+      ...emptyProfile(userId, tenantId),
       ...raw.profile,
+      tenant_id: raw.profile?.tenant_id ?? tenantId,
       ...emptyIdentity(),
       ...{
         identity_anti: raw.profile?.identity_anti ?? null,
@@ -52,19 +67,30 @@ function normalizeSnapshot(raw: Snapshot, userId: string): Snapshot {
         horizon_1y: raw.profile?.horizon_1y ?? null,
       },
     },
-    events: raw.events ?? [],
+    vector: {
+      ...raw.vector,
+      tenant_id: raw.vector?.tenant_id ?? tenantId,
+    },
+    stage: {
+      ...raw.stage,
+      tenant_id: raw.stage?.tenant_id ?? tenantId,
+    },
+    events: (raw.events ?? []).map((event) => ({
+      ...event,
+      tenant_id: event.tenant_id ?? tenantId,
+    })),
     rotated: Boolean(raw.rotated),
   };
 }
 
-function readLocal(userId: string): Snapshot {
+function readLocal(userId: string, tenantId: string): Snapshot {
   const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (!raw) {
-    const seeded = seedSnapshot(userId);
+    const seeded = seedSnapshot(userId, todayISO(), tenantId);
     writeLocal(seeded);
     return seeded;
   }
-  return applySeedLock(normalizeSnapshot(JSON.parse(raw) as Snapshot, userId));
+  return applySeedLock(normalizeSnapshot(JSON.parse(raw) as Snapshot, userId, tenantId));
 }
 
 export function hasLocalSession(): boolean {
@@ -74,20 +100,23 @@ export function hasLocalSession(): boolean {
 export function createLocalStore(): Store {
   localStorage.setItem(LOCAL_CHOSEN_KEY, "1");
   const userId = readLocalUserId();
+  const tenantId = readLocalTenantId();
 
   return {
     mode: "local",
     userId,
+    tenantId,
     email: null,
 
     async load() {
-      return readLocal(userId);
+      return readLocal(userId, tenantId);
     },
 
     async addEvent(input) {
-      const snapshot = readLocal(userId);
+      const snapshot = readLocal(userId, tenantId);
       const event: LogEvent = {
         id: input.id ?? newId(),
+        tenant_id: tenantId,
         user_id: userId,
         date: input.date,
         kind: input.kind,
@@ -101,13 +130,13 @@ export function createLocalStore(): Store {
     },
 
     async saveProfile(profile) {
-      const snapshot = readLocal(userId);
+      const snapshot = readLocal(userId, tenantId);
       snapshot.profile = profile;
       writeLocal(snapshot);
     },
 
     async saveVectorConstraint(vectorId, paceConstraint) {
-      const snapshot = readLocal(userId);
+      const snapshot = readLocal(userId, tenantId);
       if (snapshot.vector.id === vectorId) {
         snapshot.vector.pace_constraint = paceConstraint;
         writeLocal(snapshot);
@@ -115,8 +144,8 @@ export function createLocalStore(): Store {
     },
 
     async advanceStage(current, nextMilestone) {
-      const snapshot = readLocal(userId);
-      const next = seedStage(current.vector_id);
+      const snapshot = readLocal(userId, tenantId);
+      const next = seedStage(current.vector_id, tenantId);
       next.milestone = nextMilestone;
       snapshot.stage = next;
       snapshot.rotated = true;
@@ -135,7 +164,7 @@ type VectorRow = Snapshot["vector"];
 type StageRow = Stage;
 type EventRow = LogEvent;
 
-export function createCloudStore(client: SupabaseClient, user: User): Store {
+export function createCloudStore(client: SupabaseClient, user: User, tenantId: string): Store {
   const userId = user.id;
 
   function reject(label: string, error: { message: string } | null): void {
@@ -154,6 +183,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
   return {
     mode: "cloud",
     userId,
+    tenantId,
     email: user.email ?? null,
 
     async load() {
@@ -164,21 +194,27 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       if (!profile) {
         const inserted = await client
           .from("profiles")
-          .insert({ id: userId })
+          .insert({ id: userId, tenant_id: tenantId })
           .select("*")
           .single();
         profile = await must<ProfileRow>("profiel aanmaken", inserted);
       }
 
-      const vectorRes = await client.from("vectors").select("*").eq("user_id", userId).maybeSingle();
+      const vectorRes = await client
+        .from("vectors")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .eq("domain", "strength")
+        .maybeSingle();
       reject("vector", vectorRes.error);
       let vector = vectorRes.data as VectorRow | null;
 
       if (!vector) {
-        const seeded = seedSnapshot(userId);
+        const seeded = seedSnapshot(userId, todayISO(), tenantId);
         const inserted = await client
           .from("vectors")
           .insert({
+            tenant_id: tenantId,
             user_id: userId,
             domain: seeded.vector.domain,
             a: seeded.vector.a,
@@ -194,6 +230,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       const stageRes = await client
         .from("stages")
         .select("*")
+        .eq("tenant_id", tenantId)
         .eq("vector_id", vector.id)
         .eq("status", "active")
         .maybeSingle();
@@ -201,10 +238,11 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       let stage = stageRes.data as StageRow | null;
 
       if (!stage) {
-        const seeded = seedStage(vector.id);
+        const seeded = seedStage(vector.id, tenantId);
         const inserted = await client
           .from("stages")
           .insert({
+            tenant_id: tenantId,
             vector_id: vector.id,
             milestone: seeded.milestone,
             started_on: seeded.started_on,
@@ -220,6 +258,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       const doneRes = await client
         .from("stages")
         .select("id")
+        .eq("tenant_id", tenantId)
         .eq("vector_id", vector.id)
         .eq("status", "done");
       reject("etappe-historie", doneRes.error);
@@ -227,7 +266,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       const eventsRes = await client
         .from("events")
         .select("*")
-        .eq("user_id", userId)
+        .eq("tenant_id", tenantId)
         .order("created_at", { ascending: true });
       reject("log", eventsRes.error);
       const events = (eventsRes.data ?? []) as EventRow[];
@@ -235,6 +274,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       return applySeedLock({
         profile: {
           id: profile.id,
+          tenant_id: profile.tenant_id ?? tenantId,
           display_name: profile.display_name,
           identity_anti: profile.identity_anti ?? null,
           identity_new: profile.identity_new ?? null,
@@ -243,6 +283,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         },
         vector: {
           id: vector.id,
+          tenant_id: vector.tenant_id ?? tenantId,
           user_id: vector.user_id,
           domain: vector.domain,
           a: Number(vector.a),
@@ -252,6 +293,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         },
         stage: {
           id: stage.id,
+          tenant_id: stage.tenant_id ?? tenantId,
           vector_id: stage.vector_id,
           milestone: Number(stage.milestone),
           started_on: stage.started_on,
@@ -261,6 +303,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         },
         events: events.map((row) => ({
           ...row,
+          tenant_id: row.tenant_id ?? tenantId,
           value: row.value === null ? null : Number(row.value),
         })),
         rotated: (doneRes.data ?? []).length > 0,
@@ -271,6 +314,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       const inserted = await client
         .from("events")
         .insert({
+          tenant_id: tenantId,
           user_id: userId,
           date: input.date,
           kind: input.kind,
@@ -280,7 +324,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         .select("*")
         .single();
       const row = await must<EventRow>("event", inserted);
-      return { ...row, value: row.value === null ? null : Number(row.value) };
+      return { ...row, tenant_id: row.tenant_id ?? tenantId, value: row.value === null ? null : Number(row.value) };
     },
 
     async saveProfile(profile) {
@@ -293,7 +337,8 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
           identity_constraint: profile.identity_constraint,
           horizon_1y: profile.horizon_1y,
         })
-        .eq("id", userId);
+        .eq("id", userId)
+        .eq("tenant_id", tenantId);
       if (result.error) throw new Error(`profiel: ${result.error.message}`);
     },
 
@@ -302,7 +347,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         .from("vectors")
         .update({ pace_constraint: paceConstraint })
         .eq("id", vectorId)
-        .eq("user_id", userId);
+        .eq("tenant_id", tenantId);
       if (result.error) throw new Error(`vector: ${result.error.message}`);
     },
 
@@ -310,14 +355,16 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       const close = await client
         .from("stages")
         .update({ status: "done" })
-        .eq("id", current.id);
+        .eq("id", current.id)
+        .eq("tenant_id", tenantId);
       if (close.error) throw new Error(`etappe sluiten: ${close.error.message}`);
 
-      const next = seedStage(current.vector_id);
+      const next = seedStage(current.vector_id, tenantId);
       next.milestone = nextMilestone;
       const inserted = await client
         .from("stages")
         .insert({
+          tenant_id: tenantId,
           vector_id: next.vector_id,
           milestone: next.milestone,
           started_on: next.started_on,
@@ -328,13 +375,20 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         .select("*")
         .single();
       const row = await must<StageRow>("volgende etappe", inserted);
-      return { ...row, milestone: Number(row.milestone) };
+      return { ...row, tenant_id: row.tenant_id ?? tenantId, milestone: Number(row.milestone) };
     },
 
     async signOut() {
       await client.auth.signOut();
     },
   };
+}
+
+export async function ensureOwnTenant(client: SupabaseClient): Promise<string> {
+  const { data, error } = await client.rpc("ensure_own_tenant");
+  if (error) throw new Error(`tenant: ${error.message}`);
+  if (!data || typeof data !== "string") throw new Error("tenant: geen id");
+  return data;
 }
 
 export async function resolveStore(
@@ -351,7 +405,8 @@ export async function resolveStore(
   } = await client.auth.getSession();
 
   if (session?.user) {
-    return { kind: "ready", store: createCloudStore(client, session.user) };
+    const tenantId = await ensureOwnTenant(client);
+    return { kind: "ready", store: createCloudStore(client, session.user, tenantId) };
   }
 
   return { kind: "needs-auth", client, session: null };

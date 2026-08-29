@@ -2,17 +2,19 @@ import { addDays, newId, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
 import { SEED, type Profile, type Snapshot, type Stage, type Vector } from "./types";
 
-export function emptyProfile(userId: string): Profile {
+export function emptyProfile(userId: string, tenantId: string): Profile {
   return {
     id: userId,
+    tenant_id: tenantId,
     display_name: null,
     ...emptyIdentity(),
   };
 }
 
-export function seedVector(userId: string): Vector {
+export function seedVector(userId: string, tenantId: string): Vector {
   return {
     id: newId(),
+    tenant_id: tenantId,
     user_id: userId,
     domain: SEED.domain,
     a: SEED.a,
@@ -22,9 +24,10 @@ export function seedVector(userId: string): Vector {
   };
 }
 
-export function seedStage(vectorId: string, today = todayISO()): Stage {
+export function seedStage(vectorId: string, tenantId: string, today = todayISO()): Stage {
   return {
     id: newId(),
+    tenant_id: tenantId,
     vector_id: vectorId,
     milestone: SEED.milestone,
     started_on: today,
@@ -34,10 +37,10 @@ export function seedStage(vectorId: string, today = todayISO()): Stage {
   };
 }
 
-export function seedSnapshot(userId: string, today = todayISO()): Snapshot {
-  const profile = emptyProfile(userId);
-  const vector = seedVector(userId);
-  const stage = seedStage(vector.id, today);
+export function seedSnapshot(userId: string, today = todayISO(), tenantId = newId()): Snapshot {
+  const profile = emptyProfile(userId, tenantId);
+  const vector = seedVector(userId, tenantId);
+  const stage = seedStage(vector.id, tenantId, today);
   return { profile, vector, stage, events: [], rotated: false };
 }
 

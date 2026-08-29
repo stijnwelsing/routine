@@ -19,7 +19,6 @@ interface AppState {
   skipOpen: boolean;
   busy: boolean;
   error: string | null;
-  notice: string | null;
   email: string;
   magicSent: boolean;
 }
@@ -29,7 +28,6 @@ const state: AppState = {
   skipOpen: false,
   busy: false,
   error: null,
-  notice: null,
   email: "",
   magicSent: false,
 };
@@ -91,13 +89,13 @@ function render(): void {
 
   if (!snapshot || !store) return;
   const view = loop();
-  const { vector, stage, profile } = snapshot;
+  const { vector, stage } = snapshot;
   const modeLabel = store.mode === "local" ? "Lokaal" : "Supabase";
 
   const header = `
     <div class="hdr">
       <div>
-        <h1>${state.screen === "ik" ? "Ik" : state.screen === "koers" ? "Koers" : "Vandaag"}</h1>
+        <h1>${state.screen === "koers" ? "Koers" : "Vandaag"}</h1>
         <div class="date-s">${formatLong(todayISO())}</div>
       </div>
       <div class="mode-pill ${store.mode === "local" ? "warn" : ""}">${modeLabel}</div>
@@ -106,11 +104,13 @@ function render(): void {
   const nav = `
     <nav class="nav">
       <button data-nav="vandaag" class="${state.screen === "vandaag" ? "active" : ""}"><span class="ni">●</span>Vandaag</button>
-      <button data-nav="koers" class="${state.screen === "koers" || state.screen === "ik" ? "active" : ""}"><span class="ni">↗</span>Koers</button>
+      <button data-nav="koers" class="${state.screen === "koers" ? "active" : ""}"><span class="ni">↗</span>Koers</button>
     </nav>`;
 
   if (state.screen === "vandaag") {
-    const plusBlocked = view.gearDown || view.atB;
+    const setTaken = view.setLoggedToday || Boolean(view.skipToday);
+    const plusBlocked = setTaken || view.atB;
+    const doneBlocked = setTaken;
     root().innerHTML = `
       ${header}
       ${store.mode === "local" ? `<div class="banner">Lokaal — geen Supabase. +1 / Done / Skip blijven op dit apparaat.</div>` : ""}
@@ -151,9 +151,9 @@ function render(): void {
           <span class="end">${fmt(vector.b)}</span>
         </div>
         <div class="actions">
-          <button class="btn" data-act="plus" ${plusBlocked ? "disabled" : ""}>+1</button>
-          <button class="btn ${view.doneToday ? "on" : "primary"}" data-act="done" ${view.doneToday ? "disabled" : ""}>Done</button>
-          <button class="btn ${view.skipToday ? "warn" : "ghost"}" data-act="skip-open">Skip</button>
+          <button class="btn ${view.plusToday ? "on" : ""}" data-act="plus" ${plusBlocked ? "disabled" : ""}>+1</button>
+          <button class="btn ${view.doneToday ? "on" : "primary"}" data-act="done" ${doneBlocked ? "disabled" : ""}>Done</button>
+          <button class="btn ${view.skipToday ? "warn" : "ghost"}" data-act="skip-open" ${view.setLoggedToday ? "disabled" : ""}>Skip</button>
         </div>
         ${
           state.skipOpen || view.skipToday
@@ -216,7 +216,7 @@ function render(): void {
           </div>
           <div>
             <div class="lbl">Rem</div>
-            <div class="val" style="font-size:1.1rem">${escapeHtml(vector.pace_constraint || profile.identity_constraint || "—")}</div>
+            <div class="val" style="font-size:1.1rem">${escapeHtml(vector.pace_constraint || "—")}</div>
           </div>
         </div>
       </div>
@@ -225,7 +225,6 @@ function render(): void {
         <div class="action-line">${escapeHtml(view.nextAction)}</div>
       </div>
       <div class="card stack">
-        <button class="btn" data-nav="ik">Ik</button>
         <button class="btn ghost" data-act="export">Exporteer JSON</button>
         ${store.mode === "cloud" ? `<button class="btn ghost" data-act="signout">Uitloggen</button>` : ""}
       </div>
@@ -233,35 +232,6 @@ function render(): void {
       ${nav}`;
     return;
   }
-
-  root().innerHTML = `
-    ${header}
-    <div class="sec-hd">Identiteit</div>
-    <div class="card">
-      <div class="field">
-        <div class="lbl">Naam</div>
-        <input data-id="display_name" value="${escapeHtml(profile.display_name ?? "")}" />
-      </div>
-      <div class="field">
-        <div class="lbl">Niet meer</div>
-        <textarea data-id="identity_anti" placeholder="anti-identiteit">${escapeHtml(profile.identity_anti ?? "")}</textarea>
-      </div>
-      <div class="field">
-        <div class="lbl">Wel</div>
-        <textarea data-id="identity_new" placeholder="nieuwe identiteit">${escapeHtml(profile.identity_new ?? "")}</textarea>
-      </div>
-      <div class="field">
-        <div class="lbl">Rem</div>
-        <textarea data-id="identity_constraint" placeholder="wat tempo of lijf tegenhoudt">${escapeHtml(profile.identity_constraint ?? "")}</textarea>
-      </div>
-      <button class="btn primary" data-act="save-ik">Bewaar</button>
-    </div>
-    <div class="card">
-      <button class="linkish" data-nav="koers">← terug naar Koers</button>
-    </div>
-    ${state.notice ? `<p class="note" style="padding:0 18px">${escapeHtml(state.notice)}</p>` : ""}
-    ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
-    ${nav}`;
 }
 
 function fmt(n: number): string {
@@ -332,10 +302,9 @@ function bind(): void {
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-act], [data-nav]");
     if (!target) return;
     const nav = target.dataset.nav as Screen | undefined;
-    if (nav) {
+    if (nav === "vandaag" || nav === "koers") {
       state.screen = nav;
       state.skipOpen = false;
-      state.notice = null;
       render();
       return;
     }
@@ -395,13 +364,13 @@ async function handleAction(target: HTMLElement): Promise<void> {
   }
 
   if (act === "plus") {
-    if (view.gearDown || view.atB) return;
+    if (view.setLoggedToday || view.skipToday || view.atB) return;
     await persistEvent({ date: today, kind: "set", value: view.current + 1, skip_reason: null });
     return;
   }
 
   if (act === "done") {
-    if (view.doneToday) return;
+    if (view.setLoggedToday || view.skipToday) return;
     await persistEvent({ date: today, kind: "done", value: view.current, skip_reason: null });
     return;
   }
@@ -413,6 +382,7 @@ async function handleAction(target: HTMLElement): Promise<void> {
   }
 
   if (act === "skip") {
+    if (view.setLoggedToday) return;
     const reason = target.dataset.reason;
     if (!reason) return;
     await persistEvent({
@@ -447,34 +417,6 @@ async function handleAction(target: HTMLElement): Promise<void> {
     return;
   }
 
-  if (act === "save-ik") {
-    const name = valueOf("display_name");
-    const anti = valueOf("identity_anti");
-    const neu = valueOf("identity_new");
-    const constraint = valueOf("identity_constraint");
-    await withBusy(async () => {
-      const profile = {
-        ...snapshot!.profile,
-        display_name: name,
-        identity_anti: anti,
-        identity_new: neu,
-        identity_constraint: constraint,
-      };
-      await store!.saveProfile(profile);
-      snapshot!.profile = profile;
-      if (constraint) {
-        await store!.saveVectorConstraint(snapshot!.vector.id, constraint);
-        snapshot!.vector.pace_constraint = constraint;
-      }
-      state.notice = "Bewaard";
-    });
-  }
-}
-
-function valueOf(id: string): string | null {
-  const el = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-id="${id}"]`);
-  const value = el?.value.trim() ?? "";
-  return value.length ? value : null;
 }
 
 async function persistEvent(

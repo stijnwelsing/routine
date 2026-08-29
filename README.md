@@ -4,18 +4,27 @@ Gesloten lus: meet beweging van A naar B. Grijpt alleen in als het stokt of als 
 
 Dit is **geen habit tracker**. De oude single-file pagina in `legacy/` is het prototype. GitHub Pages blijft die tot deze app de ochtendroute is.
 
-Interne naam: Routine. Publiek merk later. Deze fase: alleen Stijn. Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
+Interne naam: Routine. Publiek merk later. Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
 
 ## App
 
-Vite + vanilla TypeScript. Twee schermen.
+Vite + vanilla TypeScript. Alleen **Vandaag** en **Koers**. Geen derde scherm, geen Ik/identity, geen AI.
 
 - **Vandaag** — Lijf (slaap, energie; optioneel), Etappe (push-ups: current → milestone → B), +1 / Done / Skip, Koers in één woord.
-- **Koers** — A, B, nu, etappe, venster, trend, hitrate, rem, volgende actie. Identiteit staat achter Koers → **Ik**.
+- **Koers** — A, B, nu, etappe, venster, trend, hitrate, rem, volgende actie.
 
-Skip ≠ miss. Skip telt niet als miss voor de lokale streak. Etappe-type is Build. Milestone-hit schuift niet vanzelf door.
+Knoppen (lock 29 aug 2026):
 
-Seed: A=25, B=50, etappe=35.
+- **+1** = set gedaan, huidige mag omhoog
+- **Done** = set gedaan op het werkgetal, huidige blijft
+- Geen van beide schuift de etappe
+- Milestone: gebruiker kiest, nooit auto-advance
+- **Skip** = chip, geen miss
+- **Miss** = dag zonder +1 / Done / Skip
+- Gear-down (slaap &lt; 6u of energie laag) blokkeert etappe-omhoog, is geen stop
+- Eén set per dag
+
+Seed: A=40, etappe=45, B=50.
 
 ## Starten
 
@@ -51,7 +60,7 @@ Zonder `.env.local` is er **geen nep-Supabase**. De app zegt dat er geen project
    VITE_SUPABASE_ANON_KEY=...
    ```
 
-6. Restart `npm run dev`. Log in met magic link. RLS gebruikt `auth.uid()`. Er staat nergens `user_id = 'stijn'` in app-logica.
+6. Restart `npm run dev`. Log in met magic link. RLS gebruikt `auth.uid()`. Geen hardcoded `user_id` in app-logica.
 
 Tabellen: `profiles`, `vectors`, `stages`, `events`. Geen `memory_notes`. Experiments wachten.
 

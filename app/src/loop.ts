@@ -30,7 +30,10 @@ export function todayEnergy(events: LogEvent[], today: string): number | null {
 
 function latestSession(events: LogEvent[], date: string): LogEvent | undefined {
   return events
-    .filter((event) => event.date === date && (event.kind === "done" || event.kind === "skip"))
+    .filter(
+      (event) =>
+        event.date === date && (event.kind === "set" || event.kind === "done" || event.kind === "skip"),
+    )
     .sort(byCreated)
     .at(-1);
 }
@@ -42,6 +45,15 @@ export function todaySkip(events: LogEvent[], today: string): SkipReason | null 
 
 export function todayDone(events: LogEvent[], today: string): boolean {
   return latestSession(events, today)?.kind === "done";
+}
+
+export function todayPlus(events: LogEvent[], today: string): boolean {
+  return latestSession(events, today)?.kind === "set";
+}
+
+export function setLoggedToday(events: LogEvent[], today: string): boolean {
+  const session = latestSession(events, today);
+  return session?.kind === "set" || session?.kind === "done";
 }
 
 export function isGearDown(sleep: number | null, energy: number | null): boolean {
@@ -66,7 +78,7 @@ function markDay(
 ): DayMark {
   if (date < origin) return "empty";
   const session = latestSession(events, date);
-  if (session?.kind === "done") return "done";
+  if (session?.kind === "done" || session?.kind === "set") return "done";
   if (session?.kind === "skip") return "skip";
   if (latestOf(events, date, "miss")) return "miss";
   if (date >= today) return "empty";
@@ -153,17 +165,19 @@ export function nextActionText(input: {
   atB: boolean;
   stalled: boolean;
   doneToday: boolean;
+  plusToday: boolean;
   skipToday: SkipReason | null;
 }): string {
-  if (input.gearDown) return "Geen verhoging. Kleinere set of herstel.";
+  if (input.gearDown) return "Geen etappe-omhoog. Kleinere set of herstel. Geen stop.";
   if (input.atB) return "B staat. Houd dit, kies later een nieuwe B.";
   if (input.milestoneHit) {
     return `${formatReps(input.milestone)} gehaald. Kies zelf de volgende etappe.`;
   }
-  if (input.doneToday) return "Vandaag staat. Morgen dezelfde lijn.";
+  if (input.plusToday) return "Set gedaan. Huidige mag omhoog. Etappe blijft.";
+  if (input.doneToday) return "Set op het werkgetal. Huidige blijft.";
   if (input.skipToday) return "Overgeslagen. Geen miss. Morgen weer.";
   if (input.stalled) return "Beweging staat stil. Doe de etappe of sla over met reden.";
-  return `Werk naar ${formatReps(input.milestone)}. Niet harder dan het lijf toelaat.`;
+  return `Eén set. Werk naar ${formatReps(input.milestone)}.`;
 }
 
 function formatReps(n: number): string {
@@ -188,6 +202,8 @@ export function computeLoop(
   const sleep = todaySleep(events, today);
   const energy = todayEnergy(events, today);
   const doneToday = todayDone(events, today);
+  const plusToday = todayPlus(events, today);
+  const logged = setLoggedToday(events, today);
   const skipToday = todaySkip(events, today);
   const gearDown = isGearDown(sleep, energy);
   const milestoneHit = current >= stage.milestone;
@@ -208,6 +224,8 @@ export function computeLoop(
     sleep,
     energy,
     doneToday,
+    plusToday,
+    setLoggedToday: logged,
     skipToday,
     gearDown,
     milestoneHit,
@@ -224,6 +242,7 @@ export function computeLoop(
       atB,
       stalled,
       doneToday,
+      plusToday,
       skipToday,
     }),
     suggestedMilestone:

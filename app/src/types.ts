@@ -21,7 +21,7 @@ export type StageStatus = "active" | "extended" | "lowered" | "replaced" | "done
 export type StageType = "Build";
 export type Domain = "strength";
 export type Unit = "reps";
-export type Screen = "vandaag" | "koers" | "ik";
+export type Screen = "vandaag" | "koers";
 export type TrendArrow = "↑" | "→" | "↓";
 
 export interface Profile {
@@ -74,6 +74,8 @@ export interface LoopView {
   sleep: number | null;
   energy: number | null;
   doneToday: boolean;
+  plusToday: boolean;
+  setLoggedToday: boolean;
   skipToday: SkipReason | null;
   gearDown: boolean;
   milestoneHit: boolean;
@@ -86,15 +88,16 @@ export interface LoopView {
 }
 
 export const SEED = {
-  a: 25,
+  a: 40,
   b: 50,
-  milestone: 35,
+  milestone: 45,
+  setsPerDay: 1,
   domain: "strength" as const,
   unit: "reps" as const,
   stageType: "Build" as const,
   windowDays: 21,
 };
 
-export const LOCAL_STORAGE_KEY = "routine_loop_v1";
+export const LOCAL_STORAGE_KEY = "routine_loop_v2";
 export const LOCAL_USER_KEY = "routine_local_user_id";
 export const LOCAL_CHOSEN_KEY = "routine_local_chosen";

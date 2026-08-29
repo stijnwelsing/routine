@@ -40,7 +40,7 @@ Koers: A/B/nu/etappe/venster/trend/hitrate/rem/actie + Ik-blok.
 Ik-velden (leeg mag, geen seed-tekst, geen namen in defaults):
 
 - identity_anti — Leven dat ik weiger (280)
-- identity_new — Wie ik word, één zin (140)
+- identity_new — Wie ik word (140)
 - identity_constraint — Wat B niet mag schenden (140)
 - horizon_1y — optioneel 1-jaars B (140)
 

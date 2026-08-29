@@ -29,7 +29,7 @@ Seed lock 29 aug 2026: **A (start / huidige) = 40**, **etappe = 45**, **B = 50**
 Ik-blok (alleen Koers, leeg mag, geen seed-tekst):
 
 - Leven dat ik weiger (`identity_anti`, max 280)
-- Wie ik word, één zin (`identity_new`, max 140)
+- Wie ik word (`identity_new`, max 140)
 - Wat B niet mag schenden (`identity_constraint`, max 140)
 - 1-jaars B (`horizon_1y`, max 140)
 

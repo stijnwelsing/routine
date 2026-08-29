@@ -265,7 +265,7 @@ function render(): void {
           <textarea data-id="identity_anti" maxlength="${IDENTITY_LIMITS.identity_anti}">${escapeHtml(snapshot.profile.identity_anti ?? "")}</textarea>
         </div>
         <div class="field">
-          <div class="lbl">Wie ik word, één zin</div>
+          <div class="lbl">Wie ik word</div>
           <textarea data-id="identity_new" maxlength="${IDENTITY_LIMITS.identity_new}">${escapeHtml(snapshot.profile.identity_new ?? "")}</textarea>
         </div>
         <div class="field">

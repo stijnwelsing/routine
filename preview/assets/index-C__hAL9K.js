@@ -6,7 +6,7 @@
         <circle cx="75" cy="7" r="2.2" fill="${W}" />
         <line x1="124" y1="2" x2="124" y2="12" stroke="${Pe}" stroke-width="1.5" stroke-linecap="square" />
       </svg>
-    </div>`}function d(e,t=""){return`<svg class="ico ${t}" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${e}" /></svg>`}function K(e){return e==="↑"?d("status-up","ico-sage"):e==="→"?d("status-flat","ico-fog"):d("status-kink","ico-ember")}function We(e){return[1,2,3,4,5].map(t=>{const n=e!==null&&e>=t;return`<button class="dot-btn ${n?"on":""}" data-act="energy" data-n="${t}" aria-label="${t}">${d(n?"dot-now":"dot")}</button>`}).join("")}const Ke=`
+    </div>`}function d(e,t=""){return`<svg class="ico ${t}" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${e}" /></svg>`}function We(e){return e==="stokt"||e==="herstel"?"ember":e==="stijgt"?"sage":"fog"}function K(e){const t=We(e);return e==="stokt"||e==="herstel"||e==="zakt"?d("status-kink",`ico-${t}`):e==="stijgt"?d("status-up",`ico-${t}`):d("status-flat",`ico-${t}`)}function Ke(e){return[1,2,3,4,5].map(t=>{const n=e!==null&&e>=t;return`<button class="dot-btn ${n?"on":""}" data-act="energy" data-n="${t}" aria-label="${t}">${d(n?"dot-now":"dot")}</button>`}).join("")}const qe=`
 <svg xmlns="http://www.w3.org/2000/svg" class="sprite" aria-hidden="true">
   <defs>
     <style>
@@ -67,12 +67,12 @@
     <line class="s" x1="4" y1="12" x2="20" y2="12" />
   </symbol>
   <symbol id="i-dot" viewBox="0 0 24 24">
-    <circle class="s" cx="12" cy="12" r="3.2" />
+    <circle class="s" cx="12" cy="12" r="7" />
   </symbol>
   <symbol id="i-dot-now" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="3.2" fill="currentColor" />
+    <circle cx="12" cy="12" r="7" fill="currentColor" />
   </symbol>
-</svg>`;function qe(){document.querySelector(".sprite")||document.body.insertAdjacentHTML("afterbegin",Ke)}const q=()=>document.querySelector("#app"),r={screen:"vandaag",skipOpen:!1,advanceWarn:!1,busy:!1,error:null};let y=null,o=null;function X(){if(!o)throw new Error("geen snapshot");return Be(o.vector,o.stage,o.events,m())}function v(e){return e.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}function w(){if(!o||!y)return;const e=X(),{vector:t,stage:n}=o,i=y.mode==="local"?"Lokaal":"Supabase",s=`
+</svg>`;function Fe(){document.querySelector(".sprite")||document.body.insertAdjacentHTML("afterbegin",qe)}const q=()=>document.querySelector("#app"),r={screen:"vandaag",skipOpen:!1,advanceWarn:!1,busy:!1,error:null};let y=null,o=null;function X(){if(!o)throw new Error("geen snapshot");return Be(o.vector,o.stage,o.events,m())}function v(e){return e.replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;")}function w(){if(!o||!y)return;const e=X(),{vector:t,stage:n}=o,i=y.mode==="local"?"Lokaal":"Supabase",s=`
     <div class="hdr">
       <div>
         ${Re()}
@@ -102,7 +102,7 @@
         </div>
         <div>
           <div class="lbl">Energie</div>
-          <div class="dots">${We(e.energy)}</div>
+          <div class="dots">${Ke(e.energy)}</div>
         </div>
       </div>
       <div class="sec-hd">Etappe</div>
@@ -134,7 +134,7 @@
       <div class="sec-hd">Koers</div>
       <div class="card">
         <div class="koers-one">
-          ${K(e.trend.arrow)}
+          ${K(e.trend.word)}
           <div class="word">${e.trend.word}</div>
         </div>
       </div>
@@ -158,7 +158,7 @@
           </div>
           <div>
             <div class="lbl">Trend</div>
-            <div class="val status">${K(e.trend.arrow)} ${e.trend.word}</div>
+            <div class="val status">${K(e.trend.word)} ${e.trend.word}</div>
           </div>
           <div>
             <div class="lbl">Hitrate week</div>
@@ -199,4 +199,4 @@
         <button class="btn ghost ico-btn" data-act="export">${d("export")}<span>Exporteer JSON</span></button>
       </div>
       ${r.error?`<p class="error" style="padding:0 18px">${v(r.error)}</p>`:""}
-      ${a}`;return}}function f(e){return Number.isInteger(e)?String(e):e.toFixed(1)}async function z(e){if(!r.busy){r.busy=!0,r.error=null;try{await e()}catch(t){r.error=t instanceof Error?t.message:"Er ging iets mis"}finally{r.busy=!1,w()}}}async function Fe(e){y=e,o=await y.load(),r.screen="vandaag",w()}async function Ge(){qe(),Ue(),await Fe(He())}function Ue(){document.addEventListener("click",e=>{const t=e.target.closest("[data-act], [data-nav]");if(!t)return;const n=t.dataset.nav;if(n==="vandaag"||n==="koers"){r.screen=n,r.skipOpen=!1,r.advanceWarn=!1,w();return}Ye(t)})}async function Ye(e){const t=e.dataset.act;if(!t||!y||!o)return;const n=X(),i=m();if(t==="sleep-inc"||t==="sleep-dec"){const s=n.sleep??7,a=Math.max(0,Math.min(14,s+(t==="sleep-inc"?.5:-.5)));await x({date:i,kind:"body_sleep",value:a,skip_reason:null});return}if(t==="energy"){const s=Number(e.dataset.n),a=n.energy===s?null:s;if(a===null)return;await x({date:i,kind:"body_energy",value:a,skip_reason:null});return}if(t==="plus"){if(n.setLoggedToday||n.skipToday||n.atB)return;await x({date:i,kind:"set",value:n.current+1,skip_reason:null});return}if(t==="done"){if(n.setLoggedToday||n.skipToday)return;await x({date:i,kind:"done",value:n.current,skip_reason:null});return}if(t==="skip-open"){r.skipOpen=!r.skipOpen,w();return}if(t==="skip"){if(n.setLoggedToday)return;const s=e.dataset.reason;if(!s)return;await x({date:i,kind:"skip",value:null,skip_reason:s}),r.skipOpen=!1;return}if(t==="advance"){if(!n.suggestedMilestone)return;if(le(o.profile.identity_constraint)&&!r.advanceWarn){r.advanceWarn=!0,w();return}await F(n.suggestedMilestone);return}if(t==="advance-go"){if(!n.suggestedMilestone)return;await F(n.suggestedMilestone);return}if(t==="advance-cancel"){r.advanceWarn=!1,w();return}if(t==="save-ik"){const s={...o.profile,identity_anti:k(O("identity_anti"),c.identity_anti),identity_new:k(O("identity_new"),c.identity_new),identity_constraint:k(O("identity_constraint"),c.identity_constraint),horizon_1y:k(O("horizon_1y"),c.horizon_1y)};await z(async()=>{await y.saveProfile(s),o.profile=s});return}if(t==="export"){se(o);return}}function O(e){return document.querySelector(`[data-id="${e}"]`)?.value??null}async function F(e){await z(async()=>{o.stage=await y.advanceStage(o.stage,e),o.rotated=!0,r.advanceWarn=!1})}async function x(e){await z(async()=>{const t=await y.addEvent(e);o.events.push(t)})}Ge();
+      ${a}`;return}}function f(e){return Number.isInteger(e)?String(e):e.toFixed(1)}async function z(e){if(!r.busy){r.busy=!0,r.error=null;try{await e()}catch(t){r.error=t instanceof Error?t.message:"Er ging iets mis"}finally{r.busy=!1,w()}}}async function Ge(e){y=e,o=await y.load(),r.screen="vandaag",w()}async function Ue(){Fe(),Ye(),await Ge(He())}function Ye(){document.addEventListener("click",e=>{const t=e.target.closest("[data-act], [data-nav]");if(!t)return;const n=t.dataset.nav;if(n==="vandaag"||n==="koers"){r.screen=n,r.skipOpen=!1,r.advanceWarn=!1,w();return}Ve(t)})}async function Ve(e){const t=e.dataset.act;if(!t||!y||!o)return;const n=X(),i=m();if(t==="sleep-inc"||t==="sleep-dec"){const s=n.sleep??7,a=Math.max(0,Math.min(14,s+(t==="sleep-inc"?.5:-.5)));await x({date:i,kind:"body_sleep",value:a,skip_reason:null});return}if(t==="energy"){const s=Number(e.dataset.n),a=n.energy===s?null:s;if(a===null)return;await x({date:i,kind:"body_energy",value:a,skip_reason:null});return}if(t==="plus"){if(n.setLoggedToday||n.skipToday||n.atB)return;await x({date:i,kind:"set",value:n.current+1,skip_reason:null});return}if(t==="done"){if(n.setLoggedToday||n.skipToday)return;await x({date:i,kind:"done",value:n.current,skip_reason:null});return}if(t==="skip-open"){r.skipOpen=!r.skipOpen,w();return}if(t==="skip"){if(n.setLoggedToday)return;const s=e.dataset.reason;if(!s)return;await x({date:i,kind:"skip",value:null,skip_reason:s}),r.skipOpen=!1;return}if(t==="advance"){if(!n.suggestedMilestone)return;if(le(o.profile.identity_constraint)&&!r.advanceWarn){r.advanceWarn=!0,w();return}await F(n.suggestedMilestone);return}if(t==="advance-go"){if(!n.suggestedMilestone)return;await F(n.suggestedMilestone);return}if(t==="advance-cancel"){r.advanceWarn=!1,w();return}if(t==="save-ik"){const s={...o.profile,identity_anti:k(O("identity_anti"),c.identity_anti),identity_new:k(O("identity_new"),c.identity_new),identity_constraint:k(O("identity_constraint"),c.identity_constraint),horizon_1y:k(O("horizon_1y"),c.horizon_1y)};await z(async()=>{await y.saveProfile(s),o.profile=s});return}if(t==="export"){se(o);return}}function O(e){return document.querySelector(`[data-id="${e}"]`)?.value??null}async function F(e){await z(async()=>{o.stage=await y.advanceStage(o.stage,e),o.rotated=!0,r.advanceWarn=!1})}async function x(e){await z(async()=>{const t=await y.addEvent(e);o.events.push(t)})}Ue();

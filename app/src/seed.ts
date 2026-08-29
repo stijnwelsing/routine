@@ -1,6 +1,6 @@
 import { addDays, newId, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
-import { SEED, type Profile, type Snapshot, type Stage, type Vector } from "./types";
+import { EMPTY, SEED, type Profile, type Snapshot, type Stage, type Vector } from "./types";
 
 export function emptyProfile(userId: string, tenantId: string): Profile {
   return {
@@ -41,6 +41,28 @@ export function seedSnapshot(userId: string, today = todayISO(), tenantId = newI
   const profile = emptyProfile(userId, tenantId);
   const vector = seedVector(userId, tenantId);
   const stage = seedStage(vector.id, tenantId, today);
+  return { profile, vector, stage, events: [], rotated: false };
+}
+
+export function emptyVector(userId: string, tenantId: string): Vector {
+  return {
+    ...seedVector(userId, tenantId),
+    a: EMPTY.a,
+    b: EMPTY.b,
+  };
+}
+
+export function emptyStage(vectorId: string, tenantId: string, today = todayISO()): Stage {
+  return {
+    ...seedStage(vectorId, tenantId, today),
+    milestone: EMPTY.milestone,
+  };
+}
+
+export function emptySnapshot(userId: string, today = todayISO(), tenantId = newId()): Snapshot {
+  const profile = emptyProfile(userId, tenantId);
+  const vector = emptyVector(userId, tenantId);
+  const stage = emptyStage(vector.id, tenantId, today);
   return { profile, vector, stage, events: [], rotated: false };
 }
 

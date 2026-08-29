@@ -166,3 +166,66 @@ begin
     select 1 from public.stages s where s.vector_id = vec_2 and s.status = 'active'
   );
 end $$;
+
+-- Re-bind the two TEST users to their durable tenants. Never mint a third one for them.
+create or replace function public.ensure_own_tenant()
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  uid uuid := (select auth.uid());
+  tid uuid;
+  tid_a uuid := '11111111-1111-1111-1111-111111111111';
+  tid_b uuid := '22222222-2222-2222-2222-222222222222';
+  uid_a uuid := 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa';
+  uid_b uuid := 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
+begin
+  if uid is null then
+    raise exception 'not authenticated';
+  end if;
+
+  select tm.tenant_id into tid
+  from public.tenant_members as tm
+  where tm.user_id = uid
+  limit 1;
+
+  if tid is not null then
+    return tid;
+  end if;
+
+  if uid = uid_a then
+    insert into public.tenant_members (tenant_id, user_id)
+    values (tid_a, uid)
+    on conflict do nothing;
+    return tid_a;
+  end if;
+
+  if uid = uid_b then
+    insert into public.tenant_members (tenant_id, user_id)
+    values (tid_b, uid)
+    on conflict do nothing;
+    return tid_b;
+  end if;
+
+  begin
+    insert into public.tenants default values
+    returning id into tid;
+
+    insert into public.tenant_members (tenant_id, user_id)
+    values (tid, uid);
+  exception
+    when unique_violation then
+      select tm.tenant_id into tid
+      from public.tenant_members as tm
+      where tm.user_id = uid
+      limit 1;
+  end;
+
+  return tid;
+end;
+$$;
+
+revoke all on function public.ensure_own_tenant() from public, anon;
+grant execute on function public.ensure_own_tenant() to authenticated;

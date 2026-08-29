@@ -55,7 +55,7 @@ Multi-tenant vanaf dag 1. Functies in de app; inrichting (A/B/etappe, identity, 
 2. Authentication → URL configuration:
    - Site URL: je app-URL (`http://localhost:5173` lokaal).
    - Redirect URLs: dezelfde origin, plus later GitHub Pages als die de ochtendroute wordt.
-3. Authentication → Providers → Email: Magic link aan.
+3. Authentication → Providers → Email: password én magic link aan.
 4. SQL: alle bestanden in `supabase/migrations/` in de SQL editor (core → horizon → multi_tenant → test_tenants), of:
 
    ```bash

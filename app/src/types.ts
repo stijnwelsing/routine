@@ -93,7 +93,7 @@ export interface LoopView {
   suggestedMilestone: number | null;
 }
 
-/** Empty-tenant inrichting defaults. Live A/B/milestone come from tenant rows. */
+/** Local-device default and tenant-1 SQL seed. Not written to other cloud tenants. */
 export const SEED = {
   a: 40,
   b: 50,
@@ -103,6 +103,13 @@ export const SEED = {
   unit: "reps" as const,
   stageType: "Build" as const,
   windowDays: 21,
+};
+
+/** Cloud fallback when a tenant has no inrichting yet. Tenant 1 uses SEED in SQL. */
+export const EMPTY = {
+  a: 0,
+  b: 1,
+  milestone: 1,
 };
 
 export const LOCAL_STORAGE_KEY = "routine_loop_v3";

@@ -1,7 +1,7 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
-import { applySeedLock, emptyProfile, seedSnapshot, seedStage } from "./seed";
+import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage } from "./seed";
 import {
   LOCAL_CHOSEN_KEY,
   LOCAL_STORAGE_KEY,
@@ -210,17 +210,17 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
       let vector = vectorRes.data as VectorRow | null;
 
       if (!vector) {
-        const seeded = seedSnapshot(userId, todayISO(), tenantId);
+        const blank = emptySnapshot(userId, todayISO(), tenantId);
         const inserted = await client
           .from("vectors")
           .insert({
             tenant_id: tenantId,
             user_id: userId,
-            domain: seeded.vector.domain,
-            a: seeded.vector.a,
-            b: seeded.vector.b,
-            unit: seeded.vector.unit,
-            pace_constraint: seeded.vector.pace_constraint,
+            domain: blank.vector.domain,
+            a: blank.vector.a,
+            b: blank.vector.b,
+            unit: blank.vector.unit,
+            pace_constraint: blank.vector.pace_constraint,
           })
           .select("*")
           .single();
@@ -238,17 +238,17 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
       let stage = stageRes.data as StageRow | null;
 
       if (!stage) {
-        const seeded = seedStage(vector.id, tenantId);
+        const blank = emptyStage(vector.id, tenantId);
         const inserted = await client
           .from("stages")
           .insert({
             tenant_id: tenantId,
             vector_id: vector.id,
-            milestone: seeded.milestone,
-            started_on: seeded.started_on,
-            deadline: seeded.deadline,
-            status: seeded.status,
-            stage_type: seeded.stage_type,
+            milestone: blank.milestone,
+            started_on: blank.started_on,
+            deadline: blank.deadline,
+            status: blank.status,
+            stage_type: blank.stage_type,
           })
           .select("*")
           .single();
@@ -271,7 +271,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
       reject("log", eventsRes.error);
       const events = (eventsRes.data ?? []) as EventRow[];
 
-      return applySeedLock({
+      return {
         profile: {
           id: profile.id,
           tenant_id: profile.tenant_id ?? tenantId,
@@ -307,7 +307,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           value: row.value === null ? null : Number(row.value),
         })),
         rotated: (doneRes.data ?? []).length > 0,
-      });
+      };
     },
 
     async addEvent(input) {

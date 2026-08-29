@@ -264,7 +264,9 @@ textarea {
   cursor: default;
 }
 
-.btn.on {
+.btn.on,
+.btn.on:disabled {
+  opacity: 1;
   background: rgba(46, 125, 82, 0.28);
   border-color: var(--green);
   color: var(--green2);

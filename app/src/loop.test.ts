@@ -94,6 +94,14 @@ describe("weekHitrate", () => {
     ];
     expect(weekHitrate(events, "2026-08-26")).toEqual({ hits: 2, eligible: 2 });
   });
+
+  it("does not invent misses before the stage started", () => {
+    const events = [event({ date: "2026-08-29", kind: "done", value: 26 })];
+    expect(weekHitrate(events, "2026-08-29", "2026-08-29")).toEqual({
+      hits: 1,
+      eligible: 1,
+    });
+  });
 });
 
 describe("gear down", () => {

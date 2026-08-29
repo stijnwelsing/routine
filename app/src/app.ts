@@ -4,6 +4,7 @@ import { formatLong, formatShort, todayISO } from "./dates";
 import {
   createCloudStore,
   createLocalStore,
+  hasLocalSession,
   resolveStore,
   type Store,
 } from "./store";
@@ -294,6 +295,10 @@ export async function start(): Promise<void> {
   bind();
 
   if (!client) {
+    if (hasLocalSession()) {
+      await enterApp(createLocalStore());
+      return;
+    }
     gate = "setup";
     render();
     return;

@@ -2,6 +2,7 @@ import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
 import { seedSnapshot, seedStage } from "./seed";
 import {
+  LOCAL_CHOSEN_KEY,
   LOCAL_STORAGE_KEY,
   LOCAL_USER_KEY,
   type LogEvent,
@@ -46,7 +47,12 @@ function readLocal(userId: string): Snapshot {
   return JSON.parse(raw) as Snapshot;
 }
 
+export function hasLocalSession(): boolean {
+  return Boolean(localStorage.getItem(LOCAL_CHOSEN_KEY) || localStorage.getItem(LOCAL_STORAGE_KEY));
+}
+
 export function createLocalStore(): Store {
+  localStorage.setItem(LOCAL_CHOSEN_KEY, "1");
   const userId = readLocalUserId();
 
   return {

@@ -28,12 +28,20 @@ export function todayEnergy(events: LogEvent[], today: string): number | null {
   return latestOf(events, today, "body_energy")?.value ?? null;
 }
 
+function latestSession(events: LogEvent[], date: string): LogEvent | undefined {
+  return events
+    .filter((event) => event.date === date && (event.kind === "done" || event.kind === "skip"))
+    .sort(byCreated)
+    .at(-1);
+}
+
 export function todaySkip(events: LogEvent[], today: string): SkipReason | null {
-  return latestOf(events, today, "skip")?.skip_reason ?? null;
+  const session = latestSession(events, today);
+  return session?.kind === "skip" ? session.skip_reason : null;
 }
 
 export function todayDone(events: LogEvent[], today: string): boolean {
-  return Boolean(latestOf(events, today, "done"));
+  return latestSession(events, today)?.kind === "done";
 }
 
 export function isGearDown(sleep: number | null, energy: number | null): boolean {
@@ -50,21 +58,32 @@ export function suggestNextMilestone(milestone: number, b: number): number {
 
 type DayMark = "done" | "skip" | "miss" | "empty";
 
-function markDay(events: LogEvent[], date: string, today: string): DayMark {
-  if (latestOf(events, date, "done")) return "done";
-  if (latestOf(events, date, "skip")) return "skip";
+function markDay(
+  events: LogEvent[],
+  date: string,
+  today: string,
+  origin: string,
+): DayMark {
+  if (date < origin) return "empty";
+  const session = latestSession(events, date);
+  if (session?.kind === "done") return "done";
+  if (session?.kind === "skip") return "skip";
   if (latestOf(events, date, "miss")) return "miss";
   if (date >= today) return "empty";
   return "miss";
 }
 
 /** Consecutive done-days. Skip is transparent. Miss breaks. Today without action does not break. */
-export function localStreak(events: LogEvent[], today: string): number {
+export function localStreak(
+  events: LogEvent[],
+  today: string,
+  origin = "1970-01-01",
+): number {
   let streak = 0;
   let cursor = today;
 
   for (let i = 0; i < 400; i += 1) {
-    const mark = markDay(events, cursor, today);
+    const mark = markDay(events, cursor, today, origin);
     if (mark === "done") streak += 1;
     else if (mark === "skip" || (mark === "empty" && cursor === today)) {
       cursor = addDays(cursor, -1);
@@ -81,13 +100,15 @@ export function localStreak(events: LogEvent[], today: string): number {
 export function weekHitrate(
   events: LogEvent[],
   today: string,
+  origin?: string,
 ): { hits: number; eligible: number } {
-  const start = mondayOfWeek(today);
+  const weekStart = mondayOfWeek(today);
+  const start = !origin || origin < weekStart ? weekStart : origin;
   let hits = 0;
   let eligible = 0;
 
   for (const date of eachDay(start, today)) {
-    const mark = markDay(events, date, today);
+    const mark = markDay(events, date, today, origin ?? start);
     if (mark === "skip" || mark === "empty") continue;
     eligible += 1;
     if (mark === "done") hits += 1;
@@ -192,8 +213,8 @@ export function computeLoop(
     milestoneHit,
     atB,
     trend,
-    hitrate: weekHitrate(events, today),
-    streak: localStreak(events, today),
+    hitrate: weekHitrate(events, today, stage.started_on),
+    streak: localStreak(events, today, stage.started_on),
     nextAction: nextActionText({
       current,
       milestone: stage.milestone,

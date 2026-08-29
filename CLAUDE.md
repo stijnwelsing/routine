@@ -1,194 +1,69 @@
-# Routine App — Claude Code Context
+# Routine
 
-## Doel
-Persoonlijke dagelijkse routine tracker voor Stijn. Gebouwd als enkelvoudig HTML bestand,
-gehost via GitHub Pages, data opgeslagen in Supabase. Primair gebruik op iPhone als PWA.
+Gesloten lus. Meet A→B. Grijpt alleen in bij stilstand of als het lijf het tempo niet aankan. Geen habit tracker.
 
----
+De oude `legacy/index.html` is het prototype. Niet uitbreiden. Het product is `app/` (Vite + vanilla TypeScript).
+
+Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra scherm of route. Geen 8-oefening-Home. Geen AI. Geen GTM. Niet live. Product-domein bedoeld: aretan.app (reserve .nl / .eu). Geen DNS, geen Pages. Twee TEST-tenants in seed (README); geen namen in productcode.
 
 ## Stack
-- **Frontend**: Enkelvoudig `index.html` — vanilla JS, geen frameworks, geen build tooling
-- **Database**: Supabase (Postgres) — centrale opslag, sync bij elke invoer
-- **Hosting**: GitHub Pages — main branch, root map, bestand heet `index.html`
-- **Fonts**: Google Fonts — Bebas Neue (headers) + DM Sans (body)
-- **Offline**: localStorage als fallback als Supabase niet bereikbaar is
 
----
+- Frontend: Vite, vanilla TypeScript, geen framework
+- Data: Supabase, magic link, multi-tenant
+- RLS: `auth.uid()` lidmaatschap van een tenant, geen hardcoded `user_id`
+- Functies in de app (zelfde voor elke tenant). Inrichting en data per tenant in Supabase
+- Zonder env: eerlijke lokale modus, geen nep-cloud
+- Fonts: Bebas Neue (woordmerk/display) + DM Sans (UI). Geen Impact, geen Roboto.
+- UI-woordmerk: ARETAN. Intern product: Routine. Geen tagline.
+- Drie tekens (IMG_3780): WORDMARK header, ICON favicon/PWA, MARK Koers-nav. Geen vierde, geen vlam, Ember niet in het logo.
+- Taal: Nederlands, iPhone-first. Copy zonder streak/grind/protocol/OS.
 
-## Supabase
+## Niet in deze fase
 
-**Project URL**: [INVULLEN]
-**Anon public key**: [INVULLEN]
+GTM, Stripe, landing, waitlist, App Store, HealthKit, AI-coach, chatbot, Memory/Obsidian, XP/levels, 8-oefeningen-checklist, avond-duplicaat, streak-als-kern, confetti, hardcoded `user_id` / tenantnaam, Koe, Human 3.0, 1 Day Protocol, 12-vragen, AI-anti-visie, Herijk, Memory-vault, gallery.
 
-### Tabel: routine_log
-```sql
-create table routine_log (
-  id uuid default gen_random_uuid() primary key,
-  user_id text not null default 'stijn',
-  date date not null unique,
-  done text[] default '{}',
-  supps text[] default '{}',
-  weight numeric(5,2),
-  sleep numeric(4,1),
-  energy int,
-  clean_eat text,
-  cold_shower text,
-  if_done text,
-  alcohol text,
-  walk_morning text,
-  walk_evening text,
-  updated_at timestamptz default now()
-);
-```
+## Schermen
 
-### Tabel: routine_settings
-```sql
-create table routine_settings (
-  user_id text primary key default 'stijn',
-  height int default 188,
-  updated_at timestamptz default now()
-);
-```
+Alleen **Vandaag** en **Koers**.
 
-### Row Level Security
-Beide tabellen hebben open access policy (anon key heeft lees/schrijf toegang).
+Vandaag: Lijf (slaap, energie; optioneel). Items zijn tenant-inrichting (dagelijks / wekelijks / leefregel). Alleen wat vandaag moet. Wekelijks alleen op gezette dagen. +1 alleen op een item met huidige. Rest Done/Skip. Koers ↑/→/↓ één woord. Geen habit-Home, geen catalogus, Meetblad later.
 
----
+- +1 = set gedaan, huidige mag omhoog
+- Done = set op het werkgetal, huidige blijft
+- Geen van beide schuift de etappe
+- Milestone: gebruiker kiest, nooit auto-advance
+- Skip = chip, geen miss
+- Miss = dag die dichtging zonder +1 / Done / Skip. Verse dag (0 events) is startstaat, geen miss, geen stokt
+- Stok = miss. Niet “geen set in de laatste dagen inclusief vandaag”
+- Startstaat is rustig. Ember alleen Skip, gear-down, en stokt bij een echte miss. Geen Ember op Koers bij een verse dag.
+- Gear-down blokkeert etappe-omhoog, is geen stop
+- WON'T-skip = `geen zin`; herhaald toont `identity_new` (geen interview)
 
-## Gebruiker
-- **Naam**: Stijn Welsing
-- **Leeftijd**: Geboren juli 1973, Generation X
-- **Lengte**: 188 cm (default, eens per kwartaal bij te werken)
-- **Primair apparaat**: iPhone
-- **Taal**: Nederlands
+Koers: A/B/nu/etappe/venster/trend/hitrate/rem/actie + Ik-blok.
 
----
+Ik-velden (leeg mag, geen seed-tekst, geen namen in defaults):
 
-## Wat de app bijhoudt
+- identity_anti — Leven dat ik weiger (280)
+- identity_new — Wie ik word (140)
+- identity_constraint — Wat B niet mag schenden (140)
+- horizon_1y — optioneel 1-jaars B (140)
 
-### Beweging (2x per dag)
-| ID | Naam | Detail | Target |
-|----|------|--------|--------|
-| o-pushups | Push-ups | Borst, schouders, triceps | 25 reps |
-| o-squats | Squats | Quads, billen, hamstrings | 25 reps |
-| o-plank | Plank | Core, erector spinae | 45 sec |
-| o-hang | Dead Hang | Lats, grip, decompressie | 25 sec |
-| a-pushups | Push-ups | Avond sessie | 25 reps |
-| a-squats | Squats | Avond sessie | 25 reps |
-| a-plank | Plank | Avond sessie | 45 sec |
-| a-hang | Dead Hang | Avond sessie | 25 sec |
+Nieuwe etappe/B: waarschuw als constraint is gezet, geen blokkade. Horizon leeg + etappes roteren: één regel voor 1-jaars B.
 
-**Volgorde**: ochtend = na opstaan → workout → wandeling. Avond = wandeling → workout → eten.
+## Data
 
-### Wandelingen
-- Ochtend en avond apart bijgehouden
-- Opties: `none` / `small` / `big` / `xl`
-- Klein = door de straat naar het parkje
-- Groot = langs de A
-- XL = extra grote ronde
+Multi-tenant vanaf dag 1. Geen tenantnaam, geen `stijn`, geen zaaknaam in productcode.
 
-### Lichaam
-- **Gewicht**: dagelijks in kg (0.1 stappen), plus/min knoppen + direct invoer
-- **Slaap**: dagelijks in uren (0.5 stappen), plus/min knoppen + direct invoer
-- **Energie**: 1-5 sterren
-- **Lengte**: 188 cm default, eens per kwartaal, plus/min + direct invoer
-- **BMI**: automatisch berekend uit gewicht + lengte, getoond als tweede lijn in grafiek
+- `tenants` (id, created_at) — geen name-kolom
+- `tenant_members` (tenant_id, user_id) — één tenant per user
+- TEST-logins A/B (README) worden later tenant 1 / 2; `ensure_own_tenant()` maakt geen tweede tenant als lidmaatschap al bestaat
+- `profiles` (id, tenant_id, display_name, identity_anti, identity_new, identity_constraint, horizon_1y)
+- `vectors` (tenant_id, user_id, domain strength, a, b, unit reps, pace_constraint) — één strength-vector per tenant
+- `stages` (tenant_id, vector_id, milestone, started_on, deadline, status, stage_type Build)
+- `events` (tenant_id, user_id, date, kind, value, skip_reason)
 
-### Gedrag (ja/nee toggles)
-- Clean gegeten (ja = groen, nee = rood)
-- Koud gedoucht (ja = groen, nee = rood)
-- IF venster gehouden / 13:00-19:00 eetvenster (ja = groen, nee = rood)
-- Alcohol (geen = groen, gedronken = rood)
+RLS: rij zichtbaar als `tenant_id = private.current_tenant_id()` (lidmaatschap via `auth.uid()`). Events-insert eist ook `user_id = auth.uid()`.
 
-### Supplementen
-- **Calcium + D3**: nemen bij lunch/middag (icoon: 🦴)
-- **Magnesium**: nemen voor het slapen (icoon: 🌙)
+Seed lock 29 aug 2026: A (start / huidige) = 40, etappe = 45, B = 50. Eén set, niet verspreid. Unit = reps. 35 is fout. Dat zijn **lege-tenant inrichting-defaults** (`SEED`), geen UI-constanten. Live A/B/etappe komen uit tenantrijen. Vandaag toont die rijen. Etappe schuift niet automatisch door. Squat A=30 reps, plank A=60s, hang A=45s zijn gegeven. Etappe/B daarvan niet verzinnen.
 
----
-
-## UI / Stijl
-
-### Kleurcodering
-```
---bg:       #0c0c0c   (achtergrond)
---card:     #161616   (kaart achtergrond)
---accent:   #e8533a   (rood, primaire accentkleur)
---accent2:  #f0a090   (licht rood)
---green:    #2e7d52   (groen, gedaan/positief)
---green2:   #3da06a   (licht groen)
---blue:     #4a8fd4   (blauw, BMI lijn, wandeling pills)
---yellow:   #d4a820   (geel, supplementen)
---text:     #f0ece4   (primaire tekst)
---muted:    #606060   (secundaire tekst)
-```
-
-### Typografie
-- Headers/cijfers: `Bebas Neue` (Google Fonts)
-- Body: `DM Sans` (Google Fonts)
-
-### Layout principes
-- Mobile-first, geoptimaliseerd voor iPhone Safari
-- `env(safe-area-inset-*)` voor notch/home bar
-- Geen externe CSS frameworks
-- Ripple animatie op interactieve elementen
-- Confetti bij volledig voltooide dag (alle 8 oefeningen)
-
----
-
-## Navigatie
-- **Vandaag** tab: hoofdscherm met alle invoer
-- **Historie** tab: lijst van alle dagen met pills per categorie
-
----
-
-## Data structuur (localStorage key: `routine_v4`)
-```json
-{
-  "2025-05-14": {
-    "done": ["o-pushups", "o-squats", "o-plank", "o-hang"],
-    "supps": ["calcium", "magnesium"],
-    "weight": 88.4,
-    "sleep": 7.5,
-    "energy": 4,
-    "cleanEat": "yes",
-    "coldShower": "yes",
-    "ifDone": "yes",
-    "alcohol": "no",
-    "walkMorning": "big",
-    "walkEvening": "small"
-  }
-}
-```
-
-### Settings (localStorage key: `routine_settings`)
-```json
-{
-  "height": 188
-}
-```
-
----
-
-## Supabase sync strategie
-- **Bij elke invoer**: upsert naar `routine_log` op basis van `date`
-- **Bij opstarten**: laad vandaag + laatste 30 dagen van Supabase
-- **Offline fallback**: schrijf naar localStorage, sync zodra verbinding herstelt
-- **Conflict resolutie**: `updated_at` timestamp, meest recent wint
-- **user_id**: hardcoded `'stijn'` voor nu (single-user app)
-
----
-
-## GitHub
-- **Repo**: github.com/[GEBRUIKERSNAAM]/routine
-- **Branch**: main
-- **Deploy**: GitHub Pages, root map, `index.html`
-- **Update workflow**: bestand bewerken → commit naar main → automatisch live na ~1 min
-
----
-
-## Bekende beperkingen / toekomstige uitbreidingen
-- Bluetooth koppeling met e.volve weegschaal is niet mogelijk vanuit Safari (Apple blokkeert Bluetooth API)
-- Gewicht wordt daarom handmatig ingevoerd
-- Mogelijke uitbreiding: export als CSV of JSON download knop
-- Mogelijke uitbreiding: weekrapport / maandoverzicht scherm
-- Mogelijke uitbreiding: stappenteller koppeling via Apple Health (vereist native app)
+Gear down: slaap &lt; 6u of energie laag → etappe mag niet omhoog; volgende actie kleiner of herstel. Geen stop.

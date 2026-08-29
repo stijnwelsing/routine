@@ -2,9 +2,9 @@
 
 Gesloten lus: meet beweging van A naar B. Grijpt alleen in als het stokt of als het lijf het tempo niet aankan.
 
-Dit is **geen habit tracker**. De oude single-file pagina in `legacy/` is het prototype. GitHub Pages blijft die tot deze app de ochtendroute is.
+Dit is **geen habit tracker**. De oude single-file pagina in `legacy/` is het prototype.
 
-Interne naam: Routine. UI-woordmerk: **ARETAN**. Geen tagline (keuze nog niet). Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
+Interne naam: Routine. UI-woordmerk: **ARETAN**. Product-domein (bedoeld, niet live): **aretan.app**. Reserve: aretan.nl, aretan.eu. Geen DNS, geen Pages, geen deploy in week 1. Geen tagline. Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
 
 ## Merk
 
@@ -62,9 +62,10 @@ Zonder `.env` opent **Vandaag** meteen (seed 40→45→50, lokaal). Geen loginmu
 Multi-tenant vanaf dag 1. Functies in de app; inrichting (A/B/etappe, identity, vector, constraints) en alle rijen per tenant. Geen tenantnaam in schema of productcode.
 
 1. Nieuw project. Niet een bestaand project hergebruiken.
-2. Authentication → URL configuration:
-   - Site URL: je app-URL (`http://localhost:5173` lokaal).
-   - Redirect URLs: dezelfde origin, plus later GitHub Pages als die de ochtendroute wordt.
+2. Authentication → URL configuration (niets registreren of deployen):
+   - Site URL lokaal: `http://localhost:5173`
+   - Bedoelde product-URL later: `https://aretan.app` (reserve: aretan.nl, aretan.eu)
+   - Redirect URLs: dezelfde origins. Geen Pages.
 3. Authentication → Providers → Email: password én magic link aan.
 4. SQL: alle bestanden in `supabase/migrations/` in de SQL editor (core → horizon → multi_tenant → test_tenants), of:
 
@@ -100,6 +101,6 @@ Authentication → Providers → Email: password én magic link aan. B mag tenan
 
 Op Koers: **Exporteer JSON** (profiel + vector + etappe + log).
 
-## GitHub Pages
+## Preview, geen live
 
-Root `index.html` stuurt door naar `legacy/index.html` zodat de oude ochtendroute blijft werken. De nieuwe app build je met `npm run build` in `app/` (`app/dist`). Die wordt pas de ochtendroute als jij dat zo zet.
+`npm run build` in `app/` schrijft `app/dist`. Host die map zelf als je een preview wilt. Geen GitHub Pages, geen DNS, geen aretan.app live. Root `index.html` blijft een doorverwijzing naar `legacy/` en is geen product-deploy.

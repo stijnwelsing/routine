@@ -4,7 +4,7 @@ Gesloten lus. Meet A→B. Grijpt alleen in bij stilstand of als het lijf het tem
 
 De oude `legacy/index.html` is het prototype. Niet uitbreiden. Het product is `app/` (Vite + vanilla TypeScript).
 
-Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra scherm of route. Geen 8-oefening-Home. Geen AI. Geen GTM. Niet live. Twee TEST-tenants in seed (README); geen namen in productcode.
+Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra scherm of route. Geen 8-oefening-Home. Geen AI. Geen GTM. Niet live. Product-domein bedoeld: aretan.app (reserve .nl / .eu). Geen DNS, geen Pages. Twee TEST-tenants in seed (README); geen namen in productcode.
 
 ## Stack
 

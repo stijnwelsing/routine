@@ -64,6 +64,6 @@ Multi-tenant vanaf dag 1. Geen tenantnaam, geen `stijn`, geen zaaknaam in produc
 
 RLS: rij zichtbaar als `tenant_id = private.current_tenant_id()` (lidmaatschap via `auth.uid()`). Events-insert eist ook `user_id = auth.uid()`.
 
-Seed lock 29 aug 2026: A (start / huidige) = 40, etappe = 45, B = 50. Eén set, niet verspreid. Unit = reps. 35 is fout. Dat zijn **lege-tenant inrichting-defaults** (`SEED`), geen UI-constanten. Live A/B/etappe komen uit tenantrijen. Vandaag toont die rijen. Etappe schuift niet automatisch door.
+Seed lock 29 aug 2026: A (start / huidige) = 40, etappe = 45, B = 50. Eén set, niet verspreid. Unit = reps. 35 is fout. Dat zijn **lege-tenant inrichting-defaults** (`SEED`), geen UI-constanten. Live A/B/etappe komen uit tenantrijen. Vandaag toont die rijen. Etappe schuift niet automatisch door. Squat / plank / hang: type mag, werkgetal niet verzinnen tot het gegeven is.
 
 Gear down: slaap &lt; 6u of energie laag → etappe mag niet omhoog; volgende actie kleiner of herstel. Geen stop.

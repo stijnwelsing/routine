@@ -95,7 +95,7 @@ Staat in `supabase/migrations/20260829150000_test_tenants.sql`. Niet in de clien
 
 | Login | Later | E-mail | Wachtwoord | Inrichting |
 |-------|-------|--------|------------|------------|
-| A | tenant 1 | `test-a@example.test` | `TEST-a-routine-lock` | items: push-ups 40→45→50; squat 30; plank 60s; hang 45s; wekelijks 2× zonder dagen; leefregels |
+| A | tenant 1 | `test-a@example.test` | `TEST-a-routine-lock` | push-ups 40→45→50; squat/plank/hang zonder werkgetal; wekelijks 2× zonder dagen; leefregels |
 | B | tenant 2 | `test-b@example.test` | `TEST-b-routine-lock` | eigen leeg (niet 40/45/50) |
 
 Authentication → Providers → Email: password én magic link aan. B mag tenant 1 niet zien (RLS). Geen namen in de UI.

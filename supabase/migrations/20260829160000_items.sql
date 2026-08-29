@@ -59,9 +59,9 @@ select
 from (
   values
     ('daily'::text, 'Push-ups'::text, 'reps'::text, 40::numeric, 50::numeric, 45::numeric, '{}'::int[], null::int, 0),
-    ('daily', 'Squats', 'reps', 30, null, null, '{}', null, 1),
-    ('daily', 'Plank', 'sec', 60, null, null, '{}', null, 2),
-    ('daily', 'Dead hang', 'sec', 45, null, null, '{}', null, 3),
+    ('daily', 'Squats', null, null, null, null, '{}', null, 1),
+    ('daily', 'Plank', null, null, null, null, '{}', null, 2),
+    ('daily', 'Dead hang', null, null, null, null, '{}', null, 3),
     ('weekly', 'Gerichte kracht', null, null, null, null, '{}', 2, 4),
     ('leefregel', 'Koud douchen', null, null, null, null, '{}', null, 5),
     ('leefregel', 'Niet snoepen', null, null, null, null, '{}', null, 6),

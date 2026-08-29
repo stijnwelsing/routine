@@ -49,13 +49,13 @@ Koppeling, geen theater: nieuwe etappe/B waarschuwt als er een constraint staat,
 
 ```bash
 cd app
-cp ../.env.example .env.local   # of leeg laten voor lokale modus
 npm install
 npm test
-npm run dev
+npm run build    # statische preview in dist/, geen .env nodig
+npm run preview  # of npm run dev
 ```
 
-Zonder `.env.local` is er **geen nep-Supabase**. De app zegt dat er geen project is. Je kunt lokaal doorgaan; data blijft in deze browser.
+Zonder `.env` opent **Vandaag** meteen (seed 40→45→50, lokaal). Geen loginmuur. Auth/RLS blijft in `supabase/migrations/` voor later.
 
 ## Supabase
 

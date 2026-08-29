@@ -8,15 +8,7 @@ import {
 } from "./identity";
 import { computeLoop } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
-import {
-  createCloudStore,
-  createLocalStore,
-  ensureOwnTenant,
-  hasLocalSession,
-  resolveStore,
-  type Store,
-} from "./store";
-import { createSupabase } from "./supabase";
+import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
 import { SKIP_REASONS, type Screen, type Snapshot } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -310,41 +302,8 @@ async function enterApp(next: Store): Promise<void> {
 
 export async function start(): Promise<void> {
   mountSprite();
-  client = createSupabase();
   bind();
-
-  if (!client) {
-    if (hasLocalSession()) {
-      await enterApp(createLocalStore());
-      return;
-    }
-    gate = "setup";
-    render();
-    return;
-  }
-
-  const resolved = await resolveStore(client);
-  if (resolved.kind === "ready") {
-    await enterApp(resolved.store);
-    client.auth.onAuthStateChange(async (_event, session) => {
-      if (!session) {
-        store = null;
-        snapshot = null;
-        gate = "auth";
-        render();
-      }
-    });
-    return;
-  }
-
-  gate = "auth";
-  render();
-  client.auth.onAuthStateChange(async (_event, session) => {
-    if (session?.user && gate !== "app") {
-      const tenantId = await ensureOwnTenant(client!);
-      await enterApp(createCloudStore(client!, session.user, tenantId));
-    }
-  });
+  await enterApp(createLocalStore());
 }
 
 function bind(): void {

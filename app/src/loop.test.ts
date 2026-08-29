@@ -64,6 +64,21 @@ describe("seed", () => {
     expect(computeCurrent(fresh.vector.a, fresh.events)).toBe(40);
   });
 
+  it("keeps 40 → 45 → 50 on one tenant and leaves another tenant alone", () => {
+    const one = seedSnapshot("u1", "2026-08-29", "tenant-1");
+    const two = seedSnapshot("u2", "2026-08-29", "tenant-2");
+    two.vector.a = 0;
+    two.vector.b = 1;
+    two.stage.milestone = 1;
+    expect(one.vector.a).toBe(40);
+    expect(one.stage.milestone).toBe(45);
+    expect(one.vector.b).toBe(50);
+    expect(two.vector.a).toBe(0);
+    expect(two.stage.milestone).toBe(1);
+    expect(two.vector.b).toBe(1);
+    expect(one.profile.tenant_id).not.toBe(two.profile.tenant_id);
+  });
+
   it("rewrites leftover 25 / 35 so Vandaag is 40 → 45 → 50", () => {
     const stale = seedSnapshot("u1");
     stale.vector.a = 25;

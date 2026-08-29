@@ -29,6 +29,7 @@ interface AppState {
   busy: boolean;
   error: string | null;
   email: string;
+  password: string;
   magicSent: boolean;
 }
 
@@ -39,6 +40,7 @@ const state: AppState = {
   busy: false,
   error: null,
   email: "",
+  password: "",
   magicSent: false,
 };
 
@@ -83,14 +85,21 @@ function render(): void {
     root().innerHTML = `
       <div class="center">
         <h1>Routine</h1>
-        <p>Magic link. Geen wachtwoord.</p>
+        <p>E-mail. Wachtwoord of magic link.</p>
         <div class="field">
           <div class="lbl">E-mail</div>
           <input type="email" autocomplete="email" inputmode="email" value="${escapeHtml(state.email)}" data-field="email" placeholder="jij@email" />
         </div>
-        <button class="btn primary" data-act="magic" ${state.busy ? "disabled" : ""}>
-          ${state.magicSent ? "Opnieuw sturen" : "Stuur link"}
-        </button>
+        <div class="field">
+          <div class="lbl">Wachtwoord</div>
+          <input type="password" autocomplete="current-password" value="${escapeHtml(state.password)}" data-field="password" />
+        </div>
+        <div class="stack">
+          <button class="btn primary" data-act="password" ${state.busy ? "disabled" : ""}>Inloggen</button>
+          <button class="btn ghost" data-act="magic" ${state.busy ? "disabled" : ""}>
+            ${state.magicSent ? "Opnieuw sturen" : "Stuur magic link"}
+          </button>
+        </div>
         ${state.magicSent ? `<p class="note">Check je mail. Open de link op deze telefoon.</p>` : ""}
         ${state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : ""}
       </div>`;
@@ -361,6 +370,7 @@ function bind(): void {
   document.addEventListener("input", (event) => {
     const field = event.target as HTMLInputElement;
     if (field.dataset.field === "email") state.email = field.value;
+    if (field.dataset.field === "password") state.password = field.value;
   });
 }
 
@@ -370,6 +380,22 @@ async function handleAction(target: HTMLElement): Promise<void> {
 
   if (act === "local") {
     await enterApp(createLocalStore());
+    return;
+  }
+
+  if (act === "password") {
+    if (!client) return;
+    await withBusy(async () => {
+      const email = state.email.trim();
+      if (!email) throw new Error("Vul een e-mailadres in");
+      if (!state.password) throw new Error("Vul een wachtwoord in");
+      const { error } = await client!.auth.signInWithPassword({
+        email,
+        password: state.password,
+      });
+      if (error) throw error;
+      state.password = "";
+    });
     return;
   }
 

@@ -4,7 +4,7 @@ Gesloten lus. Meet A→B. Grijpt alleen in bij stilstand of als het lijf het tem
 
 De oude `legacy/index.html` is het prototype. Niet uitbreiden. Het product is `app/` (Vite + vanilla TypeScript).
 
-Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra scherm of route. Geen 8-oefening-Home. Geen AI. Geen GTM. Niet live.
+Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra scherm of route. Geen 8-oefening-Home. Geen AI. Geen GTM. Niet live. Twee TEST-tenants in seed (README); geen namen in productcode.
 
 ## Stack
 
@@ -51,7 +51,8 @@ Nieuwe etappe/B: waarschuw als constraint is gezet, geen blokkade. Horizon leeg 
 Multi-tenant vanaf dag 1. Geen tenantnaam, geen `stijn`, geen zaaknaam in productcode.
 
 - `tenants` (id, created_at) — geen name-kolom
-- `tenant_members` (tenant_id, user_id) — één tenant per user; `ensure_own_tenant()` maakt de eerste aan
+- `tenant_members` (tenant_id, user_id) — één tenant per user
+- TEST-logins A/B (README) worden later tenant 1 / 2; `ensure_own_tenant()` maakt geen tweede tenant als lidmaatschap al bestaat
 - `profiles` (id, tenant_id, display_name, identity_anti, identity_new, identity_constraint, horizon_1y)
 - `vectors` (tenant_id, user_id, domain strength, a, b, unit reps, pace_constraint) — één strength-vector per tenant
 - `stages` (tenant_id, vector_id, milestone, started_on, deadline, status, stage_type Build)

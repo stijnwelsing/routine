@@ -56,7 +56,7 @@ Multi-tenant vanaf dag 1. Functies in de app; inrichting (A/B/etappe, identity, 
    - Site URL: je app-URL (`http://localhost:5173` lokaal).
    - Redirect URLs: dezelfde origin, plus later GitHub Pages als die de ochtendroute wordt.
 3. Authentication → Providers → Email: Magic link aan.
-4. SQL: alle drie de bestanden in `supabase/migrations/` in de SQL editor (core → horizon → multi_tenant), of:
+4. SQL: alle bestanden in `supabase/migrations/` in de SQL editor (core → horizon → multi_tenant → test_tenants), of:
 
    ```bash
    npx supabase login
@@ -71,9 +71,20 @@ Multi-tenant vanaf dag 1. Functies in de app; inrichting (A/B/etappe, identity, 
    VITE_SUPABASE_ANON_KEY=...
    ```
 
-6. Restart `npm run dev`. Log in met magic link. Eerste login roept `ensure_own_tenant()` aan (generieke tenant, geen naam). RLS: alleen rijen van de tenant waar `auth.uid()` lid van is.
+6. Restart `npm run dev`. Log in met wachtwoord (test) of magic link. RLS: alleen rijen van de tenant waar `auth.uid()` lid van is. `ensure_own_tenant()` maakt alleen een tenant als je nog geen lid bent — de twee TEST-logins hieronder worden niet weggegooid.
 
 Tabellen: `tenants`, `tenant_members`, `profiles`, `vectors`, `stages`, `events`. Geen `memory_notes`. Geen Stripe, GTM, waitlist. Experiments wachten.
+
+### TEST-logins (reset mag tot ze echte tenant 1 / 2 worden)
+
+Staat in `supabase/migrations/20260829150000_test_tenants.sql`. Niet in de client. Niet mailen. Alleen om isolatie te testen.
+
+| Login | Later | E-mail | Wachtwoord | Inrichting |
+|-------|-------|--------|------------|------------|
+| A | tenant 1 | `test-a@example.test` | `TEST-a-routine-lock` | 40 → 45 → 50, één set |
+| B | tenant 2 | `test-b@example.test` | `TEST-b-routine-lock` | eigen leeg (niet 40/45/50) |
+
+Authentication → Providers → Email: password én magic link aan. B mag tenant 1 niet zien (RLS). Geen namen in de UI.
 
 ## Export
 

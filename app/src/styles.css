@@ -280,13 +280,13 @@ textarea {
 }
 
 .chip {
-  min-height: 40px;
-  padding: 8px 12px;
+  min-height: 44px;
+  padding: 10px 14px;
   border-radius: 999px;
-  border: 1px solid var(--border);
+  border: 1px solid #3a3a3a;
   background: var(--card2);
-  color: var(--muted);
-  font-size: 0.78rem;
+  color: var(--text);
+  font-size: 0.8rem;
   cursor: pointer;
 }
 

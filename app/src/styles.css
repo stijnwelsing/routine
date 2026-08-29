@@ -278,7 +278,7 @@ textarea {
 }
 
 .track .end {
-  color: var(--sage);
+  color: var(--fog);
 }
 
 .actions {
@@ -315,9 +315,9 @@ textarea {
 }
 
 .btn.primary {
-  background: rgba(61, 107, 90, 0.22);
-  border-color: var(--sage);
-  color: var(--sage);
+  background: var(--card2);
+  border-color: var(--cream);
+  color: var(--cream);
 }
 
 .btn.ghost {
@@ -344,6 +344,14 @@ textarea {
 
 .btn.on,
 .btn.on:disabled {
+  opacity: 1;
+  background: rgba(240, 236, 228, 0.08);
+  border-color: var(--cream);
+  color: var(--cream);
+}
+
+.btn.track,
+.btn.track:disabled {
   opacity: 1;
   background: rgba(61, 107, 90, 0.28);
   border-color: var(--sage);

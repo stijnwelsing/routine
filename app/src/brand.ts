@@ -51,7 +51,7 @@ export const SPRITE = `
     <circle cx="8" cy="12" r="1.6" fill="currentColor" />
   </symbol>
   <symbol id="i-day" viewBox="0 0 24 24">
-    <g class="s">
+    <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="square" stroke-linejoin="miter">
       <rect x="5" y="7" width="14" height="13" />
       <line x1="9" y1="4" x2="9" y2="8" />
       <line x1="15" y1="4" x2="15" y2="8" />

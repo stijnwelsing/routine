@@ -158,7 +158,7 @@ function render(): void {
         </div>
         <div class="actions">
           <button class="btn ico-btn ${view.plusToday ? "on" : ""}" data-act="plus" ${plusBlocked ? "disabled" : ""}>${icon("plus")}<span>+1</span></button>
-          <button class="btn ico-btn ${view.doneToday ? "on" : "primary"}" data-act="done" ${doneBlocked ? "disabled" : ""}>${icon("done")}<span>Done</span></button>
+          <button class="btn ico-btn ${view.doneToday ? "track" : ""}" data-act="done" ${doneBlocked ? "disabled" : ""}>${icon("done")}<span>Done</span></button>
           <button class="btn ico-btn skip ${view.skipToday ? "on" : ""}" data-act="skip-open" ${view.setLoggedToday ? "disabled" : ""}>${icon("skip")}<span>Skip</span></button>
         </div>
         ${

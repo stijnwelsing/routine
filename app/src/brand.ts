@@ -46,7 +46,7 @@ export const SPRITE = `
   <symbol id="i-mark" viewBox="0 0 24 24">
     <g class="s">
       <line x1="2" y1="12" x2="22" y2="12" />
-      <line x1="16" y1="7" x2="16" y2="17" />
+      <line x1="16" y1="9.5" x2="16" y2="14.5" />
     </g>
     <circle cx="8" cy="12" r="1.6" fill="currentColor" />
   </symbol>

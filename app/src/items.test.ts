@@ -3,7 +3,7 @@ import { dueItems, dueToday, formatWork, hasCurrent } from "./items";
 import { emptySnapshot, seedSnapshot, testTenantItems } from "./seed";
 
 describe("test tenant items", () => {
-  it("keeps push-ups 40 → 45 → 50 and does not invent other work numbers", () => {
+  it("keeps given A numbers and does not invent etappe/B", () => {
     const items = testTenantItems("t1");
     const push = items.find((item) => item.label === "Push-ups");
     const squat = items.find((item) => item.label === "Squats");
@@ -11,9 +11,9 @@ describe("test tenant items", () => {
     const hang = items.find((item) => item.label === "Dead hang");
     const weekly = items.find((item) => item.label === "Gerichte kracht");
     expect(push).toMatchObject({ a: 40, milestone: 45, b: 50, type: "daily" });
-    expect(squat).toMatchObject({ a: null, unit: null, milestone: null, b: null });
-    expect(plank).toMatchObject({ a: null, unit: null, milestone: null, b: null });
-    expect(hang).toMatchObject({ a: null, unit: null, milestone: null, b: null });
+    expect(squat).toMatchObject({ a: 30, unit: "reps", milestone: null, b: null });
+    expect(plank).toMatchObject({ a: 60, unit: "sec", milestone: null, b: null });
+    expect(hang).toMatchObject({ a: 45, unit: "sec", milestone: null, b: null });
     expect(weekly).toMatchObject({ type: "weekly", times_per_week: 2, weekdays: [] });
     expect(hasCurrent(push!)).toBe(true);
     expect(hasCurrent(squat!)).toBe(false);
@@ -35,8 +35,8 @@ describe("test tenant items", () => {
     expect(empty.items).toEqual([]);
     const seeded = seedSnapshot("u1", "2026-08-29", "tenant-1");
     expect(seeded.items.length).toBeGreaterThan(0);
-    expect(formatWork(seeded.items.find((item) => item.label === "Plank")!)).toBeNull();
-    expect(formatWork(seeded.items.find((item) => item.label === "Squats")!)).toBeNull();
-    expect(formatWork(seeded.items.find((item) => item.label === "Dead hang")!)).toBeNull();
+    expect(formatWork(seeded.items.find((item) => item.label === "Plank")!)).toBe("60 s");
+    expect(formatWork(seeded.items.find((item) => item.label === "Squats")!)).toBe("30 reps");
+    expect(formatWork(seeded.items.find((item) => item.label === "Dead hang")!)).toBe("45 s");
   });
 });

@@ -63,8 +63,8 @@ export function testTenantItems(tenantId: string): Item[] {
     row({
       type: "daily",
       label: "Squats",
-      unit: null,
-      a: null,
+      unit: "reps",
+      a: 30,
       b: null,
       milestone: null,
       weekdays: null,
@@ -74,8 +74,8 @@ export function testTenantItems(tenantId: string): Item[] {
     row({
       type: "daily",
       label: "Plank",
-      unit: null,
-      a: null,
+      unit: "sec",
+      a: 60,
       b: null,
       milestone: null,
       weekdays: null,
@@ -85,8 +85,8 @@ export function testTenantItems(tenantId: string): Item[] {
     row({
       type: "daily",
       label: "Dead hang",
-      unit: null,
-      a: null,
+      unit: "sec",
+      a: 45,
       b: null,
       milestone: null,
       weekdays: null,

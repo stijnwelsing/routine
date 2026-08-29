@@ -129,7 +129,7 @@ export const EMPTY = {
   milestone: 1,
 };
 
-export const LOCAL_STORAGE_KEY = "routine_loop_v5";
+export const LOCAL_STORAGE_KEY = "routine_loop_v6";
 export const LOCAL_USER_KEY = "routine_local_user_id";
 export const LOCAL_TENANT_KEY = "routine_local_tenant_id";
 export const LOCAL_CHOSEN_KEY = "routine_local_chosen";

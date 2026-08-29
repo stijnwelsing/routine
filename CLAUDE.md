@@ -35,6 +35,7 @@ Vandaag: Lijf (slaap, energie; optioneel), Etappe push-ups `current → mileston
 - Skip = chip, geen miss
 - Miss = dag die dichtging zonder +1 / Done / Skip. Verse dag (0 events) is startstaat, geen miss, geen stokt
 - Stok = miss. Niet “geen set in de laatste dagen inclusief vandaag”
+- Startstaat is rustig. Ember alleen Skip, gear-down, en stokt bij een echte miss. Geen Ember op Koers bij een verse dag.
 - Gear-down blokkeert etappe-omhoog, is geen stop
 - WON'T-skip = `geen zin`; herhaald toont `identity_new` (geen interview)
 

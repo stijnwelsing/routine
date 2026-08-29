@@ -1,4 +1,3 @@
-import type { TrendArrow } from "./types";
 
 const CREAM = "#F0ECE4";
 const SAGE = "#3D6B5A";
@@ -20,10 +19,20 @@ export function icon(id: string, cls = ""): string {
   return `<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-${id}" /></svg>`;
 }
 
-export function statusIcon(arrow: TrendArrow): string {
-  if (arrow === "↑") return icon("status-up", "ico-sage");
-  if (arrow === "→") return icon("status-flat", "ico-fog");
-  return icon("status-kink", "ico-ember");
+/** Ember only for a real miss (stokt) or gear-down (herstel). Fresh/stabiel stays fog. */
+export function statusTone(word: string): "ember" | "sage" | "fog" {
+  if (word === "stokt" || word === "herstel") return "ember";
+  if (word === "stijgt") return "sage";
+  return "fog";
+}
+
+export function statusIcon(word: string): string {
+  const tone = statusTone(word);
+  if (word === "stokt" || word === "herstel" || word === "zakt") {
+    return icon("status-kink", `ico-${tone}`);
+  }
+  if (word === "stijgt") return icon("status-up", `ico-${tone}`);
+  return icon("status-flat", `ico-${tone}`);
 }
 
 export function energyDots(value: number | null): string {
@@ -97,10 +106,10 @@ export const SPRITE = `
     <line class="s" x1="4" y1="12" x2="20" y2="12" />
   </symbol>
   <symbol id="i-dot" viewBox="0 0 24 24">
-    <circle class="s" cx="12" cy="12" r="3.2" />
+    <circle class="s" cx="12" cy="12" r="7" />
   </symbol>
   <symbol id="i-dot-now" viewBox="0 0 24 24">
-    <circle cx="12" cy="12" r="3.2" fill="currentColor" />
+    <circle cx="12" cy="12" r="7" fill="currentColor" />
   </symbol>
 </svg>`;
 

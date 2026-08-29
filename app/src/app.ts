@@ -138,7 +138,7 @@ function render(): void {
       <div class="sec-hd">Koers</div>
       <div class="card">
         <div class="koers-one">
-          ${statusIcon(view.trend.arrow)}
+          ${statusIcon(view.trend.word)}
           <div class="word">${view.trend.word}</div>
         </div>
       </div>
@@ -171,7 +171,7 @@ function render(): void {
           </div>
           <div>
             <div class="lbl">Trend</div>
-            <div class="val status">${statusIcon(view.trend.arrow)} ${view.trend.word}</div>
+            <div class="val status">${statusIcon(view.trend.word)} ${view.trend.word}</div>
           </div>
           <div>
             <div class="lbl">Hitrate week</div>

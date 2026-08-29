@@ -129,13 +129,19 @@ export function weekHitrate(
   return { hits, eligible };
 }
 
-export function isStalled(events: LogEvent[], today: string, lookback = 3): boolean {
-  const from = addDays(today, -(lookback - 1));
-  return !events.some(
-    (event) =>
-      event.date >= from &&
-      event.date <= today &&
-      (event.kind === "set" || event.kind === "done"),
+/** Stok = a closed miss. Today with no events is the start state, not a miss. */
+export function isStalled(
+  events: LogEvent[],
+  today: string,
+  origin = "1970-01-01",
+  lookback = 3,
+): boolean {
+  const yesterday = addDays(today, -1);
+  if (yesterday < origin) return false;
+  const windowStart = addDays(today, -lookback);
+  const from = origin > windowStart ? origin : windowStart;
+  return eachDay(from, yesterday).some(
+    (date) => markDay(events, date, today, origin) === "miss",
   );
 }
 
@@ -208,7 +214,7 @@ export function computeLoop(
   const gearDown = isGearDown(sleep, energy);
   const milestoneHit = current >= stage.milestone;
   const atB = current >= vector.b;
-  const stalled = isStalled(events, today);
+  const stalled = isStalled(events, today, stage.started_on);
   const weekStart = mondayOfWeek(today);
   const weekStartCurrent = currentAt(vector.a, events, addDays(weekStart, -1));
   const trend = trendWord({

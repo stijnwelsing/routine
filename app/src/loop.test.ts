@@ -3,6 +3,7 @@ import {
   computeCurrent,
   computeLoop,
   isGearDown,
+  isStalled,
   localStreak,
   suggestNextMilestone,
   weekHitrate,
@@ -155,6 +156,34 @@ describe("localStreak", () => {
   it("does not break on an empty today", () => {
     const events = [event({ date: "2026-08-28", kind: "done", value: 40 })];
     expect(localStreak(events, "2026-08-29")).toBe(1);
+  });
+});
+
+describe("stok is a closed miss", () => {
+  it("does not call a fresh day with 0 events stokt", () => {
+    const freshStage = { ...stage, started_on: "2026-08-29" };
+    const view = computeLoop(vector, freshStage, [], "2026-08-29");
+    expect(isStalled([], "2026-08-29", "2026-08-29")).toBe(false);
+    expect(view.trend.word).not.toBe("stokt");
+    expect(view.trend.word).toBe("stabiel");
+    expect(view.nextAction).toMatch(/werk naar 45/i);
+    expect(view.nextAction).not.toMatch(/stil/i);
+  });
+
+  it("marks miss only after a day closed without +1, done, or skip", () => {
+    const open = { ...stage, started_on: "2026-08-28" };
+    expect(isStalled([], "2026-08-28", "2026-08-28")).toBe(false);
+    expect(computeLoop(vector, open, [], "2026-08-28").trend.word).toBe("stabiel");
+
+    expect(isStalled([], "2026-08-29", "2026-08-28")).toBe(true);
+    expect(computeLoop(vector, open, [], "2026-08-29").trend.word).toBe("stokt");
+
+    const skipped = [event({ date: "2026-08-28", kind: "skip", skip_reason: "geen tijd" })];
+    expect(isStalled(skipped, "2026-08-29", "2026-08-28")).toBe(false);
+    expect(computeLoop(vector, open, skipped, "2026-08-29").trend.word).not.toBe("stokt");
+
+    const done = [event({ date: "2026-08-28", kind: "done", value: 40 })];
+    expect(isStalled(done, "2026-08-29", "2026-08-28")).toBe(false);
   });
 });
 

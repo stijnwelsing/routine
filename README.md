@@ -30,7 +30,8 @@ Knoppen (lock 29 aug 2026):
 - Geen van beide schuift de etappe
 - Milestone: gebruiker kiest, nooit auto-advance
 - **Skip** = chip, geen miss
-- **Miss** = dag zonder +1 / Done / Skip
+- **Miss** = dag die dichtging zonder +1 / Done / Skip. Verse dag (0 events) is geen miss en geen stokt
+- **Stok** = miss. Niet de startstaat van vandaag
 - Gear-down (slaap &lt; 6u of energie laag) blokkeert etappe-omhoog, is geen stop
 - Eén set per dag
 

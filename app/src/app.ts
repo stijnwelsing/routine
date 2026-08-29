@@ -11,7 +11,6 @@ import { formatLong, formatShort, todayISO } from "./dates";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
 import { SKIP_REASONS, type Screen, type Snapshot } from "./types";
-import type { SupabaseClient } from "@supabase/supabase-js";
 
 const root = () => document.querySelector<HTMLElement>("#app")!;
 
@@ -21,9 +20,6 @@ interface AppState {
   advanceWarn: boolean;
   busy: boolean;
   error: string | null;
-  email: string;
-  password: string;
-  magicSent: boolean;
 }
 
 const state: AppState = {
@@ -32,15 +28,10 @@ const state: AppState = {
   advanceWarn: false,
   busy: false,
   error: null,
-  email: "",
-  password: "",
-  magicSent: false,
 };
 
 let store: Store | null = null;
 let snapshot: Snapshot | null = null;
-let client: SupabaseClient | null = null;
-let gate: "boot" | "setup" | "auth" | "app" = "boot";
 
 function loop() {
   if (!snapshot) throw new Error("geen snapshot");
@@ -56,49 +47,6 @@ function escapeHtml(value: string): string {
 }
 
 function render(): void {
-  if (gate === "boot") {
-    root().innerHTML = `<div class="center">${wordmarkHtml()}<p>Laden…</p></div>`;
-    return;
-  }
-
-  if (gate === "setup") {
-    root().innerHTML = `
-      <div class="center">
-        ${wordmarkHtml()}
-        <p>Geen live Supabase. Zet <code>VITE_SUPABASE_URL</code> en <code>VITE_SUPABASE_ANON_KEY</code> in <code>app/.env.local</code>. Zie README.</p>
-        <div class="stack">
-          <button class="btn primary" data-act="local">Doorgaan lokaal op dit apparaat</button>
-        </div>
-        <p class="note">Lokaal is geen nep-cloud. Data blijft in deze browser tot je een project koppelt.</p>
-      </div>`;
-    return;
-  }
-
-  if (gate === "auth") {
-    root().innerHTML = `
-      <div class="center">
-        ${wordmarkHtml()}
-        <p>E-mail. Wachtwoord of magic link.</p>
-        <div class="field">
-          <div class="lbl">E-mail</div>
-          <input type="email" autocomplete="email" inputmode="email" value="${escapeHtml(state.email)}" data-field="email" placeholder="jij@email" />
-        </div>
-        <div class="field">
-          <div class="lbl">Wachtwoord</div>
-          <input type="password" autocomplete="current-password" value="${escapeHtml(state.password)}" data-field="password" />
-        </div>
-        <div class="stack">
-          <button class="btn primary" data-act="password" ${state.busy ? "disabled" : ""}>Inloggen</button>
-          <button class="btn ghost" data-act="magic" ${state.busy ? "disabled" : ""}>
-            ${state.magicSent ? "Opnieuw sturen" : "Stuur magic link"}
-          </button>
-        </div>
-        ${state.magicSent ? `<p class="note">Check je mail. Open de link op deze telefoon.</p>` : ""}
-        ${state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : ""}
-      </div>`;
-    return;
-  }
-
   if (!snapshot || !store) return;
   const view = loop();
   const { vector, stage } = snapshot;
@@ -266,7 +214,6 @@ function render(): void {
       </div>
       <div class="card stack">
         <button class="btn ghost ico-btn" data-act="export">${icon("export")}<span>Exporteer JSON</span></button>
-        ${store.mode === "cloud" ? `<button class="btn ghost" data-act="signout">Uitloggen</button>` : ""}
       </div>
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
       ${nav}`;
@@ -295,7 +242,6 @@ async function withBusy(fn: () => Promise<void>): Promise<void> {
 async function enterApp(next: Store): Promise<void> {
   store = next;
   snapshot = await store.load();
-  gate = "app";
   state.screen = "vandaag";
   render();
 }
@@ -320,56 +266,11 @@ function bind(): void {
     }
     void handleAction(target);
   });
-
-  document.addEventListener("input", (event) => {
-    const field = event.target as HTMLInputElement;
-    if (field.dataset.field === "email") state.email = field.value;
-    if (field.dataset.field === "password") state.password = field.value;
-  });
 }
 
 async function handleAction(target: HTMLElement): Promise<void> {
   const act = target.dataset.act;
   if (!act) return;
-
-  if (act === "local") {
-    await enterApp(createLocalStore());
-    return;
-  }
-
-  if (act === "password") {
-    if (!client) return;
-    await withBusy(async () => {
-      const email = state.email.trim();
-      if (!email) throw new Error("Vul een e-mailadres in");
-      if (!state.password) throw new Error("Vul een wachtwoord in");
-      const { error } = await client!.auth.signInWithPassword({
-        email,
-        password: state.password,
-      });
-      if (error) throw error;
-      state.password = "";
-    });
-    return;
-  }
-
-  if (act === "magic") {
-    if (!client) return;
-    await withBusy(async () => {
-      const email = state.email.trim();
-      if (!email) throw new Error("Vul een e-mailadres in");
-      const { error } = await client!.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
-          emailRedirectTo: `${window.location.origin}${window.location.pathname}`,
-        },
-      });
-      if (error) throw error;
-      state.magicSent = true;
-    });
-    return;
-  }
 
   if (!store || !snapshot) return;
   const view = loop();
@@ -464,16 +365,6 @@ async function handleAction(target: HTMLElement): Promise<void> {
     downloadExport(snapshot);
     return;
   }
-
-  if (act === "signout") {
-    await store.signOut();
-    store = null;
-    snapshot = null;
-    gate = "auth";
-    render();
-    return;
-  }
-
 }
 
 function valueOf(id: string): string | null {

@@ -4,7 +4,7 @@ Gesloten lus: meet beweging van A naar B. Grijpt alleen in als het stokt of als 
 
 Dit is **geen habit tracker**. De oude single-file pagina in `legacy/` is het prototype.
 
-Interne naam: Routine. UI-woordmerk: **ARETAN**. Product-domein (bedoeld, niet live): **aretan.app**. Reserve: aretan.nl, aretan.eu. Geen DNS, geen Pages, geen deploy in week 1. Geen tagline. Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
+Interne naam: Routine. UI-woordmerk: **ARETAN**. Product-domein (bedoeld, niet live): **aretan.app**. Reserve: aretan.nl, aretan.eu. Geen DNS, geen custom domain, geen aretan.app-deploy. Kijk-URL van deze PR: GitHub Pages onder `/preview` (ochtendpad `legacy/` blijft). Geen tagline. Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
 
 ## Merk
 
@@ -65,7 +65,7 @@ Multi-tenant vanaf dag 1. Functies in de app; inrichting (A/B/etappe, identity, 
 2. Authentication → URL configuration (niets registreren of deployen):
    - Site URL lokaal: `http://localhost:5173`
    - Bedoelde product-URL later: `https://aretan.app` (reserve: aretan.nl, aretan.eu)
-   - Redirect URLs: dezelfde origins. Geen Pages.
+   - Redirect URLs: dezelfde origins. Geen aretan.app.
 3. Authentication → Providers → Email: password én magic link aan.
 4. SQL: alle bestanden in `supabase/migrations/` in de SQL editor (core → horizon → multi_tenant → test_tenants), of:
 
@@ -101,6 +101,10 @@ Authentication → Providers → Email: password én magic link aan. B mag tenan
 
 Op Koers: **Exporteer JSON** (profiel + vector + etappe + log).
 
-## Preview, geen live
+## Preview, geen product-live
 
-`npm run build` in `app/` schrijft `app/dist`. Host die map zelf als je een preview wilt. Geen GitHub Pages, geen DNS, geen aretan.app live. Root `index.html` blijft een doorverwijzing naar `legacy/` en is geen product-deploy.
+Kijk-URL (deze PR, geen login): **https://stijnwelsing.github.io/routine/preview/**
+
+GitHub Pages serveert die map onder `/preview`. Root `index.html` blijft een doorverwijzing naar `legacy/` — het ochtendpad wordt niet overschreven. Geen DNS, geen aretan.app.
+
+Lokaal: `cd app && npm run build` → `app/dist`. Voor de hosted map: `npm run build:pages` (base `/routine/preview/`, output `preview/`).

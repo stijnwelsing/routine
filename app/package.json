@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
+    "build:pages": "tsc --noEmit && VITE_BASE=/routine/preview/ vite build && rm -rf ../preview && mkdir -p ../preview && cp -R dist/. ../preview && touch ../preview/.nojekyll",
     "preview": "vite preview --host 127.0.0.1 --port 4173",
     "test": "vitest run"
   },

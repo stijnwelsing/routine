@@ -24,7 +24,7 @@ Knoppen (lock 29 aug 2026):
 - Gear-down (slaap &lt; 6u of energie laag) blokkeert etappe-omhoog, is geen stop
 - Eén set per dag
 
-Seed: A=40, etappe=45, B=50.
+Seed lock 29 aug 2026: **A (start / huidige) = 40**, **etappe = 45**, **B = 50**. Eén set, niet verspreid. Unit = reps. 35 is fout (al voorbij). Vandaag toont `40 → 45 → 50`.
 
 Ik-blok (alleen Koers, leeg mag, geen seed-tekst):
 

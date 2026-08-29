@@ -1,7 +1,7 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
-import { emptyProfile, seedSnapshot, seedStage } from "./seed";
+import { applySeedLock, emptyProfile, seedSnapshot, seedStage } from "./seed";
 import {
   LOCAL_CHOSEN_KEY,
   LOCAL_STORAGE_KEY,
@@ -64,7 +64,7 @@ function readLocal(userId: string): Snapshot {
     writeLocal(seeded);
     return seeded;
   }
-  return normalizeSnapshot(JSON.parse(raw) as Snapshot, userId);
+  return applySeedLock(normalizeSnapshot(JSON.parse(raw) as Snapshot, userId));
 }
 
 export function hasLocalSession(): boolean {
@@ -232,7 +232,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
       reject("log", eventsRes.error);
       const events = (eventsRes.data ?? []) as EventRow[];
 
-      return {
+      return applySeedLock({
         profile: {
           id: profile.id,
           display_name: profile.display_name,
@@ -264,7 +264,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
           value: row.value === null ? null : Number(row.value),
         })),
         rotated: (doneRes.data ?? []).length > 0,
-      };
+      });
     },
 
     async addEvent(input) {

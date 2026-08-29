@@ -89,6 +89,7 @@ export interface LoopView {
   suggestedMilestone: number | null;
 }
 
+/** Lock 29 aug 2026: one set of 40 now. A is start and current. 35 is past. */
 export const SEED = {
   a: 40,
   b: 50,
@@ -100,6 +101,6 @@ export const SEED = {
   windowDays: 21,
 };
 
-export const LOCAL_STORAGE_KEY = "routine_loop_v2";
+export const LOCAL_STORAGE_KEY = "routine_loop_v3";
 export const LOCAL_USER_KEY = "routine_local_user_id";
 export const LOCAL_CHOSEN_KEY = "routine_local_chosen";

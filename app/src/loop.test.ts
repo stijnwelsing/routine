@@ -7,6 +7,7 @@ import {
   suggestNextMilestone,
   weekHitrate,
 } from "./loop";
+import { applySeedLock, seedSnapshot } from "./seed";
 import { SEED, type LogEvent, type Stage, type Vector } from "./types";
 
 function event(
@@ -48,6 +49,24 @@ describe("seed", () => {
     expect(SEED.milestone).toBe(45);
     expect(SEED.b).toBe(50);
     expect(SEED.setsPerDay).toBe(1);
+    expect(SEED.unit).toBe("reps");
+    const fresh = seedSnapshot("u1");
+    expect(fresh.vector.a).toBe(40);
+    expect(fresh.stage.milestone).toBe(45);
+    expect(fresh.vector.b).toBe(50);
+    expect(computeCurrent(fresh.vector.a, fresh.events)).toBe(40);
+  });
+
+  it("rewrites leftover 25 / 35 so Vandaag is 40 → 45 → 50", () => {
+    const stale = seedSnapshot("u1");
+    stale.vector.a = 25;
+    stale.stage.milestone = 35;
+    stale.events = [event({ date: "2026-08-28", kind: "set", value: 26 })];
+    const locked = applySeedLock(stale);
+    expect(locked.vector.a).toBe(40);
+    expect(locked.stage.milestone).toBe(45);
+    expect(locked.vector.b).toBe(50);
+    expect(computeCurrent(locked.vector.a, locked.events)).toBe(40);
   });
 });
 

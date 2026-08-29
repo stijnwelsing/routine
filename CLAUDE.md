@@ -51,6 +51,6 @@ Nieuwe etappe/B: waarschuw als constraint is gezet, geen blokkade. Horizon leeg 
 - `stages` (vector_id, milestone, started_on, deadline, status, stage_type Build)
 - `events` (user_id, date, kind, value, skip_reason)
 
-Seed: A=40, etappe=45, B=50. Eén set per dag. Etappe schuift niet automatisch door.
+Seed lock 29 aug 2026: A (start / huidige) = 40, etappe = 45, B = 50. Eén set, niet verspreid. Unit = reps. 35 is fout. Vandaag toont `40 → 45 → 50`. Etappe schuift niet automatisch door.
 
 Gear down: slaap &lt; 6u of energie laag → etappe mag niet omhoog; volgende actie kleiner of herstel. Geen stop.

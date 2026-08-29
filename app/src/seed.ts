@@ -40,3 +40,26 @@ export function seedSnapshot(userId: string, today = todayISO()): Snapshot {
   const stage = seedStage(vector.id, today);
   return { profile, vector, stage, events: [], rotated: false };
 }
+
+/** Rewrite leftover prototype numbers (25 / 35). Current then starts at A = 40. */
+export function applySeedLock(snapshot: Snapshot): Snapshot {
+  const stale =
+    snapshot.vector.a === 25 ||
+    snapshot.stage.milestone === 35 ||
+    snapshot.stage.milestone === 25;
+  if (!stale) return snapshot;
+  return {
+    ...snapshot,
+    vector: {
+      ...snapshot.vector,
+      a: SEED.a,
+      b: SEED.b,
+      unit: SEED.unit,
+    },
+    stage: {
+      ...snapshot.stage,
+      milestone: SEED.milestone,
+    },
+    events: snapshot.events.filter((event) => event.kind !== "set" && event.kind !== "done"),
+  };
+}

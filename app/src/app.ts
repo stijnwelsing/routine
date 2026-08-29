@@ -6,17 +6,32 @@ import {
   shouldPromptHorizon,
   shouldWarnConstraint,
 } from "./identity";
-import { computeLoop } from "./loop";
+import {
+  computeCurrent,
+  computeLoop,
+  setLoggedToday,
+  todayDone,
+  todayPlus,
+  todaySkip,
+} from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
+import {
+  dueItems,
+  eventsForItem,
+  formatWork,
+  hasCurrent,
+  loopEvents,
+  primaryItem,
+} from "./items";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
-import { SKIP_REASONS, type Screen, type Snapshot } from "./types";
+import { SKIP_REASONS, type Item, type Screen, type Snapshot } from "./types";
 
 const root = () => document.querySelector<HTMLElement>("#app")!;
 
 interface AppState {
   screen: Screen;
-  skipOpen: boolean;
+  skipItemId: string | null;
   advanceWarn: boolean;
   busy: boolean;
   error: string | null;
@@ -24,7 +39,7 @@ interface AppState {
 
 const state: AppState = {
   screen: "vandaag",
-  skipOpen: false,
+  skipItemId: null,
   advanceWarn: false,
   busy: false,
   error: null,
@@ -35,7 +50,28 @@ let snapshot: Snapshot | null = null;
 
 function loop() {
   if (!snapshot) throw new Error("geen snapshot");
-  return computeLoop(snapshot.vector, snapshot.stage, snapshot.events, todayISO());
+  const primary = primaryItem(snapshot.items);
+  return computeLoop(
+    snapshot.vector,
+    snapshot.stage,
+    loopEvents(snapshot.events, primary),
+    todayISO(),
+  );
+}
+
+function itemDay(item: Item) {
+  if (!snapshot) throw new Error("geen snapshot");
+  const today = todayISO();
+  const primary = primaryItem(snapshot.items);
+  const ev = eventsForItem(snapshot.events, item, primary?.id);
+  const current = item.a === null ? null : computeCurrent(item.a, ev);
+  return {
+    done: todayDone(ev, today),
+    plus: todayPlus(ev, today),
+    skip: todaySkip(ev, today),
+    logged: setLoggedToday(ev, today),
+    current,
+  };
 }
 
 function escapeHtml(value: string): string {
@@ -69,9 +105,7 @@ function render(): void {
 
   if (state.screen === "vandaag") {
     const nudge = identityNudge(snapshot.profile.identity_new, snapshot.events);
-    const setTaken = view.setLoggedToday || Boolean(view.skipToday);
-    const plusBlocked = setTaken || view.atB;
-    const doneBlocked = setTaken;
+    const today = dueItems(snapshot.items, todayISO());
     root().innerHTML = `
       ${header}
       ${store.mode === "local" ? `<div class="banner">Lokaal — geen Supabase. +1 / Done / Skip blijven op dit apparaat.</div>` : ""}
@@ -94,47 +128,8 @@ function render(): void {
           <div class="dots">${energyDots(view.energy)}</div>
         </div>
       </div>
-      <div class="sec-hd">Etappe</div>
-      <div class="card">
-        <div class="ex-nm">Push-ups</div>
-        <div class="track">
-          <span class="now">${fmt(view.current)}</span>
-          <span>→</span>
-          <span class="mid">${fmt(stage.milestone)}</span>
-          <span>→</span>
-          <span class="end">${fmt(vector.b)}</span>
-        </div>
-        <div class="actions">
-          <button class="btn ico-btn ${view.plusToday ? "on" : ""}" data-act="plus" ${plusBlocked ? "disabled" : ""}>${icon("plus")}<span>+1</span></button>
-          <button class="btn ico-btn ${view.doneToday ? "track" : ""}" data-act="done" ${doneBlocked ? "disabled" : ""}>${icon("done")}<span>Done</span></button>
-          <button class="btn ico-btn skip ${view.skipToday ? "on" : ""}" data-act="skip-open" ${view.setLoggedToday ? "disabled" : ""}>${icon("skip")}<span>Skip</span></button>
-        </div>
-        ${
-          state.skipOpen || view.skipToday
-            ? `<div class="chips">${SKIP_REASONS.map(
-                (reason) =>
-                  `<button class="chip ${view.skipToday === reason ? "on" : ""}" data-act="skip" data-reason="${reason}">${reason}</button>`,
-              ).join("")}</div>`
-            : ""
-        }
-        ${
-          view.suggestedMilestone
-            ? `<div class="note">Etappe gehaald. Niet automatisch verder. Voorstel: ${fmt(view.suggestedMilestone)}.</div>
-               ${
-                 state.advanceWarn && snapshot.profile.identity_constraint
-                   ? `<div class="banner">Check: ${escapeHtml(snapshot.profile.identity_constraint)}. Geen blokkade.</div>
-                      <div class="stack" style="margin-top:10px">
-                        <button class="btn primary" data-act="advance-go">Toch verder ${fmt(view.suggestedMilestone)}</button>
-                        <button class="btn ghost" data-act="advance-cancel">Niet nu</button>
-                      </div>`
-                   : `<div class="stack" style="margin-top:10px">
-                        <button class="btn primary" data-act="advance" data-n="${view.suggestedMilestone}">Volgende etappe ${fmt(view.suggestedMilestone)}</button>
-                      </div>`
-               }`
-            : ""
-        }
-        ${nudge ? `<div class="note">${escapeHtml(nudge)}</div>` : ""}
-      </div>
+      <div class="sec-hd">Vandaag</div>
+      ${today.map((item) => itemCard(item, view, nudge)).join("")}
       <div class="sec-hd">Koers</div>
       <div class="card">
         <div class="koers-one">
@@ -221,6 +216,72 @@ function render(): void {
   }
 }
 
+function itemCard(
+  item: Item,
+  view: ReturnType<typeof loop>,
+  nudge: string | null,
+): string {
+  const day = itemDay(item);
+  const track = hasCurrent(item);
+  const setTaken = day.logged || Boolean(day.skip);
+  const atB = track && day.current !== null && item.b !== null && day.current >= item.b;
+  const plusBlocked = setTaken || atB;
+  const primary = track;
+  const work = formatWork(item);
+  const showAdvance = primary && view.suggestedMilestone && item.id === snapshot!.vector.id;
+  return `
+      <div class="card">
+        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${
+          track
+            ? `<div class="track">
+          <span class="now">${fmt(day.current ?? item.a ?? 0)}</span>
+          <span>→</span>
+          <span class="mid">${fmt(item.milestone ?? 0)}</span>
+          <span>→</span>
+          <span class="end">${fmt(item.b ?? 0)}</span>
+        </div>`
+            : work
+              ? `<div class="work">${escapeHtml(work)}</div>`
+              : ""
+        }
+        <div class="actions ${track ? "" : "actions-two"}">
+          ${
+            track
+              ? `<button class="btn ico-btn ${day.plus ? "on" : ""}" data-act="plus" data-item="${item.id}" ${plusBlocked ? "disabled" : ""}>${icon("plus")}<span>+1</span></button>`
+              : ""
+          }
+          <button class="btn ico-btn ${day.done ? "track" : ""}" data-act="done" data-item="${item.id}" ${setTaken ? "disabled" : ""}>${icon("done")}<span>Done</span></button>
+          <button class="btn ico-btn skip ${day.skip ? "on" : ""}" data-act="skip-open" data-item="${item.id}" ${day.logged ? "disabled" : ""}>${icon("skip")}<span>Skip</span></button>
+        </div>
+        ${
+          state.skipItemId === item.id || day.skip
+            ? `<div class="chips">${SKIP_REASONS.map(
+                (reason) =>
+                  `<button class="chip ${day.skip === reason ? "on" : ""}" data-act="skip" data-item="${item.id}" data-reason="${reason}">${reason}</button>`,
+              ).join("")}</div>`
+            : ""
+        }
+        ${
+          showAdvance
+            ? `<div class="note">Etappe gehaald. Niet automatisch verder. Voorstel: ${fmt(view.suggestedMilestone!)}.</div>
+               ${
+                 state.advanceWarn && snapshot!.profile.identity_constraint
+                   ? `<div class="banner">Check: ${escapeHtml(snapshot!.profile.identity_constraint)}. Geen blokkade.</div>
+                      <div class="stack" style="margin-top:10px">
+                        <button class="btn primary" data-act="advance-go">Toch verder ${fmt(view.suggestedMilestone!)}</button>
+                        <button class="btn ghost" data-act="advance-cancel">Niet nu</button>
+                      </div>`
+                   : `<div class="stack" style="margin-top:10px">
+                        <button class="btn primary" data-act="advance" data-n="${view.suggestedMilestone}">Volgende etappe ${fmt(view.suggestedMilestone!)}</button>
+                      </div>`
+               }`
+            : ""
+        }
+        ${primary && nudge ? `<div class="note">${escapeHtml(nudge)}</div>` : ""}
+      </div>`;
+}
+
 function fmt(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
@@ -259,7 +320,7 @@ function bind(): void {
     const nav = target.dataset.nav as Screen | undefined;
     if (nav === "vandaag" || nav === "koers") {
       state.screen = nav;
-      state.skipOpen = false;
+      state.skipItemId = null;
       state.advanceWarn = false;
       render();
       return;
@@ -279,7 +340,7 @@ async function handleAction(target: HTMLElement): Promise<void> {
   if (act === "sleep-inc" || act === "sleep-dec") {
     const current = view.sleep ?? 7;
     const next = Math.max(0, Math.min(14, current + (act === "sleep-inc" ? 0.5 : -0.5)));
-    await persistEvent({ date: today, kind: "body_sleep", value: next, skip_reason: null });
+    await persistEvent({ date: today, kind: "body_sleep", value: next, skip_reason: null, item_id: null });
     return;
   }
 
@@ -287,30 +348,54 @@ async function handleAction(target: HTMLElement): Promise<void> {
     const n = Number(target.dataset.n);
     const value = view.energy === n ? null : n;
     if (value === null) return;
-    await persistEvent({ date: today, kind: "body_energy", value, skip_reason: null });
+    await persistEvent({ date: today, kind: "body_energy", value, skip_reason: null, item_id: null });
     return;
   }
 
   if (act === "plus") {
-    if (view.setLoggedToday || view.skipToday || view.atB) return;
-    await persistEvent({ date: today, kind: "set", value: view.current + 1, skip_reason: null });
+    const item = snapshot.items.find((row) => row.id === target.dataset.item);
+    if (!item || !hasCurrent(item)) return;
+    const day = itemDay(item);
+    if (day.logged || day.skip || (item.b !== null && day.current !== null && day.current >= item.b)) {
+      return;
+    }
+    await persistEvent({
+      date: today,
+      kind: "set",
+      value: (day.current ?? item.a ?? 0) + 1,
+      skip_reason: null,
+      item_id: item.id,
+    });
     return;
   }
 
   if (act === "done") {
-    if (view.setLoggedToday || view.skipToday) return;
-    await persistEvent({ date: today, kind: "done", value: view.current, skip_reason: null });
+    const item = snapshot.items.find((row) => row.id === target.dataset.item);
+    if (!item) return;
+    const day = itemDay(item);
+    if (day.logged || day.skip) return;
+    await persistEvent({
+      date: today,
+      kind: "done",
+      value: day.current ?? item.a,
+      skip_reason: null,
+      item_id: item.id,
+    });
     return;
   }
 
   if (act === "skip-open") {
-    state.skipOpen = !state.skipOpen;
+    const itemId = target.dataset.item ?? null;
+    state.skipItemId = state.skipItemId === itemId ? null : itemId;
     render();
     return;
   }
 
   if (act === "skip") {
-    if (view.setLoggedToday) return;
+    const item = snapshot.items.find((row) => row.id === target.dataset.item);
+    if (!item) return;
+    const day = itemDay(item);
+    if (day.logged) return;
     const reason = target.dataset.reason;
     if (!reason) return;
     await persistEvent({
@@ -318,8 +403,9 @@ async function handleAction(target: HTMLElement): Promise<void> {
       kind: "skip",
       value: null,
       skip_reason: reason as (typeof SKIP_REASONS)[number],
+      item_id: item.id,
     });
-    state.skipOpen = false;
+    state.skipItemId = null;
     return;
   }
 
@@ -375,6 +461,9 @@ function valueOf(id: string): string | null {
 async function goAdvance(milestone: number): Promise<void> {
   await withBusy(async () => {
     snapshot!.stage = await store!.advanceStage(snapshot!.stage, milestone);
+    snapshot!.items = snapshot!.items.map((item) =>
+      item.id === snapshot!.stage.vector_id ? { ...item, milestone } : item,
+    );
     snapshot!.rotated = true;
     state.advanceWarn = false;
   });

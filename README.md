@@ -20,7 +20,7 @@ Kleuren: Ink `#0C0C0C`, kaarten `#161616`, Cream `#F0ECE4`, Fog `#606060`, Sage 
 
 Vite + vanilla TypeScript. Alleen **Vandaag** en **Koers**. Geen derde scherm, geen aparte Ik-route, geen AI.
 
-- **Vandaag** — Lijf (slaap, energie; optioneel), Etappe (push-ups: current → milestone → B), +1 / Done / Skip, Koers in één woord.
+- **Vandaag** — Lijf (slaap, energie; 5 dots). Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Koers in één woord.
 - **Koers** — A, B, nu, etappe, venster, trend, hitrate, rem, volgende actie. **Ik** is een blok op Koers, niet op Vandaag.
 
 Knoppen (lock 29 aug 2026):
@@ -36,6 +36,8 @@ Knoppen (lock 29 aug 2026):
 - Eén set per dag
 
 Seed lock 29 aug 2026: **A (start / huidige) = 40**, **etappe = 45**, **B = 50**. Eén set, niet verspreid. Unit = reps. 35 is fout (al voorbij). Vandaag toont `40 → 45 → 50`.
+
+Items zijn tenant-inrichting, geen hardcoded Home. Types: dagelijks / wekelijks / leefregel. Geen catalogus. Wekelijks alleen op gezette dagen — dagen niet verzinnen. +1 alleen bij een item met huidige. Ember alleen Skip, gear-down, echte miss. Startstaat rustig.
 
 Ik-blok (alleen Koers, leeg mag, geen seed-tekst):
 
@@ -93,14 +95,14 @@ Staat in `supabase/migrations/20260829150000_test_tenants.sql`. Niet in de clien
 
 | Login | Later | E-mail | Wachtwoord | Inrichting |
 |-------|-------|--------|------------|------------|
-| A | tenant 1 | `test-a@example.test` | `TEST-a-routine-lock` | 40 → 45 → 50, één set |
+| A | tenant 1 | `test-a@example.test` | `TEST-a-routine-lock` | items: push-ups 40→45→50; squat 30; plank 60s; hang 45s; wekelijks 2× zonder dagen; leefregels |
 | B | tenant 2 | `test-b@example.test` | `TEST-b-routine-lock` | eigen leeg (niet 40/45/50) |
 
 Authentication → Providers → Email: password én magic link aan. B mag tenant 1 niet zien (RLS). Geen namen in de UI.
 
 ## Export
 
-Op Koers: **Exporteer JSON** (profiel + vector + etappe + log).
+Op Koers: **Exporteer JSON** (profiel + items + etappe + log).
 
 ## Preview, geen product-live
 

@@ -20,6 +20,7 @@ function event(
     user_id: "u1",
     value: partial.value ?? null,
     skip_reason: partial.skip_reason ?? null,
+    item_id: partial.item_id ?? null,
     created_at: partial.created_at ?? `${partial.date}T10:00:00.000Z`,
     ...partial,
   };
@@ -63,6 +64,11 @@ describe("seed", () => {
     expect(fresh.stage.milestone).toBe(45);
     expect(fresh.vector.b).toBe(50);
     expect(computeCurrent(fresh.vector.a, fresh.events)).toBe(40);
+    expect(fresh.items.find((item) => item.label === "Push-ups")).toMatchObject({
+      a: 40,
+      milestone: 45,
+      b: 50,
+    });
   });
 
   it("keeps 40 → 45 → 50 on one tenant and leaves another tenant alone", () => {

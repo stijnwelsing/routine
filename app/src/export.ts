@@ -5,7 +5,7 @@ export function exportPayload(snapshot: Snapshot): string {
     {
       exported_at: new Date().toISOString(),
       profile: snapshot.profile,
-      vector: snapshot.vector,
+      items: snapshot.items,
       stage: snapshot.stage,
       events: snapshot.events,
     },

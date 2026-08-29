@@ -20,7 +20,8 @@ export type EventKind =
 export type StageStatus = "active" | "extended" | "lowered" | "replaced" | "done";
 export type StageType = "Build";
 export type Domain = "strength";
-export type Unit = "reps";
+export type Unit = "reps" | "sec";
+export type ItemType = "daily" | "weekly" | "leefregel";
 export type Screen = "vandaag" | "koers";
 export type TrendArrow = "↑" | "→" | "↓";
 
@@ -56,10 +57,25 @@ export interface Stage {
   stage_type: StageType;
 }
 
+export interface Item {
+  id: string;
+  tenant_id: string;
+  type: ItemType;
+  label: string;
+  unit: Unit | null;
+  a: number | null;
+  b: number | null;
+  milestone: number | null;
+  weekdays: number[] | null;
+  times_per_week: number | null;
+  sort: number;
+}
+
 export interface LogEvent {
   id: string;
   tenant_id: string;
   user_id: string;
+  item_id: string | null;
   date: string;
   kind: EventKind;
   value: number | null;
@@ -69,6 +85,7 @@ export interface LogEvent {
 
 export interface Snapshot {
   profile: Profile;
+  items: Item[];
   vector: Vector;
   stage: Stage;
   events: LogEvent[];
@@ -112,7 +129,7 @@ export const EMPTY = {
   milestone: 1,
 };
 
-export const LOCAL_STORAGE_KEY = "routine_loop_v3";
+export const LOCAL_STORAGE_KEY = "routine_loop_v4";
 export const LOCAL_USER_KEY = "routine_local_user_id";
 export const LOCAL_TENANT_KEY = "routine_local_tenant_id";
 export const LOCAL_CHOSEN_KEY = "routine_local_chosen";

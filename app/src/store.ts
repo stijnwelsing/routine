@@ -7,6 +7,7 @@ import {
   LOCAL_STORAGE_KEY,
   LOCAL_TENANT_KEY,
   LOCAL_USER_KEY,
+  type Item,
   type LogEvent,
   type Profile,
   type Snapshot,
@@ -67,6 +68,12 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
         horizon_1y: raw.profile?.horizon_1y ?? null,
       },
     },
+    items: (raw.items ?? []).map((item) => ({
+      ...item,
+      tenant_id: item.tenant_id ?? tenantId,
+      weekdays: item.weekdays ?? null,
+      times_per_week: item.times_per_week ?? null,
+    })),
     vector: {
       ...raw.vector,
       tenant_id: raw.vector?.tenant_id ?? tenantId,
@@ -78,6 +85,7 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
     events: (raw.events ?? []).map((event) => ({
       ...event,
       tenant_id: event.tenant_id ?? tenantId,
+      item_id: event.item_id ?? null,
     })),
     rotated: Boolean(raw.rotated),
   };
@@ -118,6 +126,7 @@ export function createLocalStore(): Store {
         id: input.id ?? newId(),
         tenant_id: tenantId,
         user_id: userId,
+        item_id: input.item_id ?? null,
         date: input.date,
         kind: input.kind,
         value: input.value ?? null,
@@ -148,6 +157,9 @@ export function createLocalStore(): Store {
       const next = seedStage(current.vector_id, tenantId);
       next.milestone = nextMilestone;
       snapshot.stage = next;
+      snapshot.items = snapshot.items.map((item) =>
+        item.id === current.vector_id ? { ...item, milestone: nextMilestone } : item,
+      );
       snapshot.rotated = true;
       writeLocal(snapshot);
       return next;
@@ -271,6 +283,13 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
       reject("log", eventsRes.error);
       const events = (eventsRes.data ?? []) as EventRow[];
 
+      const itemsRes = await client
+        .from("items")
+        .select("*")
+        .eq("tenant_id", tenantId)
+        .order("sort", { ascending: true });
+      const items = (itemsRes.error ? [] : (itemsRes.data ?? [])) as Item[];
+
       return {
         profile: {
           id: profile.id,
@@ -281,6 +300,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           identity_constraint: profile.identity_constraint ?? null,
           horizon_1y: profile.horizon_1y ?? null,
         },
+        items,
         vector: {
           id: vector.id,
           tenant_id: vector.tenant_id ?? tenantId,
@@ -304,6 +324,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         events: events.map((row) => ({
           ...row,
           tenant_id: row.tenant_id ?? tenantId,
+          item_id: row.item_id ?? null,
           value: row.value === null ? null : Number(row.value),
         })),
         rotated: (doneRes.data ?? []).length > 0,
@@ -316,6 +337,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         .insert({
           tenant_id: tenantId,
           user_id: userId,
+          item_id: input.item_id ?? null,
           date: input.date,
           kind: input.kind,
           value: input.value ?? null,
@@ -324,7 +346,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         .select("*")
         .single();
       const row = await must<EventRow>("event", inserted);
-      return { ...row, tenant_id: row.tenant_id ?? tenantId, value: row.value === null ? null : Number(row.value) };
+      return { ...row, tenant_id: row.tenant_id ?? tenantId, item_id: row.item_id ?? null, value: row.value === null ? null : Number(row.value) };
     },
 
     async saveProfile(profile) {

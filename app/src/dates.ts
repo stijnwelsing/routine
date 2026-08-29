@@ -43,6 +43,12 @@ export function formatShort(iso: string): string {
   return `${date.getDate()} ${MONTHS_NL[date.getMonth()]}`;
 }
 
+/** ISO weekday: Monday = 1 … Sunday = 7. */
+export function isoWeekday(iso: string): number {
+  const day = parseISO(iso).getDay();
+  return day === 0 ? 7 : day;
+}
+
 export function mondayOfWeek(iso: string): string {
   const date = parseISO(iso);
   const day = date.getDay();

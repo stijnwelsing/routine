@@ -288,10 +288,23 @@ textarea {
   color: var(--fog);
 }
 
+.work {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 2rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  margin: 10px 0 14px;
+  color: var(--cream);
+}
+
 .actions {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 8px;
+}
+
+.actions-two {
+  grid-template-columns: 1fr 1fr;
 }
 
 .btn,

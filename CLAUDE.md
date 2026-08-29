@@ -26,7 +26,7 @@ GTM, Stripe, landing, waitlist, App Store, HealthKit, AI-coach, chatbot, Memory/
 
 Alleen **Vandaag** en **Koers**.
 
-Vandaag: Lijf (slaap, energie; optioneel), Etappe push-ups `current → milestone → B`, knoppen +1 / Done / Skip, Koers ↑/→/↓ één woord.
+Vandaag: Lijf (slaap, energie; optioneel). Items zijn tenant-inrichting (dagelijks / wekelijks / leefregel). Alleen wat vandaag moet. Wekelijks alleen op gezette dagen. +1 alleen op een item met huidige. Rest Done/Skip. Koers ↑/→/↓ één woord. Geen habit-Home, geen catalogus, Meetblad later.
 
 - +1 = set gedaan, huidige mag omhoog
 - Done = set op het werkgetal, huidige blijft

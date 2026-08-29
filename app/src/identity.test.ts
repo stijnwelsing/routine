@@ -14,6 +14,7 @@ function skip(reason: LogEvent["skip_reason"], date = "2026-08-29"): LogEvent {
     id: crypto.randomUUID(),
     tenant_id: "t1",
     user_id: "u1",
+    item_id: null,
     date,
     kind: "skip",
     value: null,

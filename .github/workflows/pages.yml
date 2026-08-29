@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - cursor/routine-vite-vandaag-14fe
   workflow_dispatch:
 
 permissions:

@@ -1,13 +1,12 @@
 import { addDays, newId, todayISO } from "./dates";
+import { emptyIdentity } from "./identity";
 import { SEED, type Profile, type Snapshot, type Stage, type Vector } from "./types";
 
 export function emptyProfile(userId: string): Profile {
   return {
     id: userId,
     display_name: null,
-    identity_anti: null,
-    identity_new: null,
-    identity_constraint: null,
+    ...emptyIdentity(),
   };
 }
 
@@ -39,5 +38,5 @@ export function seedSnapshot(userId: string, today = todayISO()): Snapshot {
   const profile = emptyProfile(userId);
   const vector = seedVector(userId);
   const stage = seedStage(vector.id, today);
-  return { profile, vector, stage, events: [] };
+  return { profile, vector, stage, events: [], rotated: false };
 }

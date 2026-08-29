@@ -30,6 +30,7 @@ export interface Profile {
   identity_anti: string | null;
   identity_new: string | null;
   identity_constraint: string | null;
+  horizon_1y: string | null;
 }
 
 export interface Vector {
@@ -67,6 +68,7 @@ export interface Snapshot {
   vector: Vector;
   stage: Stage;
   events: LogEvent[];
+  rotated: boolean;
 }
 
 export interface LoopView {

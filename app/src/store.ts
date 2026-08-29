@@ -1,6 +1,7 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
-import { seedSnapshot, seedStage } from "./seed";
+import { emptyIdentity } from "./identity";
+import { emptyProfile, seedSnapshot, seedStage } from "./seed";
 import {
   LOCAL_CHOSEN_KEY,
   LOCAL_STORAGE_KEY,
@@ -37,6 +38,25 @@ function writeLocal(snapshot: Snapshot): void {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
 }
 
+function normalizeSnapshot(raw: Snapshot, userId: string): Snapshot {
+  return {
+    ...raw,
+    profile: {
+      ...emptyProfile(userId),
+      ...raw.profile,
+      ...emptyIdentity(),
+      ...{
+        identity_anti: raw.profile?.identity_anti ?? null,
+        identity_new: raw.profile?.identity_new ?? null,
+        identity_constraint: raw.profile?.identity_constraint ?? null,
+        horizon_1y: raw.profile?.horizon_1y ?? null,
+      },
+    },
+    events: raw.events ?? [],
+    rotated: Boolean(raw.rotated),
+  };
+}
+
 function readLocal(userId: string): Snapshot {
   const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
   if (!raw) {
@@ -44,7 +64,7 @@ function readLocal(userId: string): Snapshot {
     writeLocal(seeded);
     return seeded;
   }
-  return JSON.parse(raw) as Snapshot;
+  return normalizeSnapshot(JSON.parse(raw) as Snapshot, userId);
 }
 
 export function hasLocalSession(): boolean {
@@ -99,6 +119,7 @@ export function createLocalStore(): Store {
       const next = seedStage(current.vector_id);
       next.milestone = nextMilestone;
       snapshot.stage = next;
+      snapshot.rotated = true;
       writeLocal(snapshot);
       return next;
     },
@@ -196,6 +217,13 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         stage = await must<StageRow>("etappe aanmaken", inserted);
       }
 
+      const doneRes = await client
+        .from("stages")
+        .select("id")
+        .eq("vector_id", vector.id)
+        .eq("status", "done");
+      reject("etappe-historie", doneRes.error);
+
       const eventsRes = await client
         .from("events")
         .select("*")
@@ -208,9 +236,10 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
         profile: {
           id: profile.id,
           display_name: profile.display_name,
-          identity_anti: profile.identity_anti,
-          identity_new: profile.identity_new,
-          identity_constraint: profile.identity_constraint,
+          identity_anti: profile.identity_anti ?? null,
+          identity_new: profile.identity_new ?? null,
+          identity_constraint: profile.identity_constraint ?? null,
+          horizon_1y: profile.horizon_1y ?? null,
         },
         vector: {
           id: vector.id,
@@ -234,6 +263,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
           ...row,
           value: row.value === null ? null : Number(row.value),
         })),
+        rotated: (doneRes.data ?? []).length > 0,
       };
     },
 
@@ -261,6 +291,7 @@ export function createCloudStore(client: SupabaseClient, user: User): Store {
           identity_anti: profile.identity_anti,
           identity_new: profile.identity_new,
           identity_constraint: profile.identity_constraint,
+          horizon_1y: profile.horizon_1y,
         })
         .eq("id", userId);
       if (result.error) throw new Error(`profiel: ${result.error.message}`);

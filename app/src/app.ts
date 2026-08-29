@@ -1,4 +1,11 @@
 import { downloadExport } from "./export";
+import {
+  IDENTITY_LIMITS,
+  clipField,
+  identityNudge,
+  shouldPromptHorizon,
+  shouldWarnConstraint,
+} from "./identity";
 import { computeLoop } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
@@ -17,6 +24,7 @@ const root = () => document.querySelector<HTMLElement>("#app")!;
 interface AppState {
   screen: Screen;
   skipOpen: boolean;
+  advanceWarn: boolean;
   busy: boolean;
   error: string | null;
   email: string;
@@ -26,6 +34,7 @@ interface AppState {
 const state: AppState = {
   screen: "vandaag",
   skipOpen: false,
+  advanceWarn: false,
   busy: false,
   error: null,
   email: "",
@@ -108,6 +117,7 @@ function render(): void {
     </nav>`;
 
   if (state.screen === "vandaag") {
+    const nudge = identityNudge(snapshot.profile.identity_new, snapshot.events);
     const setTaken = view.setLoggedToday || Boolean(view.skipToday);
     const plusBlocked = setTaken || view.atB;
     const doneBlocked = setTaken;
@@ -166,11 +176,20 @@ function render(): void {
         ${
           view.suggestedMilestone
             ? `<div class="note">Etappe gehaald. Niet automatisch verder. Voorstel: ${fmt(view.suggestedMilestone)}.</div>
-               <div class="stack" style="margin-top:10px">
-                 <button class="btn primary" data-act="advance" data-n="${view.suggestedMilestone}">Volgende etappe ${fmt(view.suggestedMilestone)}</button>
-               </div>`
+               ${
+                 state.advanceWarn && snapshot.profile.identity_constraint
+                   ? `<div class="banner hot">Check: ${escapeHtml(snapshot.profile.identity_constraint)}. Geen blokkade.</div>
+                      <div class="stack" style="margin-top:10px">
+                        <button class="btn primary" data-act="advance-go">Toch verder ${fmt(view.suggestedMilestone)}</button>
+                        <button class="btn ghost" data-act="advance-cancel">Niet nu</button>
+                      </div>`
+                   : `<div class="stack" style="margin-top:10px">
+                        <button class="btn primary" data-act="advance" data-n="${view.suggestedMilestone}">Volgende etappe ${fmt(view.suggestedMilestone)}</button>
+                      </div>`
+               }`
             : ""
         }
+        ${nudge ? `<div class="note">${escapeHtml(nudge)}</div>` : ""}
       </div>
       <div class="sec-hd">Koers</div>
       <div class="card">
@@ -223,6 +242,31 @@ function render(): void {
       <div class="card">
         <div class="lbl">Volgende actie</div>
         <div class="action-line">${escapeHtml(view.nextAction)}</div>
+      </div>
+      ${
+        shouldPromptHorizon(snapshot.profile.horizon_1y, snapshot.rotated)
+          ? `<div class="banner">Zet een 1-jaars B. Etappes roteren.</div>`
+          : ""
+      }
+      <div class="sec-hd">Ik</div>
+      <div class="card">
+        <div class="field">
+          <div class="lbl">Leven dat ik weiger</div>
+          <textarea data-id="identity_anti" maxlength="${IDENTITY_LIMITS.identity_anti}">${escapeHtml(snapshot.profile.identity_anti ?? "")}</textarea>
+        </div>
+        <div class="field">
+          <div class="lbl">Wie ik word, één zin</div>
+          <textarea data-id="identity_new" maxlength="${IDENTITY_LIMITS.identity_new}">${escapeHtml(snapshot.profile.identity_new ?? "")}</textarea>
+        </div>
+        <div class="field">
+          <div class="lbl">Wat B niet mag schenden</div>
+          <textarea data-id="identity_constraint" maxlength="${IDENTITY_LIMITS.identity_constraint}">${escapeHtml(snapshot.profile.identity_constraint ?? "")}</textarea>
+        </div>
+        <div class="field">
+          <div class="lbl">1-jaars B</div>
+          <textarea data-id="horizon_1y" maxlength="${IDENTITY_LIMITS.horizon_1y}">${escapeHtml(snapshot.profile.horizon_1y ?? "")}</textarea>
+        </div>
+        <button class="btn primary" data-act="save-ik">Bewaar</button>
       </div>
       <div class="card stack">
         <button class="btn ghost" data-act="export">Exporteer JSON</button>
@@ -305,6 +349,7 @@ function bind(): void {
     if (nav === "vandaag" || nav === "koers") {
       state.screen = nav;
       state.skipOpen = false;
+      state.advanceWarn = false;
       render();
       return;
     }
@@ -397,8 +442,38 @@ async function handleAction(target: HTMLElement): Promise<void> {
 
   if (act === "advance") {
     if (!view.suggestedMilestone) return;
+    if (shouldWarnConstraint(snapshot.profile.identity_constraint) && !state.advanceWarn) {
+      state.advanceWarn = true;
+      render();
+      return;
+    }
+    await goAdvance(view.suggestedMilestone);
+    return;
+  }
+
+  if (act === "advance-go") {
+    if (!view.suggestedMilestone) return;
+    await goAdvance(view.suggestedMilestone);
+    return;
+  }
+
+  if (act === "advance-cancel") {
+    state.advanceWarn = false;
+    render();
+    return;
+  }
+
+  if (act === "save-ik") {
+    const profile = {
+      ...snapshot.profile,
+      identity_anti: clipField(valueOf("identity_anti"), IDENTITY_LIMITS.identity_anti),
+      identity_new: clipField(valueOf("identity_new"), IDENTITY_LIMITS.identity_new),
+      identity_constraint: clipField(valueOf("identity_constraint"), IDENTITY_LIMITS.identity_constraint),
+      horizon_1y: clipField(valueOf("horizon_1y"), IDENTITY_LIMITS.horizon_1y),
+    };
     await withBusy(async () => {
-      snapshot!.stage = await store!.advanceStage(snapshot!.stage, view.suggestedMilestone!);
+      await store!.saveProfile(profile);
+      snapshot!.profile = profile;
     });
     return;
   }
@@ -417,6 +492,19 @@ async function handleAction(target: HTMLElement): Promise<void> {
     return;
   }
 
+}
+
+function valueOf(id: string): string | null {
+  const el = document.querySelector<HTMLInputElement | HTMLTextAreaElement>(`[data-id="${id}"]`);
+  return el?.value ?? null;
+}
+
+async function goAdvance(milestone: number): Promise<void> {
+  await withBusy(async () => {
+    snapshot!.stage = await store!.advanceStage(snapshot!.stage, milestone);
+    snapshot!.rotated = true;
+    state.advanceWarn = false;
+  });
 }
 
 async function persistEvent(

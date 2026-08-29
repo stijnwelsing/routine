@@ -8,10 +8,10 @@ Interne naam: Routine. Publiek merk later. Geen landing, Stripe, waitlist, Healt
 
 ## App
 
-Vite + vanilla TypeScript. Alleen **Vandaag** en **Koers**. Geen derde scherm, geen Ik/identity, geen AI.
+Vite + vanilla TypeScript. Alleen **Vandaag** en **Koers**. Geen derde scherm, geen aparte Ik-route, geen AI.
 
 - **Vandaag** — Lijf (slaap, energie; optioneel), Etappe (push-ups: current → milestone → B), +1 / Done / Skip, Koers in één woord.
-- **Koers** — A, B, nu, etappe, venster, trend, hitrate, rem, volgende actie.
+- **Koers** — A, B, nu, etappe, venster, trend, hitrate, rem, volgende actie. **Ik** is een blok op Koers, niet op Vandaag.
 
 Knoppen (lock 29 aug 2026):
 
@@ -25,6 +25,15 @@ Knoppen (lock 29 aug 2026):
 - Eén set per dag
 
 Seed: A=40, etappe=45, B=50.
+
+Ik-blok (alleen Koers, leeg mag, geen seed-tekst):
+
+- Leven dat ik weiger (`identity_anti`, max 280)
+- Wie ik word, één zin (`identity_new`, max 140)
+- Wat B niet mag schenden (`identity_constraint`, max 140)
+- 1-jaars B (`horizon_1y`, max 140)
+
+Koppeling, geen theater: nieuwe etappe/B waarschuwt als er een constraint staat, geen blokkade. WON'T-skip = chip `geen zin`; herhaald toont `identity_new` als die is ingevuld. Horizon leeg + etappes roteren: één regel om een 1-jaars B te zetten. Herijk blijft uit.
 
 ## Starten
 
@@ -45,7 +54,7 @@ Zonder `.env.local` is er **geen nep-Supabase**. De app zegt dat er geen project
    - Site URL: je app-URL (`http://localhost:5173` lokaal).
    - Redirect URLs: dezelfde origin, plus later GitHub Pages als die de ochtendroute wordt.
 3. Authentication → Providers → Email: Magic link aan.
-4. SQL: plak `supabase/migrations/20260829120000_routine_core.sql` in de SQL editor, of:
+4. SQL: plak beide bestanden in `supabase/migrations/` in de SQL editor (eerst core, dan horizon), of:
 
    ```bash
    npx supabase login

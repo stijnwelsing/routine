@@ -1,17 +1,12 @@
 :root {
-  --bg: #0c0c0c;
+  --ink: #0c0c0c;
   --card: #161616;
   --card2: #1e1e1e;
   --border: #242424;
-  --accent: #e8533a;
-  --accent2: #f0a090;
-  --green: #2e7d52;
-  --green2: #3da06a;
-  --blue: #4a8fd4;
-  --blue2: #7ab4e8;
-  --yellow: #d4a820;
-  --text: #f0ece4;
-  --muted: #606060;
+  --cream: #f0ece4;
+  --fog: #606060;
+  --sage: #3d6b5a;
+  --ember: #e8533a;
   --r: 14px;
 }
 
@@ -24,8 +19,8 @@
 
 html,
 body {
-  background: var(--bg);
-  color: var(--text);
+  background: var(--ink);
+  color: var(--cream);
   font-family: "DM Sans", sans-serif;
   min-height: 100%;
   overscroll-behavior: none;
@@ -48,6 +43,33 @@ textarea {
   color: inherit;
 }
 
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.ico {
+  width: 24px;
+  height: 24px;
+  display: block;
+  color: var(--cream);
+  flex: 0 0 24px;
+}
+
+.ico-sage {
+  color: var(--sage);
+}
+
+.ico-fog {
+  color: var(--fog);
+}
+
+.ico-ember {
+  color: var(--ember);
+}
+
 .hdr {
   padding: calc(env(safe-area-inset-top, 0px) + 28px) 18px 10px;
   display: flex;
@@ -55,34 +77,42 @@ textarea {
   align-items: flex-end;
 }
 
-.hdr h1 {
+.wordmark {
+  display: grid;
+  gap: 0;
+}
+
+.wordmark-type {
   font-family: "Bebas Neue", sans-serif;
   font-size: 2.7rem;
   letter-spacing: 0.08em;
-  line-height: 1;
+  line-height: 0.9;
+  color: var(--cream);
+}
+
+.wordmark-rule {
+  width: 100%;
+  height: 14px;
+  display: block;
+  margin-top: 2px;
 }
 
 .date-s {
   font-size: 0.68rem;
-  color: var(--muted);
+  color: var(--fog);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  margin-top: 4px;
+  margin-top: 6px;
 }
 
 .mode-pill {
   font-size: 0.58rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fog);
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 6px 10px;
-}
-
-.mode-pill.warn {
-  color: var(--yellow);
-  border-color: #4a3d14;
 }
 
 .banner {
@@ -91,13 +121,13 @@ textarea {
   border-radius: var(--r);
   background: var(--card);
   border: 1px solid var(--border);
-  color: var(--muted);
+  color: var(--fog);
   font-size: 0.78rem;
   line-height: 1.4;
 }
 
 .banner.hot {
-  color: var(--accent2);
+  color: var(--ember);
   border-color: #4a221c;
 }
 
@@ -105,11 +135,18 @@ textarea {
   font-size: 0.6rem;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fog);
   padding: 12px 18px 8px;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.sec-hd .ico {
+  width: 16px;
+  height: 16px;
+  flex-basis: 16px;
+  color: var(--fog);
 }
 
 .sec-hd::after {
@@ -138,7 +175,19 @@ textarea {
   font-size: 0.62rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fog);
+}
+
+.lbl-ico {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lbl-ico .ico {
+  width: 18px;
+  height: 18px;
+  flex-basis: 18px;
 }
 
 .num-row {
@@ -153,7 +202,7 @@ textarea {
   border-radius: 10px;
   background: var(--card2);
   border: 1px solid var(--border);
-  color: var(--text);
+  color: var(--cream);
   font-size: 1.2rem;
   display: flex;
   align-items: center;
@@ -173,23 +222,26 @@ textarea {
   line-height: 1;
 }
 
-.stars {
+.dots {
   display: flex;
   gap: 8px;
 }
 
-.star {
+.dot-btn {
   width: 40px;
   height: 40px;
   border: 0;
   background: transparent;
-  font-size: 1.45rem;
-  opacity: 0.22;
+  color: var(--fog);
+  display: flex;
+  align-items: center;
+  justify-content: center;
   cursor: pointer;
+  padding: 0;
 }
 
-.star.on {
-  opacity: 1;
+.dot-btn.on {
+  color: var(--cream);
 }
 
 .split {
@@ -211,20 +263,21 @@ textarea {
 }
 
 .track span {
-  color: var(--muted);
+  color: var(--fog);
   font-size: 1.4rem;
 }
 
 .track .now {
-  color: var(--text);
+  color: var(--cream);
 }
 
 .track .mid {
-  color: var(--accent2);
+  color: var(--cream);
+  opacity: 0.7;
 }
 
 .track .end {
-  color: var(--blue2);
+  color: var(--sage);
 }
 
 .actions {
@@ -238,25 +291,41 @@ textarea {
   border-radius: 12px;
   border: 1px solid var(--border);
   background: var(--card2);
-  color: var(--text);
+  color: var(--cream);
   letter-spacing: 0.04em;
   cursor: pointer;
 }
 
+.btn.ico-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 0.72rem;
+}
+
 .btn.primary {
-  background: rgba(46, 125, 82, 0.22);
-  border-color: var(--green);
-  color: var(--green2);
+  background: rgba(61, 107, 90, 0.22);
+  border-color: var(--sage);
+  color: var(--sage);
 }
 
 .btn.ghost {
-  color: var(--muted);
+  color: var(--fog);
 }
 
+.btn.skip {
+  color: var(--ember);
+  border-color: var(--ember);
+  background: transparent;
+}
+
+.btn.skip.on,
 .btn.warn {
   background: rgba(232, 83, 58, 0.14);
-  border-color: var(--accent);
-  color: var(--accent2);
+  border-color: var(--ember);
+  color: var(--ember);
 }
 
 .btn:disabled {
@@ -267,9 +336,16 @@ textarea {
 .btn.on,
 .btn.on:disabled {
   opacity: 1;
-  background: rgba(46, 125, 82, 0.28);
-  border-color: var(--green);
-  color: var(--green2);
+  background: rgba(61, 107, 90, 0.28);
+  border-color: var(--sage);
+  color: var(--sage);
+}
+
+.btn.skip.on,
+.btn.skip.on:disabled {
+  background: rgba(232, 83, 58, 0.14);
+  border-color: var(--ember);
+  color: var(--ember);
 }
 
 .chips {
@@ -285,29 +361,22 @@ textarea {
   border-radius: 999px;
   border: 1px solid #3a3a3a;
   background: var(--card2);
-  color: var(--text);
+  color: var(--cream);
   font-size: 0.8rem;
   cursor: pointer;
 }
 
 .chip.on {
-  border-color: var(--accent);
-  color: var(--accent2);
+  border-color: var(--ember);
+  color: var(--ember);
   background: rgba(232, 83, 58, 0.14);
 }
 
 .koers-one {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 10px;
   padding: 4px 0 2px;
-}
-
-.arrow {
-  font-family: "Bebas Neue", sans-serif;
-  font-size: 2rem;
-  line-height: 1;
-  color: var(--accent2);
 }
 
 .word {
@@ -318,7 +387,7 @@ textarea {
 .note {
   margin-top: 10px;
   font-size: 0.78rem;
-  color: var(--muted);
+  color: var(--fog);
   line-height: 1.4;
 }
 
@@ -338,8 +407,11 @@ textarea {
   line-height: 1;
 }
 
-.kv.wide {
-  grid-template-columns: 1fr;
+.kv .val.status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
 }
 
 .action-line {
@@ -370,7 +442,7 @@ textarea {
 
 .field input:focus,
 .field textarea:focus {
-  border-color: var(--accent);
+  border-color: var(--cream);
 }
 
 .nav {
@@ -398,49 +470,38 @@ textarea {
   font-size: 0.52rem;
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--fog);
   background: transparent;
   border: 0;
   cursor: pointer;
 }
 
 .nav button.active {
-  color: var(--accent);
+  color: var(--cream);
 }
 
-.nav .ni {
-  font-size: 1.15rem;
-  line-height: 1;
+.nav .ico {
+  color: inherit;
 }
 
 .center {
   padding: calc(env(safe-area-inset-top, 0px) + 48px) 22px 24px;
 }
 
-.center h1 {
-  font-family: "Bebas Neue", sans-serif;
+.center .wordmark-type {
   font-size: 3rem;
-  letter-spacing: 0.08em;
 }
 
 .center p {
-  color: var(--muted);
+  color: var(--fog);
   margin: 10px 0 22px;
   line-height: 1.45;
 }
 
 .error {
-  color: var(--accent2);
+  color: var(--fog);
   font-size: 0.8rem;
   margin: 8px 0 0;
-}
-
-.linkish {
-  background: none;
-  border: 0;
-  color: var(--blue2);
-  padding: 8px 0;
-  cursor: pointer;
 }
 
 .stack {

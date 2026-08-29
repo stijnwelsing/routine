@@ -4,7 +4,17 @@ Gesloten lus: meet beweging van A naar B. Grijpt alleen in als het stokt of als 
 
 Dit is **geen habit tracker**. De oude single-file pagina in `legacy/` is het prototype. GitHub Pages blijft die tot deze app de ochtendroute is.
 
-Interne naam: Routine. Publiek merk later. Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
+Interne naam: Routine. UI-woordmerk: **ARETAN**. Geen tagline (keuze nog niet). Geen landing, Stripe, waitlist, HealthKit, AI-coach, Memory of paywall.
+
+## Merk
+
+Drie tekens uit board IMG_3780. Geen vierde, geen vlam, geen tagline.
+
+- **WORDMARK** — header: Bebas Neue ARETAN + lijn (NOW-stip cream, tick sage). Geen icoon-A ernaast.
+- **ICON** — alleen favicon 32 + apple-touch 180 (SVG+PNG). Nooit in de header.
+- **MARK** — Koers-nav + statuslijn. Eind · stip · tick · eind.
+
+Kleuren: Ink `#0C0C0C`, kaarten `#161616`, Cream `#F0ECE4`, Fog `#606060`, Sage `#3D6B5A`. Ember `#E8533A` alleen Skip en gear-down.
 
 ## App
 

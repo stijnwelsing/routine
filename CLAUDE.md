@@ -13,8 +13,10 @@ Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra s
 - RLS: `auth.uid()` lidmaatschap van een tenant, geen hardcoded `user_id`
 - Functies in de app (zelfde voor elke tenant). Inrichting en data per tenant in Supabase
 - Zonder env: eerlijke lokale modus, geen nep-cloud
-- Fonts: Bebas Neue + DM Sans
-- Taal: Nederlands, iPhone-first
+- Fonts: Bebas Neue (woordmerk/display) + DM Sans (UI). Geen Impact, geen Roboto.
+- UI-woordmerk: ARETAN. Intern product: Routine. Geen tagline.
+- Drie tekens (IMG_3780): WORDMARK header, ICON favicon/PWA, MARK Koers-nav. Geen vierde, geen vlam, Ember niet in het logo.
+- Taal: Nederlands, iPhone-first. Copy zonder streak/grind/protocol/OS.
 
 ## Niet in deze fase
 

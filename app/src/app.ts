@@ -17,6 +17,7 @@ import {
   type Store,
 } from "./store";
 import { createSupabase } from "./supabase";
+import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
 import { SKIP_REASONS, type Screen, type Snapshot } from "./types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -64,14 +65,14 @@ function escapeHtml(value: string): string {
 
 function render(): void {
   if (gate === "boot") {
-    root().innerHTML = `<div class="center"><h1>Routine</h1><p>Laden…</p></div>`;
+    root().innerHTML = `<div class="center">${wordmarkHtml()}<p>Laden…</p></div>`;
     return;
   }
 
   if (gate === "setup") {
     root().innerHTML = `
       <div class="center">
-        <h1>Routine</h1>
+        ${wordmarkHtml()}
         <p>Geen live Supabase. Zet <code>VITE_SUPABASE_URL</code> en <code>VITE_SUPABASE_ANON_KEY</code> in <code>app/.env.local</code>. Zie README.</p>
         <div class="stack">
           <button class="btn primary" data-act="local">Doorgaan lokaal op dit apparaat</button>
@@ -84,7 +85,7 @@ function render(): void {
   if (gate === "auth") {
     root().innerHTML = `
       <div class="center">
-        <h1>Routine</h1>
+        ${wordmarkHtml()}
         <p>E-mail. Wachtwoord of magic link.</p>
         <div class="field">
           <div class="lbl">E-mail</div>
@@ -114,16 +115,16 @@ function render(): void {
   const header = `
     <div class="hdr">
       <div>
-        <h1>${state.screen === "koers" ? "Koers" : "Vandaag"}</h1>
+        ${wordmarkHtml()}
         <div class="date-s">${formatLong(todayISO())}</div>
       </div>
-      <div class="mode-pill ${store.mode === "local" ? "warn" : ""}">${modeLabel}</div>
+      <div class="mode-pill">${modeLabel}</div>
     </div>`;
 
   const nav = `
     <nav class="nav">
-      <button data-nav="vandaag" class="${state.screen === "vandaag" ? "active" : ""}"><span class="ni">●</span>Vandaag</button>
-      <button data-nav="koers" class="${state.screen === "koers" ? "active" : ""}"><span class="ni">↗</span>Koers</button>
+      <button data-nav="vandaag" class="${state.screen === "vandaag" ? "active" : ""}">${icon("day")}Vandaag</button>
+      <button data-nav="koers" class="${state.screen === "koers" ? "active" : ""}">${icon("mark")}Koers</button>
     </nav>`;
 
   if (state.screen === "vandaag") {
@@ -139,7 +140,7 @@ function render(): void {
       <div class="card split">
         <div class="row">
           <div>
-            <div class="lbl">Slaap</div>
+            <div class="lbl lbl-ico">${icon("moon")} Slaap</div>
             <div class="note">Optioneel. Blokkeert de dag niet.</div>
           </div>
           <div class="num-row">
@@ -150,14 +151,7 @@ function render(): void {
         </div>
         <div>
           <div class="lbl">Energie</div>
-          <div class="stars">
-            ${[1, 2, 3, 4, 5]
-              .map(
-                (n) =>
-                  `<button class="star ${view.energy !== null && view.energy >= n ? "on" : ""}" data-act="energy" data-n="${n}">★</button>`,
-              )
-              .join("")}
-          </div>
+          <div class="dots">${energyDots(view.energy)}</div>
         </div>
       </div>
       <div class="sec-hd">Etappe</div>
@@ -171,9 +165,9 @@ function render(): void {
           <span class="end">${fmt(vector.b)}</span>
         </div>
         <div class="actions">
-          <button class="btn ${view.plusToday ? "on" : ""}" data-act="plus" ${plusBlocked ? "disabled" : ""}>+1</button>
-          <button class="btn ${view.doneToday ? "on" : "primary"}" data-act="done" ${doneBlocked ? "disabled" : ""}>Done</button>
-          <button class="btn ${view.skipToday ? "warn" : "ghost"}" data-act="skip-open" ${view.setLoggedToday ? "disabled" : ""}>Skip</button>
+          <button class="btn ico-btn ${view.plusToday ? "on" : ""}" data-act="plus" ${plusBlocked ? "disabled" : ""}>${icon("plus")}<span>+1</span></button>
+          <button class="btn ico-btn ${view.doneToday ? "on" : "primary"}" data-act="done" ${doneBlocked ? "disabled" : ""}>${icon("done")}<span>Done</span></button>
+          <button class="btn ico-btn skip ${view.skipToday ? "on" : ""}" data-act="skip-open" ${view.setLoggedToday ? "disabled" : ""}>${icon("skip")}<span>Skip</span></button>
         </div>
         ${
           state.skipOpen || view.skipToday
@@ -188,7 +182,7 @@ function render(): void {
             ? `<div class="note">Etappe gehaald. Niet automatisch verder. Voorstel: ${fmt(view.suggestedMilestone)}.</div>
                ${
                  state.advanceWarn && snapshot.profile.identity_constraint
-                   ? `<div class="banner hot">Check: ${escapeHtml(snapshot.profile.identity_constraint)}. Geen blokkade.</div>
+                   ? `<div class="banner">Check: ${escapeHtml(snapshot.profile.identity_constraint)}. Geen blokkade.</div>
                       <div class="stack" style="margin-top:10px">
                         <button class="btn primary" data-act="advance-go">Toch verder ${fmt(view.suggestedMilestone)}</button>
                         <button class="btn ghost" data-act="advance-cancel">Niet nu</button>
@@ -204,7 +198,7 @@ function render(): void {
       <div class="sec-hd">Koers</div>
       <div class="card">
         <div class="koers-one">
-          <div class="arrow">${view.trend.arrow}</div>
+          ${statusIcon(view.trend.arrow)}
           <div class="word">${view.trend.word}</div>
         </div>
       </div>
@@ -237,7 +231,7 @@ function render(): void {
           </div>
           <div>
             <div class="lbl">Trend</div>
-            <div class="val">${view.trend.arrow} ${view.trend.word}</div>
+            <div class="val status">${statusIcon(view.trend.arrow)} ${view.trend.word}</div>
           </div>
           <div>
             <div class="lbl">Hitrate week</div>
@@ -258,7 +252,7 @@ function render(): void {
           ? `<div class="banner">Zet een 1-jaars B. Etappes roteren.</div>`
           : ""
       }
-      <div class="sec-hd">Ik</div>
+      <div class="sec-hd">${icon("ik")} Ik</div>
       <div class="card">
         <div class="field">
           <div class="lbl">Leven dat ik weiger</div>
@@ -279,7 +273,7 @@ function render(): void {
         <button class="btn primary" data-act="save-ik">Bewaar</button>
       </div>
       <div class="card stack">
-        <button class="btn ghost" data-act="export">Exporteer JSON</button>
+        <button class="btn ghost ico-btn" data-act="export">${icon("export")}<span>Exporteer JSON</span></button>
         ${store.mode === "cloud" ? `<button class="btn ghost" data-act="signout">Uitloggen</button>` : ""}
       </div>
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
@@ -315,6 +309,7 @@ async function enterApp(next: Store): Promise<void> {
 }
 
 export async function start(): Promise<void> {
+  mountSprite();
   client = createSupabase();
   bind();
 

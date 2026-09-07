@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { dueItems, dueToday, formatWork, hasCurrent } from "./items";
+import { dueItems, dueToday, formatWork, hasCurrent, mergeSeedItems, recoverSnapshots } from "./items";
 import { emptySnapshot, seedSnapshot, testTenantItems } from "./seed";
+import type { Item, LogEvent, Snapshot } from "./types";
 
 describe("test tenant items", () => {
   it("keeps given A numbers and does not invent etappe/B", () => {
@@ -38,5 +39,80 @@ describe("test tenant items", () => {
     expect(formatWork(seeded.items.find((item) => item.label === "Plank")!)).toBe("60 s");
     expect(formatWork(seeded.items.find((item) => item.label === "Squats")!)).toBe("30 reps");
     expect(formatWork(seeded.items.find((item) => item.label === "Dead hang")!)).toBe("45 s");
+  });
+
+  it("keeps eat/drink leefregels and only adds missing labels", () => {
+    const items = testTenantItems("t1");
+    const labels = items.filter((item) => item.type === "leefregel").map((item) => item.label);
+    expect(labels).toEqual([
+      "Koud douchen",
+      "Niet snoepen",
+      "Low carb",
+      "Intermittent fasting",
+      "Geen alcohol",
+    ]);
+    const existing = items.filter((item) => item.label !== "Geen alcohol");
+    const push = existing.find((item) => item.label === "Push-ups")!;
+    const merged = mergeSeedItems(existing, testTenantItems("t1"), "t1");
+    expect(merged.find((item) => item.label === "Push-ups")?.id).toBe(push.id);
+    expect(merged.find((item) => item.label === "Low carb")?.label).toBe("Low carb");
+    expect(merged.some((item) => item.label === "Geen alcohol")).toBe(true);
+    expect(merged.filter((item) => item.label === "Push-ups")).toHaveLength(1);
+  });
+
+  it("recovers leftover keys without wiping events or renaming items", () => {
+    const seed = testTenantItems("t1");
+    const oldPush = { ...seed[0], id: "old-push", label: "Push-ups" };
+    const oldItems = seed
+      .filter((item) => item.label !== "Geen alcohol")
+      .map((item) => (item.label === "Push-ups" ? oldPush : item));
+    const event: LogEvent = {
+      id: "evt-1",
+      tenant_id: "t1",
+      user_id: "u1",
+      item_id: "old-push",
+      date: "2026-09-07",
+      kind: "done",
+      value: 40,
+      skip_reason: null,
+      created_at: "2026-09-07T08:00:00.000Z",
+    };
+    const v5: Snapshot = {
+      ...seedSnapshot("u1", "2026-09-07", "t1"),
+      items: oldItems,
+      profile: {
+        id: "u1",
+        tenant_id: "t1",
+        display_name: null,
+        identity_anti: "niet terug",
+        identity_new: null,
+        identity_constraint: null,
+        horizon_1y: null,
+      },
+      events: [event],
+    };
+    const v6empty = seedSnapshot("u1", "2026-09-07", "t1");
+    const recovered = recoverSnapshots([v6empty, v5], seed, "u1", "t1");
+    expect(recovered).not.toBeNull();
+    expect(recovered!.events.map((row) => row.id)).toEqual(["evt-1"]);
+    expect(recovered!.profile.identity_anti).toBe("niet terug");
+    expect(recovered!.items.find((item) => item.label === "Push-ups")?.id).toBe("old-push");
+    expect(recovered!.events[0].item_id).toBe("old-push");
+    expect(recovered!.items.some((item) => item.label === "Geen alcohol")).toBe(true);
+    expect(recovered!.items.find((item) => item.label === "Niet snoepen")?.label).toBe("Niet snoepen");
+  });
+
+  it("does not rewrite existing A numbers when merging seed", () => {
+    const custom: Item = {
+      ...testTenantItems("t1")[1],
+      id: "keep-squat",
+      label: "Squats",
+      a: 32,
+    };
+    const merged = mergeSeedItems([custom], testTenantItems("t1"), "t1");
+    expect(merged.find((item) => item.label === "Squats")).toMatchObject({
+      id: "keep-squat",
+      a: 32,
+    });
   });
 });

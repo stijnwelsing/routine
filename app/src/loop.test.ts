@@ -92,7 +92,8 @@ describe("seed", () => {
     expect(locked.vector.a).toBe(40);
     expect(locked.stage.milestone).toBe(45);
     expect(locked.vector.b).toBe(50);
-    expect(computeCurrent(locked.vector.a, locked.events)).toBe(40);
+    expect(locked.events).toEqual(stale.events);
+    expect(locked.events).toHaveLength(1);
   });
 });
 

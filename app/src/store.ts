@@ -1,10 +1,12 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
-import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage } from "./seed";
+import { mergeSeedItems, recoverSnapshots } from "./items";
+import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage, testTenantItems } from "./seed";
 import {
   LOCAL_CHOSEN_KEY,
   LOCAL_STORAGE_KEY,
+  LOCAL_STORAGE_LEGACY_KEYS,
   LOCAL_TENANT_KEY,
   LOCAL_USER_KEY,
   type Item,
@@ -53,7 +55,30 @@ function writeLocal(snapshot: Snapshot): void {
   localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(snapshot));
 }
 
+function parseSnapshot(raw: string | null): Snapshot | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as Snapshot;
+    if (!parsed || typeof parsed !== "object") return null;
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+function storedSnapshots(): Snapshot[] {
+  return [LOCAL_STORAGE_KEY, ...LOCAL_STORAGE_LEGACY_KEYS]
+    .map((key) => parseSnapshot(localStorage.getItem(key)))
+    .filter((snap): snap is Snapshot => snap !== null);
+}
+
 function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Snapshot {
+  const items = mergeSeedItems(raw.items ?? [], testTenantItems(tenantId), tenantId).map((item) => ({
+    ...item,
+    tenant_id: item.tenant_id ?? tenantId,
+    weekdays: item.weekdays ?? null,
+    times_per_week: item.times_per_week ?? null,
+  }));
   return {
     ...raw,
     profile: {
@@ -68,12 +93,7 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
         horizon_1y: raw.profile?.horizon_1y ?? null,
       },
     },
-    items: (raw.items ?? []).map((item) => ({
-      ...item,
-      tenant_id: item.tenant_id ?? tenantId,
-      weekdays: item.weekdays ?? null,
-      times_per_week: item.times_per_week ?? null,
-    })),
+    items,
     vector: {
       ...raw.vector,
       tenant_id: raw.vector?.tenant_id ?? tenantId,
@@ -92,17 +112,25 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
 }
 
 function readLocal(userId: string, tenantId: string): Snapshot {
-  const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-  if (!raw) {
+  const stored = storedSnapshots();
+  if (stored.length === 0) {
     const seeded = seedSnapshot(userId, todayISO(), tenantId);
     writeLocal(seeded);
     return seeded;
   }
-  return applySeedLock(normalizeSnapshot(JSON.parse(raw) as Snapshot, userId, tenantId));
+  const recovered =
+    recoverSnapshots(stored, testTenantItems(tenantId), userId, tenantId) ?? stored[0];
+  const next = applySeedLock(normalizeSnapshot(recovered, userId, tenantId));
+  writeLocal(next);
+  return next;
+}
+
+function hasStoredSnapshot(): boolean {
+  return storedSnapshots().length > 0;
 }
 
 export function hasLocalSession(): boolean {
-  return Boolean(localStorage.getItem(LOCAL_CHOSEN_KEY) || localStorage.getItem(LOCAL_STORAGE_KEY));
+  return Boolean(localStorage.getItem(LOCAL_CHOSEN_KEY) || hasStoredSnapshot());
 }
 
 export function createLocalStore(): Store {

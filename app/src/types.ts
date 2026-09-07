@@ -130,6 +130,11 @@ export const EMPTY = {
 };
 
 export const LOCAL_STORAGE_KEY = "routine_loop_v6";
+export const LOCAL_STORAGE_LEGACY_KEYS = [
+  "routine_loop_v5",
+  "routine_loop_v4",
+  "routine_loop_v3",
+] as const;
 export const LOCAL_USER_KEY = "routine_local_user_id";
 export const LOCAL_TENANT_KEY = "routine_local_tenant_id";
 export const LOCAL_CHOSEN_KEY = "routine_local_chosen";

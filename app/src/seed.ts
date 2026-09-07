@@ -148,6 +148,17 @@ export function testTenantItems(tenantId: string): Item[] {
       times_per_week: null,
       sort: 8,
     }),
+    row({
+      type: "leefregel",
+      label: "Geen alcohol",
+      unit: null,
+      a: null,
+      b: null,
+      milestone: null,
+      weekdays: null,
+      times_per_week: null,
+      sort: 9,
+    }),
   ];
 }
 
@@ -196,7 +207,7 @@ export function emptySnapshot(userId: string, today = todayISO(), tenantId = new
   return { profile, items: [], vector, stage, events: [], rotated: false };
 }
 
-/** Rewrite leftover prototype numbers (25 / 35). Current then starts at A = 40. */
+/** Rewrite leftover prototype numbers (25 / 35). Events and profile stay. */
 export function applySeedLock(snapshot: Snapshot): Snapshot {
   const stale =
     snapshot.vector.a === 25 ||
@@ -220,6 +231,6 @@ export function applySeedLock(snapshot: Snapshot): Snapshot {
       ...snapshot.stage,
       milestone: SEED.milestone,
     },
-    events: snapshot.events.filter((event) => event.kind !== "set" && event.kind !== "done"),
+    events: snapshot.events,
   };
 }

@@ -139,6 +139,35 @@ describe("local store data preserve", () => {
     expect(snap.events[0].id).toBe("skip-1");
   });
 
+  it("adds timing cases to a leftover snapshot without wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-07", "t1");
+    existing.items = existing.items.filter(
+      (item) =>
+        item.label !== "Cafeïne 90 min na opstaan" && item.label !== "Wandelen na eten",
+    );
+    existing.events = [
+      event({
+        id: "keep-plus",
+        date: "2026-09-07",
+        kind: "set",
+        value: 41,
+        item_id: existing.items.find((item) => item.label === "Push-ups")!.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-plus"]);
+    expect(snap.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(snap.items.find((item) => item.label === "Low carb")?.type).toBe("leefregel");
+    expect(snap.items.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(true);
+    expect(snap.items.some((item) => item.label === "Wandelen na eten")).toBe(true);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

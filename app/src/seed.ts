@@ -1,6 +1,7 @@
 import { addDays, newId, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
 import { hasCurrent, primaryItem } from "./items";
+import { emptyTiming } from "./timing";
 import { EMPTY, SEED, type Item, type Profile, type Snapshot, type Stage, type Vector } from "./types";
 
 export function emptyProfile(userId: string, tenantId: string): Profile {
@@ -41,10 +42,14 @@ export function seedStage(vectorId: string, tenantId: string, today = todayISO()
 /** Test-tenant inrichting. No person name. Etappe/B only where given. Weekdays left empty. */
 export function testTenantItems(tenantId: string): Item[] {
   const row = (
-    partial: Omit<Item, "id" | "tenant_id">,
+    partial: Omit<Item, "id" | "tenant_id" | "timing" | "role" | "template"> &
+      Partial<Pick<Item, "timing" | "role" | "template">>,
   ): Item => ({
     id: newId(),
     tenant_id: tenantId,
+    timing: emptyTiming(),
+    role: null,
+    template: null,
     ...partial,
   });
 
@@ -136,6 +141,7 @@ export function testTenantItems(tenantId: string): Item[] {
       weekdays: null,
       times_per_week: null,
       sort: 7,
+      role: "preference",
     }),
     row({
       type: "leefregel",
@@ -158,6 +164,50 @@ export function testTenantItems(tenantId: string): Item[] {
       weekdays: null,
       times_per_week: null,
       sort: 9,
+    }),
+    row({
+      type: "gedrag",
+      label: "Cafeïne 90 min na opstaan",
+      unit: null,
+      a: null,
+      b: null,
+      milestone: null,
+      weekdays: null,
+      times_per_week: null,
+      sort: 10,
+      role: "constraint",
+      template: "public-framework",
+      timing: {
+        mode: "relative",
+        clock: null,
+        anchor: "wake",
+        offset_min: 90,
+        window_min: null,
+        frequency: "daily",
+        condition: null,
+      },
+    }),
+    row({
+      type: "gedrag",
+      label: "Wandelen na eten",
+      unit: null,
+      a: null,
+      b: null,
+      milestone: null,
+      weekdays: null,
+      times_per_week: null,
+      sort: 11,
+      role: "action",
+      template: null,
+      timing: {
+        mode: "relative",
+        clock: null,
+        anchor: "meal",
+        offset_min: 0,
+        window_min: null,
+        frequency: "daily",
+        condition: "na eten",
+      },
     }),
   ];
 }

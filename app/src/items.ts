@@ -1,17 +1,32 @@
-import { isoWeekday } from "./dates";
 import type { Item, LogEvent, Profile, Snapshot } from "./types";
+import { defaultRole, dueByFrequency, isAction, isConstraint, normalizeTiming } from "./timing";
 
 export function hasCurrent(item: Item): boolean {
   return item.a !== null && item.b !== null && item.milestone !== null;
 }
 
 export function dueToday(item: Item, today: string): boolean {
-  if (item.type === "weekly") {
-    const days = item.weekdays ?? [];
-    if (days.length === 0) return false;
-    return days.includes(isoWeekday(today));
-  }
-  return true;
+  return dueByFrequency(item, today);
+}
+
+export function normalizeItem(item: Item, tenantId: string): Item {
+  return {
+    ...item,
+    tenant_id: item.tenant_id ?? tenantId,
+    weekdays: item.weekdays ?? null,
+    times_per_week: item.times_per_week ?? null,
+    timing: normalizeTiming(item.timing),
+    role: defaultRole(item),
+    template: item.template ?? null,
+  };
+}
+
+export function todayActions(items: Item[], today: string): Item[] {
+  return dueItems(items, today).filter(isAction);
+}
+
+export function todayConstraints(items: Item[], today: string): Item[] {
+  return dueItems(items, today).filter(isConstraint);
 }
 
 export function dueItems(items: Item[], today: string): Item[] {

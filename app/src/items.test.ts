@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { dueItems, dueToday, formatWork, hasCurrent, mergeSeedItems, recoverSnapshots } from "./items";
+import {
+  dueItems,
+  dueToday,
+  formatWork,
+  hasCurrent,
+  mergeSeedItems,
+  recoverSnapshots,
+  todayActions,
+  todayConstraints,
+} from "./items";
 import { emptySnapshot, seedSnapshot, testTenantItems } from "./seed";
 import type { Item, LogEvent, Snapshot } from "./types";
 
@@ -26,7 +35,16 @@ describe("test tenant items", () => {
     const due = dueItems(items, "2026-08-29");
     expect(due.some((item) => item.label === "Push-ups")).toBe(true);
     expect(due.some((item) => item.label === "Koud douchen")).toBe(true);
+    expect(due.some((item) => item.label === "Wandelen na eten")).toBe(true);
+    expect(due.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(true);
     expect(due.some((item) => item.type === "weekly")).toBe(false);
+    expect(todayActions(items, "2026-08-29").some((item) => item.label === "Wandelen na eten")).toBe(
+      true,
+    );
+    expect(todayActions(items, "2026-08-29").some((item) => item.role === "constraint")).toBe(false);
+    expect(todayConstraints(items, "2026-08-29").map((item) => item.label)).toEqual([
+      "Cafeïne 90 min na opstaan",
+    ]);
     expect(dueToday({ ...items[4], weekdays: [] }, "2026-08-29")).toBe(false);
     expect(dueToday({ ...items[4], weekdays: [6] }, "2026-08-29")).toBe(true);
   });
@@ -58,6 +76,17 @@ describe("test tenant items", () => {
     expect(merged.find((item) => item.label === "Low carb")?.label).toBe("Low carb");
     expect(merged.some((item) => item.label === "Geen alcohol")).toBe(true);
     expect(merged.filter((item) => item.label === "Push-ups")).toHaveLength(1);
+    expect(merged.find((item) => item.label === "Low carb")?.type).toBe("leefregel");
+    const old = items.filter(
+      (item) =>
+        item.label !== "Cafeïne 90 min na opstaan" && item.label !== "Wandelen na eten",
+    );
+    const withTiming = mergeSeedItems(old, testTenantItems("t1"), "t1");
+    expect(withTiming.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(true);
+    expect(withTiming.some((item) => item.label === "Wandelen na eten")).toBe(true);
+    expect(withTiming.find((item) => item.label === "Low carb")?.id).toBe(
+      old.find((item) => item.label === "Low carb")!.id,
+    );
   });
 
   it("recovers leftover keys without wiping events or renaming items", () => {

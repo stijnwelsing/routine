@@ -165,6 +165,18 @@ textarea {
   padding: 14px;
 }
 
+.card.quiet {
+  padding: 12px 14px;
+}
+
+.card.quiet .ex-nm {
+  font-weight: 400;
+}
+
+.card.quiet .note {
+  margin-top: 6px;
+}
+
 .row {
   display: flex;
   align-items: center;

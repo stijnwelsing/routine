@@ -21,9 +21,32 @@ export type StageStatus = "active" | "extended" | "lowered" | "replaced" | "done
 export type StageType = "Build";
 export type Domain = "strength";
 export type Unit = "reps" | "sec";
-export type ItemType = "daily" | "weekly" | "leefregel";
+export type ItemType = "daily" | "weekly" | "leefregel" | "gedrag";
+export type ItemRole = "action" | "constraint" | "preference";
+export type TimingMode = "clock" | "relative";
+export type TimingAnchor = "wake" | "meal";
+export type TimingFrequency = "daily" | "weekly";
+export type TimingPhase = "due" | "wait" | "closed" | "silent" | "hidden";
 export type Screen = "vandaag" | "koers";
 export type TrendArrow = "↑" | "→" | "↓";
+
+/** One timing model. All fields optional so leftover snapshots still load. */
+export interface Timing {
+  mode: TimingMode | null;
+  clock: string | null;
+  anchor: TimingAnchor | null;
+  offset_min: number | null;
+  window_min: number | null;
+  frequency: TimingFrequency | null;
+  condition: string | null;
+}
+
+export interface TimingContext {
+  now: Date;
+  today: string;
+  wakeAt: Date | null;
+  mealAt: Date | null;
+}
 
 export interface Profile {
   id: string;
@@ -69,6 +92,9 @@ export interface Item {
   weekdays: number[] | null;
   times_per_week: number | null;
   sort: number;
+  timing: Timing;
+  role: ItemRole | null;
+  template: string | null;
 }
 
 export interface LogEvent {

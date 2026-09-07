@@ -1,7 +1,7 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
-import { mergeSeedItems, recoverSnapshots } from "./items";
+import { mergeSeedItems, normalizeItem, recoverSnapshots } from "./items";
 import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage, testTenantItems } from "./seed";
 import {
   LOCAL_CHOSEN_KEY,
@@ -73,12 +73,9 @@ function storedSnapshots(): Snapshot[] {
 }
 
 function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Snapshot {
-  const items = mergeSeedItems(raw.items ?? [], testTenantItems(tenantId), tenantId).map((item) => ({
-    ...item,
-    tenant_id: item.tenant_id ?? tenantId,
-    weekdays: item.weekdays ?? null,
-    times_per_week: item.times_per_week ?? null,
-  }));
+  const items = mergeSeedItems(raw.items ?? [], testTenantItems(tenantId), tenantId).map((item) =>
+    normalizeItem(item, tenantId),
+  );
   return {
     ...raw,
     profile: {
@@ -316,7 +313,9 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         .select("*")
         .eq("tenant_id", tenantId)
         .order("sort", { ascending: true });
-      const items = (itemsRes.error ? [] : (itemsRes.data ?? [])) as Item[];
+      const items = ((itemsRes.error ? [] : (itemsRes.data ?? [])) as Item[]).map((item) =>
+        normalizeItem(item, tenantId),
+      );
 
       return {
         profile: {

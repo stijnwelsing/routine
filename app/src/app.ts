@@ -16,13 +16,15 @@ import {
 } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
-  dueItems,
   eventsForItem,
   formatWork,
   hasCurrent,
   loopEvents,
   primaryItem,
+  todayActions,
+  todayConstraints,
 } from "./items";
+import { timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
 import { SKIP_REASONS, type Item, type Screen, type Snapshot } from "./types";
@@ -105,7 +107,9 @@ function render(): void {
 
   if (state.screen === "vandaag") {
     const nudge = identityNudge(snapshot.profile.identity_new, snapshot.events);
-    const today = dueItems(snapshot.items, todayISO());
+    const today = todayISO();
+    const actions = todayActions(snapshot.items, today);
+    const rules = todayConstraints(snapshot.items, today);
     root().innerHTML = `
       ${header}
       ${store.mode === "local" ? `<div class="banner">Lokaal — geen Supabase. +1 / Done / Skip blijven op dit apparaat.</div>` : ""}
@@ -128,8 +132,13 @@ function render(): void {
           <div class="dots">${energyDots(view.energy)}</div>
         </div>
       </div>
+      ${
+        rules.length
+          ? `<div class="sec-hd">Regel</div>${rules.map((item) => ruleLine(item)).join("")}`
+          : ""
+      }
       <div class="sec-hd">Vandaag</div>
-      ${today.map((item) => itemCard(item, view, nudge)).join("")}
+      ${actions.map((item) => itemCard(item, view, nudge)).join("")}
       <div class="sec-hd">Koers</div>
       <div class="card">
         <div class="koers-one">
@@ -216,6 +225,15 @@ function render(): void {
   }
 }
 
+function ruleLine(item: Item): string {
+  const note = timingNote(item);
+  return `
+      <div class="card quiet">
+        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${note ? `<div class="note">${escapeHtml(note)}</div>` : `<div class="note">Regel. Geen afvinken.</div>`}
+      </div>`;
+}
+
 function itemCard(
   item: Item,
   view: ReturnType<typeof loop>,
@@ -228,10 +246,12 @@ function itemCard(
   const plusBlocked = setTaken || atB;
   const primary = track;
   const work = formatWork(item);
+  const note = timingNote(item);
   const showAdvance = primary && view.suggestedMilestone && item.id === snapshot!.vector.id;
   return `
       <div class="card">
         <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${note && !work && !track ? `<div class="note">${escapeHtml(note)}</div>` : ""}
         ${
           track
             ? `<div class="track">

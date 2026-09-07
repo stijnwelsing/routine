@@ -192,6 +192,27 @@ describe("stok is a closed miss", () => {
     const done = [event({ date: "2026-08-28", kind: "done", value: 40 })];
     expect(isStalled(done, "2026-08-29", "2026-08-28")).toBe(false);
   });
+
+  it("is not stokt after +1 or Done today, even if a prior day missed", () => {
+    const open = { ...stage, started_on: "2026-09-01" };
+    const plus = [event({ date: "2026-09-07", kind: "set", value: 41 })];
+    expect(isStalled(plus, "2026-09-07", "2026-09-01")).toBe(false);
+    const afterPlus = computeLoop(vector, open, plus, "2026-09-07");
+    expect(afterPlus.plusToday).toBe(true);
+    expect(afterPlus.current).toBe(41);
+    expect(afterPlus.hitrate).toEqual({ hits: 1, eligible: 1 });
+    expect(afterPlus.nextAction).toMatch(/set gedaan/i);
+    expect(afterPlus.trend.word).not.toBe("stokt");
+
+    const doneToday = [event({ date: "2026-09-07", kind: "done", value: 40 })];
+    const afterDone = computeLoop(vector, open, doneToday, "2026-09-07");
+    expect(isStalled(doneToday, "2026-09-07", "2026-09-01")).toBe(false);
+    expect(afterDone.doneToday).toBe(true);
+    expect(afterDone.trend.word).not.toBe("stokt");
+
+    const skipToday = [event({ date: "2026-09-07", kind: "skip", skip_reason: "geen tijd" })];
+    expect(computeLoop(vector, open, skipToday, "2026-09-07").trend.word).not.toBe("stokt");
+  });
 });
 
 describe("weekHitrate", () => {

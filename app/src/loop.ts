@@ -129,13 +129,15 @@ export function weekHitrate(
   return { hits, eligible };
 }
 
-/** Stok = a closed miss. Today with no events is the start state, not a miss. */
+/** Stok = a closed miss while today is still open. +1 / Done / Skip today is not stokt. */
 export function isStalled(
   events: LogEvent[],
   today: string,
   origin = "1970-01-01",
   lookback = 3,
 ): boolean {
+  const todayMark = markDay(events, today, today, origin);
+  if (todayMark === "done" || todayMark === "skip") return false;
   const yesterday = addDays(today, -1);
   if (yesterday < origin) return false;
   const windowStart = addDays(today, -lookback);
@@ -151,12 +153,13 @@ export function trendWord(input: {
   gearDown: boolean;
   stalled: boolean;
   milestoneHit: boolean;
+  todayLogged?: boolean;
 }): { arrow: LoopView["trend"]["arrow"]; word: string } {
   if (input.gearDown) return { arrow: "↓", word: "herstel" };
   if (input.milestoneHit && input.current > input.weekStartCurrent) {
     return { arrow: "↑", word: "stijgt" };
   }
-  if (input.stalled) return { arrow: "↓", word: "stokt" };
+  if (input.stalled && !input.todayLogged) return { arrow: "↓", word: "stokt" };
   if (input.current > input.weekStartCurrent) return { arrow: "↑", word: "stijgt" };
   if (input.current < input.weekStartCurrent) return { arrow: "↓", word: "zakt" };
   return { arrow: "→", word: "stabiel" };
@@ -217,12 +220,14 @@ export function computeLoop(
   const stalled = isStalled(events, today, stage.started_on);
   const weekStart = mondayOfWeek(today);
   const weekStartCurrent = currentAt(vector.a, events, addDays(weekStart, -1));
+  const todayLogged = plusToday || doneToday || Boolean(skipToday);
   const trend = trendWord({
     current,
     weekStartCurrent,
     gearDown,
     stalled,
     milestoneHit,
+    todayLogged,
   });
 
   return {

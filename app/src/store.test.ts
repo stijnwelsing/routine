@@ -168,6 +168,38 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
+  it("adds stofjes to a leftover snapshot without wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-07", "t1");
+    existing.items = existing.items.filter(
+      (item) => item.label !== "Medicijn ochtend" && item.label !== "Vitamine D",
+    );
+    existing.events = [
+      event({
+        id: "keep-walk",
+        date: "2026-09-07",
+        kind: "done",
+        item_id: existing.items.find((item) => item.label === "Wandelen na eten")!.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-walk"]);
+    expect(snap.items.find((item) => item.label === "Medicijn ochtend")).toMatchObject({
+      type: "medicijn",
+      a: null,
+      unit: null,
+    });
+    expect(snap.items.find((item) => item.label === "Vitamine D")).toMatchObject({
+      type: "supplement",
+      a: null,
+    });
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

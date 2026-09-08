@@ -105,6 +105,15 @@ describe("timing engine", () => {
     expect(timingNote(caffeine)).toBe("90 min na opstaan");
   });
 
+  it("lets frequency-only reminders be due without a relative event", () => {
+    const medicine = testTenantItems("t1").find((row) => row.label === "Medicijn ochtend")!;
+    expect(medicine.timing.mode).toBeNull();
+    expect(medicine.timing.anchor).toBeNull();
+    expect(medicine.timing.frequency).toBe("daily");
+    expect(timingPhase(medicine, ctx())).toBe("due");
+    expect(timingNote(medicine)).toBe("ochtend");
+  });
+
   it("respects a window after open", () => {
     const timing: Timing = {
       ...emptyTiming(),

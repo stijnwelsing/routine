@@ -23,6 +23,7 @@ import {
   primaryItem,
   todayActions,
   todayConstraints,
+  todayStofjes,
 } from "./items";
 import { timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
@@ -110,6 +111,7 @@ function render(): void {
     const today = todayISO();
     const actions = todayActions(snapshot.items, today);
     const rules = todayConstraints(snapshot.items, today);
+    const stofjes = todayStofjes(snapshot.items, today);
     root().innerHTML = `
       ${header}
       ${store.mode === "local" ? `<div class="banner">Lokaal — geen Supabase. +1 / Done / Skip blijven op dit apparaat.</div>` : ""}
@@ -135,6 +137,11 @@ function render(): void {
       ${
         rules.length
           ? `<div class="sec-hd">Regel</div>${rules.map((item) => ruleLine(item)).join("")}`
+          : ""
+      }
+      ${
+        stofjes.length
+          ? `<div class="sec-hd">Stofjes</div>${stofjes.map((item) => stofCard(item)).join("")}`
           : ""
       }
       <div class="sec-hd">Vandaag</div>
@@ -223,6 +230,30 @@ function render(): void {
       ${nav}`;
     return;
   }
+}
+
+function stofCard(item: Item): string {
+  const day = itemDay(item);
+  const taken = day.logged || Boolean(day.skip);
+  const doneLabel = item.type === "medicijn" ? "Genomen" : "Done";
+  const note = timingNote(item);
+  return `
+      <div class="card stof">
+        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${note ? `<div class="note">${escapeHtml(note)}</div>` : ""}
+        <div class="actions actions-two">
+          <button class="btn ico-btn ${day.done ? "track" : ""}" data-act="done" data-item="${item.id}" ${taken ? "disabled" : ""}>${icon("done")}<span>${doneLabel}</span></button>
+          <button class="btn ico-btn skip ${day.skip ? "on" : ""}" data-act="skip-open" data-item="${item.id}" ${day.logged ? "disabled" : ""}>${icon("skip")}<span>Skip</span></button>
+        </div>
+        ${
+          state.skipItemId === item.id || day.skip
+            ? `<div class="chips">${SKIP_REASONS.map(
+                (reason) =>
+                  `<button class="chip ${day.skip === reason ? "on" : ""}" data-act="skip" data-item="${item.id}" data-reason="${reason}">${reason}</button>`,
+              ).join("")}</div>`
+            : ""
+        }
+      </div>`;
 }
 
 function ruleLine(item: Item): string {

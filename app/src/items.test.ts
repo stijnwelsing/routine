@@ -8,6 +8,7 @@ import {
   recoverSnapshots,
   todayActions,
   todayConstraints,
+  todayStofjes,
 } from "./items";
 import { emptySnapshot, seedSnapshot, testTenantItems } from "./seed";
 import type { Item, LogEvent, Snapshot } from "./types";
@@ -45,6 +46,11 @@ describe("test tenant items", () => {
     expect(todayConstraints(items, "2026-08-29").map((item) => item.label)).toEqual([
       "Cafeïne 90 min na opstaan",
     ]);
+    const stof = todayStofjes(items, "2026-08-29");
+    expect(stof.map((item) => item.label)).toEqual(["Medicijn ochtend", "Vitamine D"]);
+    expect(stof.every((item) => item.a === null && item.unit === null)).toBe(true);
+    expect(todayActions(items, "2026-08-29").some((item) => item.type === "medicijn")).toBe(false);
+    expect(todayActions(items, "2026-08-29").some((item) => item.type === "supplement")).toBe(false);
     expect(dueToday({ ...items[4], weekdays: [] }, "2026-08-29")).toBe(false);
     expect(dueToday({ ...items[4], weekdays: [6] }, "2026-08-29")).toBe(true);
   });
@@ -86,6 +92,15 @@ describe("test tenant items", () => {
     expect(withTiming.some((item) => item.label === "Wandelen na eten")).toBe(true);
     expect(withTiming.find((item) => item.label === "Low carb")?.id).toBe(
       old.find((item) => item.label === "Low carb")!.id,
+    );
+    const withoutStof = items.filter(
+      (item) => item.label !== "Medicijn ochtend" && item.label !== "Vitamine D",
+    );
+    const withStof = mergeSeedItems(withoutStof, testTenantItems("t1"), "t1");
+    expect(withStof.some((item) => item.label === "Medicijn ochtend")).toBe(true);
+    expect(withStof.some((item) => item.label === "Vitamine D")).toBe(true);
+    expect(withStof.find((item) => item.label === "Push-ups")?.id).toBe(
+      withoutStof.find((item) => item.label === "Push-ups")!.id,
     );
   });
 

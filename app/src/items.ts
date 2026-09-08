@@ -21,12 +21,20 @@ export function normalizeItem(item: Item, tenantId: string): Item {
   };
 }
 
+export function isStofje(item: Item): boolean {
+  return item.type === "medicijn" || item.type === "supplement";
+}
+
 export function todayActions(items: Item[], today: string): Item[] {
-  return dueItems(items, today).filter(isAction);
+  return dueItems(items, today).filter((item) => isAction(item) && !isStofje(item));
 }
 
 export function todayConstraints(items: Item[], today: string): Item[] {
   return dueItems(items, today).filter(isConstraint);
+}
+
+export function todayStofjes(items: Item[], today: string): Item[] {
+  return dueItems(items, today).filter(isStofje);
 }
 
 export function dueItems(items: Item[], today: string): Item[] {

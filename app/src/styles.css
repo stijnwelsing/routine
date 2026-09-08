@@ -177,6 +177,15 @@ textarea {
   margin-top: 6px;
 }
 
+.card.stof {
+  padding: 12px 14px;
+}
+
+.card.stof .note {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
+
 .row {
   display: flex;
   align-items: center;

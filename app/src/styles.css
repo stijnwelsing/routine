@@ -525,6 +525,10 @@ textarea {
   border-color: var(--cream);
 }
 
+.theme-sec {
+  display: block;
+}
+
 .theme-add {
   display: grid;
   grid-template-columns: 1fr auto;

@@ -38,7 +38,7 @@ import {
   toggleGoal,
   toggleStartId,
 } from "./goals";
-import { THEME_LIMIT, THEME_SUGGESTIONS, addTheme, toggleTheme } from "./themes";
+import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./themes";
 import { timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
@@ -196,6 +196,7 @@ function render(): void {
         : `${view.hitrate.hits}/${view.hitrate.eligible}`;
     root().innerHTML = `
       ${header}
+      ${themeSection(snapshot.profile.themes, "Tik een suggestie of typ zelf. Geen vaste lijst. Later aan te passen.")}
       <div class="sec-hd">Strength · push-ups</div>
       <div class="card">
         <div class="kv">
@@ -254,12 +255,6 @@ function render(): void {
         </div>
         <button class="btn primary" data-act="save-ik">Bewaar</button>
       </div>
-      <div class="sec-hd">Thema's</div>
-      <div class="card">
-        <div class="ex-nm">Trainingsrichting</div>
-        <div class="note">Tik een suggestie of typ zelf. Geen vaste lijst. Later aan te passen.</div>
-        ${themePicker(snapshot.profile.themes ?? [])}
-      </div>
       <div class="card stack">
         <button class="btn ghost ico-btn" data-act="export">${icon("export")}<span>Exporteer JSON</span></button>
       </div>
@@ -301,23 +296,16 @@ function laterRow(item: Item): string {
       </div>`;
 }
 
-function themePicker(themes: string[]): string {
-  const selected = new Set(themes.map((theme) => theme.toLowerCase()));
-  const extras = themes.filter(
-    (theme) => !THEME_SUGGESTIONS.some((row) => row.toLowerCase() === theme.toLowerCase()),
-  );
-  const chips = [...THEME_SUGGESTIONS, ...extras];
+function themeSection(themes: unknown, note: string): string {
   return `
-        <div class="chips">${chips
-          .map((label) => {
-            const on = selected.has(label.toLowerCase());
-            return `<button class="chip pick ${on ? "on" : ""}" data-act="theme-toggle" data-theme="${escapeHtml(label)}">${escapeHtml(label)}</button>`;
-          })
-          .join("")}</div>
-        <div class="theme-add">
-          <input data-id="theme-custom" type="text" maxlength="${THEME_LIMIT}" placeholder="Eigen thema" autocomplete="off" enterkeyhint="done" />
-          <button class="btn ghost" data-act="theme-add">Voeg toe</button>
-        </div>`;
+      <section class="theme-sec" data-sec="themes">
+        <div class="sec-hd">Thema's</div>
+        <div class="card">
+          <div class="ex-nm">Trainingsrichting</div>
+          <div class="note">${escapeHtml(note)}</div>
+          ${themePickerHtml(themes)}
+        </div>
+      </section>`;
 }
 
 function onboardView(step: "goals" | "age" | "themes" | "start"): string {
@@ -376,7 +364,7 @@ function onboardView(step: "goals" | "age" | "themes" | "start"): string {
       <div class="card">
         <div class="ex-nm">Trainingsrichting</div>
         <div class="note">Tik een suggestie of typ zelf. Mag leeg. Later aan te passen.</div>
-        ${themePicker(themes)}
+        ${themePickerHtml(themes)}
         <div class="stack" style="margin-top:16px">
           <button class="btn primary" data-act="onboard-themes-done">Verder</button>
         </div>
@@ -662,7 +650,7 @@ async function handleAction(target: HTMLElement): Promise<void> {
   if (act === "theme-toggle") {
     const label = target.dataset.theme;
     if (!label) return;
-    await persistThemeList(toggleTheme(snapshot.profile.themes ?? [], label));
+    await persistThemeList(toggleTheme(normalizeThemes(snapshot.profile.themes), label));
     return;
   }
 
@@ -735,24 +723,26 @@ async function handleAction(target: HTMLElement): Promise<void> {
 async function persistCustomTheme(): Promise<void> {
   if (!snapshot) return;
   const raw = valueOf("theme-custom") ?? "";
-  const next = addTheme(snapshot.profile.themes ?? [], raw);
-  if (next === snapshot.profile.themes) return;
+  const current = normalizeThemes(snapshot.profile.themes);
+  const next = addTheme(current, raw);
+  if (next.length === current.length && next.every((theme, i) => theme === current[i])) return;
   await persistThemeList(next);
 }
 
 async function persistThemeList(themes: string[], markStep = false): Promise<void> {
   if (!store || !snapshot) return;
-  const profile = { ...snapshot.profile, themes };
-  const finish = markStep || !needsOnboarding(snapshot);
-  await withBusy(async () => {
-    if (finish) {
-      await store!.saveThemes(themes);
-      snapshot = await store!.load();
-      return;
-    }
-    await store!.saveProfile(profile);
-    snapshot!.profile = profile;
-  });
+    const clean = normalizeThemes(themes);
+    const profile = { ...snapshot.profile, themes: clean };
+    const finish = markStep || !needsOnboarding(snapshot);
+    await withBusy(async () => {
+      if (finish) {
+        await store!.saveThemes(clean);
+        snapshot = await store!.load();
+        return;
+      }
+      await store!.saveProfile(profile);
+      snapshot!.profile = profile;
+    });
 }
 
 function valueOf(id: string): string | null {

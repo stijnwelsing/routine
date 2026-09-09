@@ -274,6 +274,7 @@ describe("local store data preserve", () => {
     expect(after.theme_step).toBe(true);
     expect(after.events.map((row) => row.id)).toEqual(["keep-theme"]);
     expect(after.items.find((item) => item.label === "Push-ups")?.label).toBe("Push-ups");
+    expect(after.onboarded).toBe(true);
   });
 
   it("sees leftover keys as an existing session", () => {

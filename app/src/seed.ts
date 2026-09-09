@@ -12,6 +12,7 @@ export function emptyProfile(userId: string, tenantId: string): Profile {
     ...emptyIdentity(),
     age_band: null,
     goals: [],
+    themes: [],
   };
 }
 
@@ -279,7 +280,7 @@ export function seedSnapshot(userId: string, today = todayISO(), tenantId = newI
   const vector = vectorFromItem(primary, userId);
   const stage = seedStage(vector.id, tenantId, today);
   if (primary.milestone !== null) stage.milestone = primary.milestone;
-  return { profile, items, vector, stage, events: [], rotated: false, onboarded: false };
+  return { profile, items, vector, stage, events: [], rotated: false, onboarded: false, theme_step: false };
 }
 
 export function emptyVector(userId: string, tenantId: string): Vector {
@@ -301,7 +302,7 @@ export function emptySnapshot(userId: string, today = todayISO(), tenantId = new
   const profile = emptyProfile(userId, tenantId);
   const vector = emptyVector(userId, tenantId);
   const stage = emptyStage(vector.id, tenantId, today);
-  return { profile, items: [], vector, stage, events: [], rotated: false, onboarded: true };
+  return { profile, items: [], vector, stage, events: [], rotated: false, onboarded: true, theme_step: true };
 }
 
 /** Rewrite leftover prototype numbers (25 / 35). Events and profile stay. */

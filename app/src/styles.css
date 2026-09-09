@@ -525,6 +525,35 @@ textarea {
   border-color: var(--cream);
 }
 
+.theme-add {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  margin-top: 14px;
+  align-items: stretch;
+}
+
+.theme-add input {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  background: var(--card2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 12px;
+  outline: none;
+}
+
+.theme-add input:focus {
+  border-color: var(--cream);
+}
+
+.theme-add .btn {
+  min-height: 44px;
+  padding: 10px 14px;
+  white-space: nowrap;
+}
+
 .nav {
   position: fixed;
   bottom: 0;

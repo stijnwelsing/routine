@@ -4,6 +4,7 @@ import { emptyIdentity } from "./identity";
 import { applyStartSelection } from "./goals";
 import { mergeSeedItems, normalizeItem, recoverSnapshots } from "./items";
 import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage, testTenantItems } from "./seed";
+import { normalizeThemes } from "./themes";
 import {
   LOCAL_CHOSEN_KEY,
   LOCAL_STORAGE_KEY,
@@ -34,6 +35,7 @@ export interface Store {
   ): Promise<LogEvent>;
   saveProfile(profile: Profile): Promise<void>;
   saveOnboarding(input: { goals: GoalId[]; age_band: AgeBand; startIds: string[] }): Promise<void>;
+  saveThemes(themes: string[]): Promise<void>;
   setItemLater(itemId: string, later: boolean): Promise<void>;
   saveVectorConstraint(vectorId: string, paceConstraint: string | null): Promise<void>;
   advanceStage(current: Stage, nextMilestone: number): Promise<Stage>;
@@ -95,6 +97,7 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
         horizon_1y: raw.profile?.horizon_1y ?? null,
         age_band: raw.profile?.age_band ?? null,
         goals: Array.isArray(raw.profile?.goals) ? raw.profile.goals : [],
+        themes: normalizeThemes(raw.profile?.themes),
       },
     },
     items,
@@ -113,6 +116,7 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
     })),
     rotated: Boolean(raw.rotated),
     onboarded: raw.onboarded ?? true,
+    theme_step: raw.theme_step ?? false,
   };
 }
 
@@ -183,9 +187,21 @@ export function createLocalStore(): Store {
         ...snapshot.profile,
         goals: input.goals,
         age_band: input.age_band,
+        themes: normalizeThemes(snapshot.profile.themes),
       };
       snapshot.items = applyStartSelection(snapshot.items, input.startIds);
       snapshot.onboarded = true;
+      snapshot.theme_step = true;
+      writeLocal(snapshot);
+    },
+
+    async saveThemes(themes) {
+      const snapshot = readLocal(userId, tenantId);
+      snapshot.profile = {
+        ...snapshot.profile,
+        themes: normalizeThemes(themes),
+      };
+      snapshot.theme_step = true;
       writeLocal(snapshot);
     },
 
@@ -354,6 +370,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           horizon_1y: profile.horizon_1y ?? null,
           age_band: (profile as Profile).age_band ?? null,
           goals: Array.isArray((profile as Profile).goals) ? (profile as Profile).goals : [],
+          themes: normalizeThemes((profile as Profile).themes),
         },
         items,
         vector: {
@@ -384,6 +401,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         })),
         rotated: (doneRes.data ?? []).length > 0,
         onboarded: true,
+        theme_step: Boolean((profile as Profile & { theme_step?: boolean }).theme_step),
       };
     },
 
@@ -416,6 +434,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           horizon_1y: profile.horizon_1y,
           age_band: profile.age_band,
           goals: profile.goals,
+          themes: normalizeThemes(profile.themes),
         })
         .eq("id", userId)
         .eq("tenant_id", tenantId);
@@ -425,10 +444,19 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
     async saveOnboarding(input) {
       const result = await client
         .from("profiles")
-        .update({ age_band: input.age_band, goals: input.goals })
+        .update({ age_band: input.age_band, goals: input.goals, theme_step: true })
         .eq("id", userId)
         .eq("tenant_id", tenantId);
       if (result.error) throw new Error(`onboarding: ${result.error.message}`);
+    },
+
+    async saveThemes(themes) {
+      const result = await client
+        .from("profiles")
+        .update({ themes: normalizeThemes(themes), theme_step: true })
+        .eq("id", userId)
+        .eq("tenant_id", tenantId);
+      if (result.error) throw new Error(`themas: ${result.error.message}`);
     },
 
     async setItemLater(itemId, later) {

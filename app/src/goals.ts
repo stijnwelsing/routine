@@ -35,10 +35,11 @@ export function needsOnboarding(snapshot: Snapshot): boolean {
   return true;
 }
 
-export function onboardStep(snapshot: Snapshot): "goals" | "age" | "start" | null {
+export function onboardStep(snapshot: Snapshot): "goals" | "age" | "themes" | "start" | null {
   if (!needsOnboarding(snapshot)) return null;
   if (!snapshot.profile.goals?.length) return "goals";
   if (!snapshot.profile.age_band) return "age";
+  if (snapshot.theme_step !== true) return "themes";
   return "start";
 }
 

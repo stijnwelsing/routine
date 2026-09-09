@@ -241,6 +241,39 @@ describe("local store data preserve", () => {
     expect(after.items.find((item) => item.label === "Push-ups")?.later).toBe(false);
     expect(after.items.find((item) => item.label === "Squats")?.later).toBe(true);
     expect(after.events).toEqual([]);
+    expect(after.theme_step).toBe(true);
+  });
+
+  it("loads missing themes as empty and does not force the theme step", async () => {
+    const existing = seedSnapshot("u1", "2026-09-09", "t1");
+    existing.onboarded = true;
+    existing.events = [
+      event({
+        id: "keep-theme",
+        date: "2026-09-09",
+        kind: "done",
+        item_id: existing.items.find((item) => item.label === "Push-ups")!.id,
+      }),
+    ];
+    delete (existing.profile as { themes?: string[] }).themes;
+    delete (existing as { theme_step?: boolean }).theme_step;
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.onboarded).toBe(true);
+    expect(snap.profile.themes).toEqual([]);
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-theme"]);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+
+    await store.saveThemes(["Kickbox", "  Parkour  "]);
+    const after = await store.load();
+    expect(after.profile.themes).toEqual(["Kickbox", "Parkour"]);
+    expect(after.theme_step).toBe(true);
+    expect(after.events.map((row) => row.id)).toEqual(["keep-theme"]);
+    expect(after.items.find((item) => item.label === "Push-ups")?.label).toBe("Push-ups");
   });
 
   it("sees leftover keys as an existing session", () => {

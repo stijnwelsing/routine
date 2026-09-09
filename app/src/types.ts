@@ -60,6 +60,7 @@ export interface Profile {
   horizon_1y: string | null;
   age_band: AgeBand | null;
   goals: GoalId[];
+  themes: string[];
 }
 
 export interface Vector {
@@ -122,6 +123,7 @@ export interface Snapshot {
   events: LogEvent[];
   rotated: boolean;
   onboarded: boolean;
+  theme_step: boolean;
 }
 
 export interface LoopView {

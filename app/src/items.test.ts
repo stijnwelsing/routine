@@ -134,6 +134,7 @@ describe("test tenant items", () => {
         horizon_1y: null,
         age_band: null,
         goals: [],
+        themes: [],
       },
       events: [event],
     };

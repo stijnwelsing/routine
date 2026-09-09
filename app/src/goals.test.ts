@@ -45,6 +45,16 @@ describe("goals onboarding", () => {
       ],
     };
     expect(needsOnboarding(leftover)).toBe(false);
+    expect(onboardStep(leftover)).toBe(null);
+  });
+
+  it("opens themes after age, then start", () => {
+    const fresh = seedSnapshot("u1", "2026-09-09", "t1");
+    const withGoals = { ...fresh, profile: { ...fresh.profile, goals: ["kracht" as const] } };
+    expect(onboardStep(withGoals)).toBe("age");
+    const withAge = { ...withGoals, profile: { ...withGoals.profile, age_band: "50–59" as const } };
+    expect(onboardStep(withAge)).toBe("themes");
+    expect(onboardStep({ ...withAge, theme_step: true })).toBe("start");
   });
 
   it("parks everything beyond 3 start items in Later", () => {

@@ -27,6 +27,7 @@ function item(partial: Partial<Item> & Pick<Item, "label">): Item {
     timing: emptyTiming(),
     role: null,
     template: null,
+    later: false,
     ...partial,
   };
 }

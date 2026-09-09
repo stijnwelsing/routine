@@ -18,6 +18,7 @@ export function normalizeItem(item: Item, tenantId: string): Item {
     timing: normalizeTiming(item.timing),
     role: defaultRole(item),
     template: item.template ?? null,
+    later: Boolean(item.later),
   };
 }
 
@@ -26,7 +27,7 @@ export function isStofje(item: Item): boolean {
 }
 
 export function todayActions(items: Item[], today: string): Item[] {
-  return dueItems(items, today).filter((item) => isAction(item) && !isStofje(item));
+  return dueItems(items, today).filter((item) => isAction(item) && !isStofje(item) && !item.later);
 }
 
 export function todayConstraints(items: Item[], today: string): Item[] {
@@ -34,7 +35,11 @@ export function todayConstraints(items: Item[], today: string): Item[] {
 }
 
 export function todayStofjes(items: Item[], today: string): Item[] {
-  return dueItems(items, today).filter(isStofje);
+  return dueItems(items, today).filter((item) => isStofje(item) && !item.later);
+}
+
+export function todayLater(items: Item[], today: string): Item[] {
+  return dueItems(items, today).filter((item) => item.later && isAction(item));
 }
 
 export function dueItems(items: Item[], today: string): Item[] {

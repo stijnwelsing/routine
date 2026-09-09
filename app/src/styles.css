@@ -422,6 +422,36 @@ textarea {
   background: rgba(232, 83, 58, 0.14);
 }
 
+.chip.pick.on {
+  border-color: var(--cream);
+  color: var(--cream);
+  background: rgba(240, 236, 228, 0.08);
+}
+
+.later-box {
+  padding-bottom: 8px;
+}
+
+.later-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.later-row:first-of-type {
+  border-top: 0;
+  margin-top: 8px;
+}
+
+.later-now {
+  min-height: 40px;
+  padding: 8px 14px;
+  flex: 0 0 auto;
+}
+
 .koers-one {
   display: flex;
   align-items: center;

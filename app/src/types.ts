@@ -29,6 +29,8 @@ export type TimingFrequency = "daily" | "weekly";
 export type TimingPhase = "due" | "wait" | "closed" | "silent" | "hidden";
 export type Screen = "vandaag" | "koers";
 export type TrendArrow = "↑" | "→" | "↓";
+export type GoalId = "kracht" | "eten" | "slaap" | "stofjes" | "bewegen";
+export type AgeBand = "18–29" | "30–39" | "40–49" | "50–59" | "60+";
 
 /** One timing model. All fields optional so leftover snapshots still load. */
 export interface Timing {
@@ -56,6 +58,8 @@ export interface Profile {
   identity_new: string | null;
   identity_constraint: string | null;
   horizon_1y: string | null;
+  age_band: AgeBand | null;
+  goals: GoalId[];
 }
 
 export interface Vector {
@@ -95,6 +99,7 @@ export interface Item {
   timing: Timing;
   role: ItemRole | null;
   template: string | null;
+  later: boolean;
 }
 
 export interface LogEvent {
@@ -116,6 +121,7 @@ export interface Snapshot {
   stage: Stage;
   events: LogEvent[];
   rotated: boolean;
+  onboarded: boolean;
 }
 
 export interface LoopView {

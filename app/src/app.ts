@@ -23,8 +23,20 @@ import {
   primaryItem,
   todayActions,
   todayConstraints,
+  todayLater,
   todayStofjes,
 } from "./items";
+import {
+  AGE_BANDS,
+  GOALS,
+  MAX_START,
+  isAgeBand,
+  isGoalId,
+  onboardStep,
+  suggestStartItems,
+  toggleGoal,
+  toggleStartId,
+} from "./goals";
 import { timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
@@ -38,6 +50,7 @@ interface AppState {
   advanceWarn: boolean;
   busy: boolean;
   error: string | null;
+  startIds: string[];
 }
 
 const state: AppState = {
@@ -46,6 +59,7 @@ const state: AppState = {
   advanceWarn: false,
   busy: false,
   error: null,
+  startIds: [],
 };
 
 let store: Store | null = null;
@@ -87,6 +101,11 @@ function escapeHtml(value: string): string {
 
 function render(): void {
   if (!snapshot || !store) return;
+  const setup = onboardStep(snapshot);
+  if (setup) {
+    root().innerHTML = onboardView(setup);
+    return;
+  }
   const view = loop();
   const { vector, stage } = snapshot;
   const modeLabel = store.mode === "local" ? "Lokaal" : "Supabase";
@@ -112,6 +131,7 @@ function render(): void {
     const actions = todayActions(snapshot.items, today);
     const rules = todayConstraints(snapshot.items, today);
     const stofjes = todayStofjes(snapshot.items, today);
+    const later = todayLater(snapshot.items, today);
     root().innerHTML = `
       ${header}
       ${store.mode === "local" ? `<div class="banner">Lokaal — geen Supabase. +1 / Done / Skip blijven op dit apparaat.</div>` : ""}
@@ -146,6 +166,15 @@ function render(): void {
       }
       <div class="sec-hd">Vandaag</div>
       ${actions.map((item) => itemCard(item, view, nudge)).join("")}
+      ${
+        later.length
+          ? `<div class="sec-hd">Later</div>
+      <div class="card later-box">
+        <div class="note" style="margin-top:0">Niet in je start. Blijft bewaard.</div>
+        ${later.map((item) => laterRow(item)).join("")}
+      </div>`
+          : ""
+      }
       <div class="sec-hd">Koers</div>
       <div class="card">
         <div class="koers-one">
@@ -254,6 +283,81 @@ function stofCard(item: Item): string {
             : ""
         }
       </div>`;
+}
+
+function laterRow(item: Item): string {
+  return `
+      <div class="later-row">
+        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        <button class="btn ghost later-now" data-act="later-now" data-item="${item.id}">Nu</button>
+      </div>`;
+}
+
+function onboardView(step: "goals" | "age" | "start"): string {
+  if (!snapshot) return "";
+  const goals = snapshot.profile.goals ?? [];
+  const age = snapshot.profile.age_band;
+  const picks = suggestStartItems(snapshot.items, goals);
+  const startIds = state.startIds;
+  const header = `
+    <div class="hdr">
+      <div>
+        ${wordmarkHtml()}
+        <div class="date-s">Start</div>
+      </div>
+    </div>`;
+
+  if (step === "goals") {
+    return `
+      ${header}
+      <div class="sec-hd">Doelen</div>
+      <div class="card">
+        <div class="ex-nm">Wat is je richting?</div>
+        <div class="note">Eerst doelen. Types (gedrag, regel, medicijn, supplement) komen daarna.</div>
+        <div class="chips">${GOALS.map(
+          (goal) =>
+            `<button class="chip pick ${goals.includes(goal.id) ? "on" : ""}" data-act="onboard-goal" data-goal="${goal.id}">${goal.label}</button>`,
+        ).join("")}</div>
+        <div class="stack" style="margin-top:16px">
+          <button class="btn primary" data-act="onboard-next" ${goals.length === 0 ? "disabled" : ""}>Verder</button>
+        </div>
+      </div>`;
+  }
+
+  if (step === "age") {
+    return `
+      ${header}
+      <div class="sec-hd">Leeftijd</div>
+      <div class="card">
+        <div class="ex-nm">Kies een band</div>
+        <div class="note">Geen geboortedatum. Alleen een band.</div>
+        <div class="chips">${AGE_BANDS.map(
+          (band) =>
+            `<button class="chip pick ${age === band ? "on" : ""}" data-act="onboard-age" data-age="${band}">${band}</button>`,
+        ).join("")}</div>
+        <div class="stack" style="margin-top:16px">
+          <button class="btn primary" data-act="onboard-next" ${age ? "" : "disabled"}>Verder</button>
+        </div>
+      </div>`;
+  }
+
+  return `
+    ${header}
+    <div class="sec-hd">Start</div>
+    <div class="card">
+      <div class="ex-nm">Max ${MAX_START} nu</div>
+      <div class="note">De rest gaat naar Later. Later blijft zichtbaar.</div>
+      <div class="chips">${picks
+        .map((item) => {
+          const on = startIds.includes(item.id);
+          return `<button class="chip pick ${on ? "on" : ""}" data-act="onboard-start" data-item="${item.id}">${escapeHtml(item.label)}</button>`;
+        })
+        .join("")}</div>
+      <div class="note">${startIds.length} / ${MAX_START} gekozen</div>
+      <div class="stack" style="margin-top:16px">
+        <button class="btn primary" data-act="onboard-done" ${startIds.length === 0 ? "disabled" : ""}>Naar Vandaag</button>
+      </div>
+    </div>`;
 }
 
 function ruleLine(item: Item): string {
@@ -480,6 +584,63 @@ async function handleAction(target: HTMLElement): Promise<void> {
   if (act === "advance-cancel") {
     state.advanceWarn = false;
     render();
+    return;
+  }
+
+  if (act === "onboard-goal") {
+    const id = target.dataset.goal;
+    if (!id || !isGoalId(id)) return;
+    const profile = { ...snapshot.profile, goals: toggleGoal(snapshot.profile.goals ?? [], id) };
+    await withBusy(async () => {
+      await store!.saveProfile(profile);
+      snapshot!.profile = profile;
+    });
+    return;
+  }
+
+  if (act === "onboard-age") {
+    const band = target.dataset.age;
+    if (!band || !isAgeBand(band)) return;
+    const profile = { ...snapshot.profile, age_band: band };
+    await withBusy(async () => {
+      await store!.saveProfile(profile);
+      snapshot!.profile = profile;
+    });
+    return;
+  }
+
+  if (act === "onboard-start") {
+    const id = target.dataset.item;
+    if (!id) return;
+    state.startIds = toggleStartId(state.startIds, id);
+    render();
+    return;
+  }
+
+  if (act === "onboard-next") {
+    render();
+    return;
+  }
+
+  if (act === "onboard-done") {
+    const age = snapshot.profile.age_band;
+    const goals = snapshot.profile.goals ?? [];
+    if (!age || goals.length === 0 || state.startIds.length === 0) return;
+    await withBusy(async () => {
+      await store!.saveOnboarding({ goals, age_band: age, startIds: state.startIds });
+      snapshot = await store!.load();
+      state.screen = "vandaag";
+    });
+    return;
+  }
+
+  if (act === "later-now") {
+    const id = target.dataset.item;
+    if (!id) return;
+    await withBusy(async () => {
+      await store!.setItemLater(id, false);
+      snapshot = await store!.load();
+    });
     return;
   }
 

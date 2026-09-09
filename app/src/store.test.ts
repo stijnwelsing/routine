@@ -200,6 +200,49 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
+  it("does not force onboarding on leftover v6 data", async () => {
+    const existing = seedSnapshot("u1", "2026-09-09", "t1");
+    existing.onboarded = undefined as unknown as boolean;
+    existing.events = [
+      event({
+        id: "keep-2",
+        date: "2026-09-09",
+        kind: "set",
+        value: 41,
+        item_id: existing.items.find((item) => item.label === "Push-ups")!.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.onboarded).toBe(true);
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-2"]);
+    expect(snap.items.every((item) => item.later === false)).toBe(true);
+    expect(snap.items.some((item) => item.label === "Medicijn ochtend")).toBe(true);
+  });
+
+  it("shows onboarding only on a brand-new empty session", async () => {
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.onboarded).toBe(false);
+    expect(snap.events).toEqual([]);
+    await store.saveOnboarding({
+      goals: ["kracht"],
+      age_band: "50–59",
+      startIds: [snap.items.find((item) => item.label === "Push-ups")!.id],
+    });
+    const after = await store.load();
+    expect(after.onboarded).toBe(true);
+    expect(after.profile.age_band).toBe("50–59");
+    expect(after.profile.goals).toEqual(["kracht"]);
+    expect(after.items.find((item) => item.label === "Push-ups")?.later).toBe(false);
+    expect(after.items.find((item) => item.label === "Squats")?.later).toBe(true);
+    expect(after.events).toEqual([]);
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

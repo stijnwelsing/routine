@@ -1,6 +1,7 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
+import { applyStartSelection } from "./goals";
 import { mergeSeedItems, normalizeItem, recoverSnapshots } from "./items";
 import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage, testTenantItems } from "./seed";
 import {
@@ -9,6 +10,8 @@ import {
   LOCAL_STORAGE_LEGACY_KEYS,
   LOCAL_TENANT_KEY,
   LOCAL_USER_KEY,
+  type AgeBand,
+  type GoalId,
   type Item,
   type LogEvent,
   type Profile,
@@ -30,6 +33,8 @@ export interface Store {
     },
   ): Promise<LogEvent>;
   saveProfile(profile: Profile): Promise<void>;
+  saveOnboarding(input: { goals: GoalId[]; age_band: AgeBand; startIds: string[] }): Promise<void>;
+  setItemLater(itemId: string, later: boolean): Promise<void>;
   saveVectorConstraint(vectorId: string, paceConstraint: string | null): Promise<void>;
   advanceStage(current: Stage, nextMilestone: number): Promise<Stage>;
   signOut(): Promise<void>;
@@ -88,6 +93,8 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
         identity_new: raw.profile?.identity_new ?? null,
         identity_constraint: raw.profile?.identity_constraint ?? null,
         horizon_1y: raw.profile?.horizon_1y ?? null,
+        age_band: raw.profile?.age_band ?? null,
+        goals: Array.isArray(raw.profile?.goals) ? raw.profile.goals : [],
       },
     },
     items,
@@ -105,6 +112,7 @@ function normalizeSnapshot(raw: Snapshot, userId: string, tenantId: string): Sna
       item_id: event.item_id ?? null,
     })),
     rotated: Boolean(raw.rotated),
+    onboarded: raw.onboarded ?? true,
   };
 }
 
@@ -166,6 +174,24 @@ export function createLocalStore(): Store {
     async saveProfile(profile) {
       const snapshot = readLocal(userId, tenantId);
       snapshot.profile = profile;
+      writeLocal(snapshot);
+    },
+
+    async saveOnboarding(input) {
+      const snapshot = readLocal(userId, tenantId);
+      snapshot.profile = {
+        ...snapshot.profile,
+        goals: input.goals,
+        age_band: input.age_band,
+      };
+      snapshot.items = applyStartSelection(snapshot.items, input.startIds);
+      snapshot.onboarded = true;
+      writeLocal(snapshot);
+    },
+
+    async setItemLater(itemId, later) {
+      const snapshot = readLocal(userId, tenantId);
+      snapshot.items = snapshot.items.map((item) => (item.id === itemId ? { ...item, later } : item));
       writeLocal(snapshot);
     },
 
@@ -326,6 +352,8 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           identity_new: profile.identity_new ?? null,
           identity_constraint: profile.identity_constraint ?? null,
           horizon_1y: profile.horizon_1y ?? null,
+          age_band: (profile as Profile).age_band ?? null,
+          goals: Array.isArray((profile as Profile).goals) ? (profile as Profile).goals : [],
         },
         items,
         vector: {
@@ -355,6 +383,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           value: row.value === null ? null : Number(row.value),
         })),
         rotated: (doneRes.data ?? []).length > 0,
+        onboarded: true,
       };
     },
 
@@ -385,10 +414,26 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           identity_new: profile.identity_new,
           identity_constraint: profile.identity_constraint,
           horizon_1y: profile.horizon_1y,
+          age_band: profile.age_band,
+          goals: profile.goals,
         })
         .eq("id", userId)
         .eq("tenant_id", tenantId);
       if (result.error) throw new Error(`profiel: ${result.error.message}`);
+    },
+
+    async saveOnboarding(input) {
+      const result = await client
+        .from("profiles")
+        .update({ age_band: input.age_band, goals: input.goals })
+        .eq("id", userId)
+        .eq("tenant_id", tenantId);
+      if (result.error) throw new Error(`onboarding: ${result.error.message}`);
+    },
+
+    async setItemLater(itemId, later) {
+      const result = await client.from("items").update({ later }).eq("id", itemId).eq("tenant_id", tenantId);
+      if (result.error) throw new Error(`later: ${result.error.message}`);
     },
 
     async saveVectorConstraint(vectorId, paceConstraint) {

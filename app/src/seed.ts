@@ -44,8 +44,8 @@ export function seedStage(vectorId: string, tenantId: string, today = todayISO()
 /** Test-tenant inrichting. No person name. Etappe/B only where given. Weekdays left empty. */
 export function testTenantItems(tenantId: string): Item[] {
   const row = (
-    partial: Omit<Item, "id" | "tenant_id" | "timing" | "role" | "template"> &
-      Partial<Pick<Item, "timing" | "role" | "template">>,
+    partial: Omit<Item, "id" | "tenant_id" | "timing" | "role" | "template" | "later"> &
+      Partial<Pick<Item, "timing" | "role" | "template" | "later">>,
   ): Item => ({
     id: newId(),
     tenant_id: tenantId,

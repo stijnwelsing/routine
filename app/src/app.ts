@@ -378,7 +378,7 @@ function onboardView(step: "goals" | "age" | "themes" | "start"): string {
         <div class="note">Tik een suggestie of typ zelf. Mag leeg. Later aan te passen.</div>
         ${themePicker(themes)}
         <div class="stack" style="margin-top:16px">
-          <button class="btn primary" data-act="onboard-next">Verder</button>
+          <button class="btn primary" data-act="onboard-themes-done">Verder</button>
         </div>
       </div>`;
   }
@@ -680,11 +680,12 @@ async function handleAction(target: HTMLElement): Promise<void> {
   }
 
   if (act === "onboard-next") {
-    if (onboardStep(snapshot) === "themes") {
-      await persistThemeList(snapshot.profile.themes ?? [], true);
-      return;
-    }
     render();
+    return;
+  }
+
+  if (act === "onboard-themes-done") {
+    await persistThemeList(snapshot.profile.themes ?? [], true);
     return;
   }
 

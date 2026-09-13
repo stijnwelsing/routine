@@ -27,7 +27,7 @@ body {
 }
 
 body {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 92px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 108px);
 }
 
 #app {
@@ -610,6 +610,28 @@ button.ex-nm.tap {
   min-height: 40px;
   padding: 8px 14px;
   flex: 0 0 auto;
+}
+
+.later-add {
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+}
+
+.add-item .chips {
+  margin-top: 8px;
+}
+
+.add-item .field {
+  margin-top: 12px;
+}
+
+.add-item .field:first-of-type {
+  margin-top: 12px;
+}
+
+.add-item .stack {
+  margin-top: 4px;
 }
 
 .koers-one {

@@ -23,9 +23,14 @@ import {
   type WeekReview,
 } from "./review";
 import {
+  ITEM_LABEL_LIMIT,
+  ITEM_TIMING_LIMIT,
+  USER_ITEM_KINDS,
+  USER_ITEM_KIND_LABEL,
   eventsForItem,
   formatWork,
   hasCurrent,
+  isUserItemKind,
   loopEvents,
   primaryItem,
   todayActions,
@@ -34,6 +39,7 @@ import {
   todayPreferences,
   todaySociaal,
   todayStofjes,
+  type UserItemKind,
 } from "./items";
 import { defaultTemplate, hasTemplate } from "./templates";
 import {
@@ -68,6 +74,9 @@ interface AppState {
   busy: boolean;
   error: string | null;
   startIds: string[];
+  addKind: UserItemKind;
+  addLabel: string;
+  addTiming: string;
 }
 
 const state: AppState = {
@@ -79,6 +88,9 @@ const state: AppState = {
   busy: false,
   error: null,
   startIds: [],
+  addKind: "gedrag",
+  addLabel: "",
+  addTiming: "",
 };
 
 let store: Store | null = null;
@@ -228,15 +240,12 @@ function render(): void {
       }
       <div class="sec-hd">Vandaag</div>
       ${actions.map((item) => itemCard(item, view, nudge)).join("")}
-      ${
-        later.length
-          ? `<div class="sec-hd">Later</div>
+      <div class="sec-hd">Later</div>
       <div class="card later-box">
         <div class="note" style="margin-top:0">Niet in je start. Blijft bewaard.</div>
         ${later.map((item) => laterRow(item)).join("")}
-      </div>`
-          : ""
-      }
+        <button class="btn ghost later-add" data-nav="profiel">Eigen item</button>
+      </div>
       <div class="sec-hd">Koers</div>
       <div class="card">
         <div class="koers-one">
@@ -369,6 +378,7 @@ function render(): void {
         <div class="note" style="margin-top:0">Parkeren of terughalen. Events blijven.</div>
         ${laterItems.map((item) => laterEditRow(item)).join("")}
       </div>
+      ${addItemCard()}
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
       ${nav}`;
     return;
@@ -490,6 +500,30 @@ function laterEditRow(item: Item): string {
           <div class="note" style="margin-top:4px">${parked ? "Later" : "Nu"}</div>
         </div>
         <button class="btn ghost later-now" data-act="${parked ? "later-now" : "later-park"}" data-item="${item.id}">${parked ? "Nu" : "Later"}</button>
+      </div>`;
+}
+
+function addItemCard(): string {
+  return `
+      <div class="sec-hd">Eigen item</div>
+      <div class="card add-item">
+        <div class="note" style="margin-top:0">Label, type, optioneel tijdstip. Geen dosis. Bestaande items blijven.</div>
+        <div class="field">
+          <div class="lbl">Naam</div>
+          <input data-id="item-label" type="text" maxlength="${ITEM_LABEL_LIMIT}" placeholder="Bijv. Avondwandeling" autocomplete="off" enterkeyhint="done" value="${escapeHtml(state.addLabel)}" />
+        </div>
+        <div class="lbl">Type</div>
+        <div class="chips">${USER_ITEM_KINDS.map(
+          (kind) =>
+            `<button class="chip pick ${state.addKind === kind ? "on" : ""}" data-act="item-kind" data-kind="${kind}">${USER_ITEM_KIND_LABEL[kind]}</button>`,
+        ).join("")}</div>
+        <div class="field" style="margin-top:12px">
+          <div class="lbl">Tijd</div>
+          <input data-id="item-timing" type="text" maxlength="${ITEM_TIMING_LIMIT}" placeholder="22:00 of ochtend" autocomplete="off" enterkeyhint="done" value="${escapeHtml(state.addTiming)}" />
+        </div>
+        <div class="stack">
+          <button class="btn primary" data-act="item-add">Voeg toe</button>
+        </div>
       </div>`;
 }
 
@@ -761,9 +795,16 @@ function bind(): void {
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Enter") return;
     const el = event.target as HTMLElement;
-    if (!(el instanceof HTMLInputElement) || el.dataset.id !== "theme-custom") return;
-    event.preventDefault();
-    void persistCustomTheme();
+    if (!(el instanceof HTMLInputElement)) return;
+    if (el.dataset.id === "theme-custom") {
+      event.preventDefault();
+      void persistCustomTheme();
+      return;
+    }
+    if (el.dataset.id === "item-label" || el.dataset.id === "item-timing") {
+      event.preventDefault();
+      void persistCustomItem();
+    }
   });
 
   document.addEventListener("click", (event) => {
@@ -1002,6 +1043,20 @@ async function handleAction(target: HTMLElement): Promise<void> {
     return;
   }
 
+  if (act === "item-kind") {
+    const kind = target.dataset.kind;
+    if (!isUserItemKind(kind)) return;
+    rememberAddDraft();
+    state.addKind = kind;
+    render();
+    return;
+  }
+
+  if (act === "item-add") {
+    await persistCustomItem();
+    return;
+  }
+
   if (act === "save-ik") {
     const profile = {
       ...snapshot.profile,
@@ -1021,6 +1076,26 @@ async function handleAction(target: HTMLElement): Promise<void> {
     downloadExport(snapshot);
     return;
   }
+}
+
+function rememberAddDraft(): void {
+  state.addLabel = valueOf("item-label") ?? state.addLabel;
+  state.addTiming = valueOf("item-timing") ?? state.addTiming;
+}
+
+async function persistCustomItem(): Promise<void> {
+  if (!store || !snapshot) return;
+  rememberAddDraft();
+  await withBusy(async () => {
+    await store!.addItem({
+      label: state.addLabel,
+      kind: state.addKind,
+      timing: state.addTiming,
+    });
+    snapshot = await store!.load();
+    state.addLabel = "";
+    state.addTiming = "";
+  });
 }
 
 async function persistCustomTheme(): Promise<void> {

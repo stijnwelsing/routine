@@ -10,7 +10,7 @@ import {
   suggestStartItems,
   toggleStartId,
 } from "./goals";
-import { todayActions, todayLater, todayStofjes } from "./items";
+import { createUserItem, todayActions, todayLater, todayStofjes } from "./items";
 import { seedSnapshot, testTenantItems } from "./seed";
 
 describe("goals onboarding", () => {
@@ -103,5 +103,14 @@ describe("goals onboarding", () => {
     expect(editable.some((item) => item.label === "Scherm uit 22:00")).toBe(false);
     expect(editable.some((item) => item.label === "Bellen met iemand")).toBe(true);
     expect(editable.some((item) => item.type === "weekly")).toBe(false);
+    const own = createUserItem({
+      tenantId: "t1",
+      label: "Avondwandeling",
+      kind: "gedrag",
+      sort: 40,
+    })!;
+    const withOwn = laterEditableItems([...items, own]);
+    expect(withOwn.some((item) => item.label === "Avondwandeling")).toBe(true);
+    expect(withOwn.some((item) => item.label === "Push-ups")).toBe(true);
   });
 });

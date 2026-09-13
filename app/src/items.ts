@@ -1,13 +1,41 @@
-import type { Item, LogEvent, Profile, Snapshot } from "./types";
+import { newId } from "./dates";
+import type { Item, ItemType, LogEvent, Profile, Snapshot } from "./types";
 import { defaultTemplate } from "./templates";
 import {
   defaultRole,
   dueByFrequency,
+  emptyTiming,
   isAction,
   isConstraint,
   isPreference,
   normalizeTiming,
 } from "./timing";
+
+export const USER_ITEM_KINDS = ["gedrag", "regel", "medicijn", "supplement", "sociaal"] as const;
+export type UserItemKind = (typeof USER_ITEM_KINDS)[number];
+
+export const USER_ITEM_KIND_TYPE: Record<UserItemKind, ItemType> = {
+  gedrag: "gedrag",
+  regel: "leefregel",
+  medicijn: "medicijn",
+  supplement: "supplement",
+  sociaal: "sociaal",
+};
+
+export const USER_ITEM_KIND_LABEL: Record<UserItemKind, string> = {
+  gedrag: "Gedrag",
+  regel: "Regel",
+  medicijn: "Medicijn",
+  supplement: "Supplement",
+  sociaal: "Sociaal",
+};
+
+export const ITEM_LABEL_LIMIT = 40;
+export const ITEM_TIMING_LIMIT = 40;
+
+export function isUserItemKind(value: string | undefined): value is UserItemKind {
+  return Boolean(value && (USER_ITEM_KINDS as readonly string[]).includes(value));
+}
 
 export function hasCurrent(item: Item): boolean {
   return item.a !== null && item.b !== null && item.milestone !== null;
@@ -100,6 +128,74 @@ export function formatWork(item: Item): string | null {
 
 function labelKey(label: string): string {
   return label.trim().toLowerCase();
+}
+
+export function normalizeItemLabel(raw: string): string | null {
+  const label = raw.trim().replace(/\s+/g, " ").slice(0, ITEM_LABEL_LIMIT);
+  return label.length > 0 ? label : null;
+}
+
+export function parseUserTiming(raw: string): ReturnType<typeof emptyTiming> {
+  const value = raw.trim().replace(/\s+/g, " ").slice(0, ITEM_TIMING_LIMIT);
+  if (!value) return emptyTiming();
+  const clock = /^(\d{1,2}):(\d{2})$/.exec(value);
+  if (clock) {
+    const hours = Number(clock[1]);
+    const minutes = Number(clock[2]);
+    if (hours <= 23 && minutes <= 59) {
+      return {
+        ...emptyTiming(),
+        mode: "clock",
+        clock: `${String(hours).padStart(2, "0")}:${clock[2]}`,
+        frequency: "daily",
+      };
+    }
+  }
+  return {
+    ...emptyTiming(),
+    frequency: "daily",
+    condition: value,
+  };
+}
+
+export function nextItemSort(items: Item[]): number {
+  return items.reduce((max, item) => Math.max(max, item.sort), -1) + 1;
+}
+
+export function canAddItem(items: Item[], label: string): boolean {
+  const key = normalizeItemLabel(label);
+  if (!key) return false;
+  return !items.some((item) => labelKey(item.label) === labelKey(key));
+}
+
+/** Tenant inrichting. User-made row, not catalog-only. No dose. */
+export function createUserItem(input: {
+  tenantId: string;
+  label: string;
+  kind: UserItemKind;
+  timing?: string;
+  sort: number;
+  later?: boolean;
+}): Item | null {
+  const label = normalizeItemLabel(input.label);
+  if (!label) return null;
+  return {
+    id: newId(),
+    tenant_id: input.tenantId,
+    type: USER_ITEM_KIND_TYPE[input.kind],
+    label,
+    unit: null,
+    a: null,
+    b: null,
+    milestone: null,
+    weekdays: null,
+    times_per_week: null,
+    sort: input.sort,
+    timing: parseUserTiming(input.timing ?? ""),
+    role: "action",
+    template: "user preference",
+    later: Boolean(input.later),
+  };
 }
 
 export function uniqueItemsByLabel(items: Item[]): Item[] {

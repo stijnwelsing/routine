@@ -2,7 +2,15 @@ import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
 import { applyStartSelection } from "./goals";
-import { mergeSeedItems, normalizeItem, recoverSnapshots } from "./items";
+import {
+  canAddItem,
+  createUserItem,
+  mergeSeedItems,
+  nextItemSort,
+  normalizeItem,
+  recoverSnapshots,
+  type UserItemKind,
+} from "./items";
 import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage, testTenantItems } from "./seed";
 import { normalizeThemes } from "./themes";
 import {
@@ -37,6 +45,7 @@ export interface Store {
   saveOnboarding(input: { goals: GoalId[]; age_band: AgeBand; startIds: string[] }): Promise<void>;
   saveThemes(themes: string[]): Promise<void>;
   setItemLater(itemId: string, later: boolean): Promise<void>;
+  addItem(input: { label: string; kind: UserItemKind; timing?: string }): Promise<Item>;
   saveVectorConstraint(vectorId: string, paceConstraint: string | null): Promise<void>;
   advanceStage(current: Stage, nextMilestone: number): Promise<Stage>;
   signOut(): Promise<void>;
@@ -209,6 +218,22 @@ export function createLocalStore(): Store {
       const snapshot = readLocal(userId, tenantId);
       snapshot.items = snapshot.items.map((item) => (item.id === itemId ? { ...item, later } : item));
       writeLocal(snapshot);
+    },
+
+    async addItem(input) {
+      const snapshot = readLocal(userId, tenantId);
+      const item = createUserItem({
+        tenantId,
+        label: input.label,
+        kind: input.kind,
+        timing: input.timing,
+        sort: nextItemSort(snapshot.items),
+      });
+      if (!item) throw new Error("naam ontbreekt");
+      if (!canAddItem(snapshot.items, item.label)) throw new Error("item bestaat al");
+      snapshot.items = [...snapshot.items, item];
+      writeLocal(snapshot);
+      return item;
     },
 
     async saveVectorConstraint(vectorId, paceConstraint) {
@@ -462,6 +487,42 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
     async setItemLater(itemId, later) {
       const result = await client.from("items").update({ later }).eq("id", itemId).eq("tenant_id", tenantId);
       if (result.error) throw new Error(`later: ${result.error.message}`);
+    },
+
+    async addItem(input) {
+      const current = await this.load();
+      const item = createUserItem({
+        tenantId,
+        label: input.label,
+        kind: input.kind,
+        timing: input.timing,
+        sort: nextItemSort(current.items),
+      });
+      if (!item) throw new Error("naam ontbreekt");
+      if (!canAddItem(current.items, item.label)) throw new Error("item bestaat al");
+      const inserted = await client
+        .from("items")
+        .insert({
+          id: item.id,
+          tenant_id: tenantId,
+          type: item.type,
+          label: item.label,
+          unit: item.unit,
+          a: item.a,
+          b: item.b,
+          milestone: item.milestone,
+          weekdays: item.weekdays ?? [],
+          times_per_week: item.times_per_week,
+          sort: item.sort,
+          timing: item.timing,
+          role: item.role,
+          template: item.template,
+          later: item.later,
+        })
+        .select("*")
+        .single();
+      const row = await must<Item>("item", inserted);
+      return normalizeItem(row, tenantId);
     },
 
     async saveVectorConstraint(vectorId, paceConstraint) {

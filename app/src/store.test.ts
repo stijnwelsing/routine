@@ -491,6 +491,66 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
+  it("adds a user item on leftover v6 without wiping events or seed rows", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    existing.onboarded = true;
+    existing.profile.themes = ["Kickbox"];
+    existing.events = [
+      event({
+        id: "keep-own",
+        date: "2026-09-12",
+        kind: "done",
+        item_id: push.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-own"]);
+
+    const added = await store.addItem({
+      label: "Avondwandeling",
+      kind: "gedrag",
+      timing: "20:00",
+    });
+    expect(added).toMatchObject({
+      type: "gedrag",
+      label: "Avondwandeling",
+      a: null,
+      unit: null,
+      template: "user preference",
+    });
+    expect(added.timing).toMatchObject({ mode: "clock", clock: "20:00" });
+
+    const after = await store.load();
+    expect(after.events.map((row) => row.id)).toEqual(["keep-own"]);
+    expect(after.items.find((item) => item.id === added.id)?.label).toBe("Avondwandeling");
+    expect(after.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(after.items.find((item) => item.label === "Scherm uit 22:00")).toMatchObject({
+      role: "constraint",
+      template: "user preference",
+    });
+    expect(after.items.find((item) => item.label === "Medicijn ochtend")?.type).toBe("medicijn");
+    expect(after.profile.themes).toEqual(["Kickbox"]);
+    expect(after.onboarded).toBe(true);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+
+    await expect(store.addItem({ label: "avondwandeling", kind: "regel" })).rejects.toThrow(
+      "item bestaat al",
+    );
+    await expect(store.addItem({ label: "   ", kind: "sociaal" })).rejects.toThrow("naam ontbreekt");
+    const again = await store.load();
+    expect(again.events.map((row) => row.id)).toEqual(["keep-own"]);
+    expect(again.items.filter((item) => item.label.toLowerCase() === "avondwandeling")).toHaveLength(
+      1,
+    );
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

@@ -1,13 +1,17 @@
 import { describe, expect, it } from "vitest";
 import {
+  canAddItem,
+  createUserItem,
   dueItems,
   dueToday,
   formatWork,
   hasCurrent,
   mergeSeedItems,
+  parseUserTiming,
   recoverSnapshots,
   todayActions,
   todayConstraints,
+  todayLater,
   todayPreferences,
   todaySociaal,
   todayStofjes,
@@ -198,5 +202,80 @@ describe("test tenant items", () => {
       id: "keep-squat",
       a: 32,
     });
+  });
+
+  it("keeps a user-made item when merging seed and does not invent a dose", () => {
+    const seed = testTenantItems("t1");
+    const own = createUserItem({
+      tenantId: "t1",
+      label: "Avondwandeling",
+      kind: "gedrag",
+      timing: "20:00",
+      sort: 40,
+    });
+    expect(own).toMatchObject({
+      type: "gedrag",
+      label: "Avondwandeling",
+      unit: null,
+      a: null,
+      role: "action",
+      template: "user preference",
+    });
+    expect(own?.timing).toMatchObject({ mode: "clock", clock: "20:00" });
+    const merged = mergeSeedItems([...seed, own!], seed, "t1");
+    expect(merged.find((item) => item.label === "Avondwandeling")?.id).toBe(own!.id);
+    expect(merged.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(merged.find((item) => item.label === "Scherm uit 22:00")).toMatchObject({
+      role: "constraint",
+      template: "user preference",
+    });
+    expect(merged.filter((item) => item.label === "Avondwandeling")).toHaveLength(1);
+    expect(canAddItem(merged, "avondwandeling")).toBe(false);
+    expect(canAddItem(merged, "Nieuwe regel")).toBe(true);
+  });
+
+  it("maps user kinds and optional timing without catalog lock", () => {
+    const regel = createUserItem({
+      tenantId: "t1",
+      label: "  Geen telefoon in bed  ",
+      kind: "regel",
+      timing: "avond",
+      sort: 41,
+    });
+    const med = createUserItem({
+      tenantId: "t1",
+      label: "Eigen medicijn",
+      kind: "medicijn",
+      sort: 42,
+    });
+    const soc = createUserItem({
+      tenantId: "t1",
+      label: "Koffie met iemand",
+      kind: "sociaal",
+      timing: "9:30",
+      sort: 43,
+    });
+    expect(regel).toMatchObject({
+      type: "leefregel",
+      label: "Geen telefoon in bed",
+      a: null,
+      unit: null,
+    });
+    expect(regel?.timing).toMatchObject({ condition: "avond", mode: null });
+    expect(med).toMatchObject({ type: "medicijn", template: "user preference", a: null });
+    expect(soc?.timing).toMatchObject({ mode: "clock", clock: "09:30" });
+    expect(todayActions([regel!], "2026-09-13").map((item) => item.label)).toEqual([
+      "Geen telefoon in bed",
+    ]);
+    expect(todayStofjes([med!], "2026-09-13").map((item) => item.label)).toEqual(["Eigen medicijn"]);
+    expect(todaySociaal([soc!], "2026-09-13").map((item) => item.label)).toEqual([
+      "Koffie met iemand",
+    ]);
+    expect(todayLater([{ ...regel!, later: true }], "2026-09-13")[0]?.label).toBe(
+      "Geen telefoon in bed",
+    );
+    expect(createUserItem({ tenantId: "t1", label: "   ", kind: "gedrag", sort: 0 })).toBeNull();
+    expect(parseUserTiming("22:00")).toMatchObject({ mode: "clock", clock: "22:00" });
+    expect(parseUserTiming("")).toMatchObject({ mode: null, clock: null, condition: null });
   });
 });

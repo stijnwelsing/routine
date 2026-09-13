@@ -9,15 +9,38 @@ export interface ProgressPoint {
   mark: WeekReview["days"][number]["mark"];
 }
 
+export interface WeightPoint {
+  date: string;
+  kg: number;
+}
+
 export interface ProgressView {
   week: WeekReview;
   line: ProgressPoint[];
+  weight: WeightPoint[];
   hits: number;
   skips: number;
   misses: number;
 }
 
-/** Calm week + current line + hits. No score, no streak. */
+function byCreated(a: LogEvent, b: LogEvent): number {
+  return a.created_at.localeCompare(b.created_at);
+}
+
+/** Latest kg per day. No fill, no BMI, no goal. Empty when nothing is logged. */
+export function weightSeries(events: LogEvent[], today: string): WeightPoint[] {
+  const latest = new Map<string, LogEvent>();
+  for (const event of [...events].sort(byCreated)) {
+    if (event.kind !== "body_weight" || event.value === null) continue;
+    if (event.date > today) continue;
+    latest.set(event.date, event);
+  }
+  return [...latest.values()]
+    .sort((a, b) => a.date.localeCompare(b.date) || byCreated(a, b))
+    .map((event) => ({ date: event.date, kg: event.value as number }));
+}
+
+/** Calm week + current line + hits + optional kg series. No score, no streak. */
 export function progressView(
   items: Item[],
   events: LogEvent[],
@@ -35,6 +58,7 @@ export function progressView(
   return {
     week,
     line,
+    weight: weightSeries(events, today),
     hits: week.hits,
     skips: week.skips,
     misses: week.misses,

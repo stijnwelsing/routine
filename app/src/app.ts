@@ -65,7 +65,7 @@ import {
   toggleGoal,
   toggleStartId,
 } from "./goals";
-import { lineDots, linePointsAttr, progressView } from "./progress";
+import { lineDots, linePointsAttr, progressView, type WeightPoint } from "./progress";
 import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./themes";
 import { todayConfirm } from "./confirm";
 import {
@@ -400,6 +400,7 @@ function render(): void {
           <div><div class="lbl">Gedaan</div><div class="val">${progress.hits}</div></div>
         </div>
       </div>
+      ${weightBlock(progress.weight)}
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
       ${nav}`;
     return;
@@ -610,6 +611,51 @@ function addItemCard(): string {
         </div>
         <div class="stack">
           <button class="btn primary" data-act="item-add">Voeg toe</button>
+        </div>
+      </div>`;
+}
+
+function weightRangeNote(points: WeightPoint[]): string {
+  if (points.length === 0) return "";
+  const first = formatShort(points[0].date);
+  const last = formatShort(points[points.length - 1].date);
+  return first === last ? first : `${first} – ${last}`;
+}
+
+function weightLineSvg(points: WeightPoint[]): string {
+  const width = 294;
+  const height = 72;
+  const dots = lineDots(
+    points.map((point) => point.kg),
+    width,
+    height,
+  );
+  if (dots.length === 0) return "";
+  const last = dots.length - 1;
+  const marks = dots
+    .map((dot, i) => {
+      const now = i === last;
+      return `<circle class="${now ? "prog-dot now" : "prog-dot"}" cx="${dot.x.toFixed(1)}" cy="${dot.y.toFixed(1)}" r="${now ? 3.2 : 2.2}" />`;
+    })
+    .join("");
+  return `
+        <svg class="prog-line" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+          <polyline class="prog-path" points="${linePointsAttr(dots)}" />
+          ${marks}
+        </svg>`;
+}
+
+/** Silent when there are no kg points. No BMI, no goal, no ask. */
+function weightBlock(points: WeightPoint[]): string {
+  if (points.length === 0) return "";
+  const last = points[points.length - 1];
+  return `
+      <div class="sec-hd">Gewicht</div>
+      <div class="card">
+        <div class="note" style="margin-top:0">${escapeHtml(weightRangeNote(points))}</div>
+        ${weightLineSvg(points)}
+        <div class="kv" style="margin-top:12px">
+          <div><div class="lbl">Laatst</div><div class="val">${last.kg.toFixed(1)} kg</div></div>
         </div>
       </div>`;
 }

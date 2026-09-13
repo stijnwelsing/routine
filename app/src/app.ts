@@ -332,7 +332,6 @@ function weekCounts(view: WeekReview): string {
 }
 
 function weekMark(mark: WeekReview["days"][number]["mark"]): string {
-  if (mark === "hit") return "ok";
   if (mark === "skip") return "–";
   if (mark === "miss") return "×";
   return "·";

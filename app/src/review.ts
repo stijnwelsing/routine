@@ -2,10 +2,16 @@ import { addDays, eachDay, formatShort, mondayOfWeek, weekdayShort } from "./dat
 import { eventsForItem, primaryItem, todayActions, todayStofjes } from "./items";
 import type { Item, LogEvent, SkipReason } from "./types";
 
-function hasSessionHistory(events: LogEvent[], item: Item, primaryId?: string): boolean {
+function hasSessionHistory(
+  events: LogEvent[],
+  item: Item,
+  primaryId: string | undefined,
+  before: string,
+): boolean {
   return eventsForItem(events, item, primaryId).some(
     (event) =>
-      event.kind === "set" || event.kind === "done" || event.kind === "skip" || event.kind === "miss",
+      (event.kind === "set" || event.kind === "done" || event.kind === "skip" || event.kind === "miss") &&
+      event.date < before,
   );
 }
 
@@ -100,7 +106,7 @@ export function pendingMisses(
 ): ItemDay[] {
   const yesterday = addDays(today, -1);
   return reviewableItems(items, yesterday)
-    .filter((item) => hasSessionHistory(events, item, primaryId))
+    .filter((item) => hasSessionHistory(events, item, primaryId, yesterday))
     .map((item) => {
       const row = itemDayMark(events, item, yesterday, today, primaryId);
       if (row.mark === "hit" || row.mark === "skip" || row.mark === "miss") return row;

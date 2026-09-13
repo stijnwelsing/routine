@@ -69,6 +69,12 @@ describe("pendingMisses", () => {
     expect(pendingMisses(snap.items, [], today, push.id)).toEqual([]);
   });
 
+  it("does not treat today's first Done as history for yesterday", () => {
+    const events = [event({ date: today, kind: "done", item_id: walk.id })];
+    const pending = pendingMisses(snap.items, events, today, push.id);
+    expect(pending.some((row) => row.item.id === walk.id)).toBe(false);
+  });
+
   it("drops the prompt after a miss reason is stored", () => {
     const events = [
       event({ date: yesterday, kind: "miss", skip_reason: "vergeten", item_id: push.id }),

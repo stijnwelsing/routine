@@ -1,5 +1,13 @@
 import type { Item, LogEvent, Profile, Snapshot } from "./types";
-import { defaultRole, dueByFrequency, isAction, isConstraint, normalizeTiming } from "./timing";
+import { defaultTemplate } from "./templates";
+import {
+  defaultRole,
+  dueByFrequency,
+  isAction,
+  isConstraint,
+  isPreference,
+  normalizeTiming,
+} from "./timing";
 
 export function hasCurrent(item: Item): boolean {
   return item.a !== null && item.b !== null && item.milestone !== null;
@@ -17,7 +25,7 @@ export function normalizeItem(item: Item, tenantId: string): Item {
     times_per_week: item.times_per_week ?? null,
     timing: normalizeTiming(item.timing),
     role: defaultRole(item),
-    template: item.template ?? null,
+    template: defaultTemplate(item),
     later: Boolean(item.later),
   };
 }
@@ -34,6 +42,11 @@ export function todayActions(items: Item[], today: string): Item[] {
   return dueItems(items, today).filter(
     (item) => isAction(item) && !isStofje(item) && !isSociaal(item) && !item.later,
   );
+}
+
+/** Preference items as a quiet day tag. No Done/Skip, no miss theater. */
+export function todayPreferences(items: Item[], today: string): Item[] {
+  return dueItems(items, today).filter((item) => isPreference(item) && !item.later);
 }
 
 export function todayConstraints(items: Item[], today: string): Item[] {

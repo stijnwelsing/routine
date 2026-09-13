@@ -34,6 +34,14 @@ export type ItemType =
   | "supplement"
   | "sociaal";
 export type ItemRole = "action" | "constraint" | "preference";
+export const ITEM_TEMPLATES = [
+  "guideline",
+  "evidence-informed",
+  "public-framework",
+  "user preference",
+  "hypothesis",
+] as const;
+export type ItemTemplate = (typeof ITEM_TEMPLATES)[number];
 export type TimingMode = "clock" | "relative";
 export type TimingAnchor = "wake" | "meal";
 export type TimingFrequency = "daily" | "weekly";
@@ -115,7 +123,7 @@ export interface Item {
   sort: number;
   timing: Timing;
   role: ItemRole | null;
-  template: string | null;
+  template: ItemTemplate | null;
   later: boolean;
 }
 

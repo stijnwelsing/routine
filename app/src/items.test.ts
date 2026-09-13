@@ -8,6 +8,7 @@ import {
   recoverSnapshots,
   todayActions,
   todayConstraints,
+  todayPreferences,
   todaySociaal,
   todayStofjes,
 } from "./items";
@@ -43,6 +44,8 @@ describe("test tenant items", () => {
     expect(todayActions(items, "2026-08-29").some((item) => item.label === "Wandelen na eten")).toBe(
       true,
     );
+    expect(todayActions(items, "2026-08-29").some((item) => item.label === "Low carb")).toBe(false);
+    expect(todayPreferences(items, "2026-08-29").map((item) => item.label)).toEqual(["Low carb"]);
     expect(todayActions(items, "2026-08-29").some((item) => item.role === "constraint")).toBe(false);
     expect(todayConstraints(items, "2026-08-29").map((item) => item.label)).toEqual([
       "Cafeïne 90 min na opstaan",

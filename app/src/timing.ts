@@ -71,11 +71,15 @@ export function dueByFrequency(item: Item, today: string): boolean {
 }
 
 export function isConstraint(item: Item): boolean {
-  return item.role === "constraint";
+  return defaultRole(item) === "constraint";
+}
+
+export function isPreference(item: Pick<Item, "role" | "label">): boolean {
+  return defaultRole(item) === "preference";
 }
 
 export function isAction(item: Item): boolean {
-  return item.role !== "constraint";
+  return !isConstraint(item) && !isPreference(item);
 }
 
 export function timingPhase(item: Item, ctx: TimingContext): TimingPhase {

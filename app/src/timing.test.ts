@@ -97,6 +97,8 @@ describe("timing engine", () => {
     const caffeine = testTenantItems("t1").find((row) => row.label === "Cafeïne 90 min na opstaan")!;
     expect(caffeine.role).toBe("constraint");
     expect(caffeine.template).toBe("public-framework");
+    const walk = testTenantItems("t1").find((row) => row.label === "Wandelen na eten")!;
+    expect(walk.template).toBe("evidence-informed");
     expect(caffeine.timing).toMatchObject({
       mode: "relative",
       anchor: "wake",

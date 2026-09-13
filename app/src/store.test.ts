@@ -165,6 +165,13 @@ describe("local store data preserve", () => {
     expect(snap.items.find((item) => item.label === "Low carb")?.type).toBe("leefregel");
     expect(snap.items.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(true);
     expect(snap.items.some((item) => item.label === "Wandelen na eten")).toBe(true);
+    expect(snap.items.find((item) => item.label === "Cafeïne 90 min na opstaan")?.template).toBe(
+      "public-framework",
+    );
+    expect(snap.items.find((item) => item.label === "Wandelen na eten")?.template).toBe(
+      "evidence-informed",
+    );
+    expect(snap.items.find((item) => item.label === "Low carb")?.template).toBe("user preference");
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
@@ -232,6 +239,47 @@ describe("local store data preserve", () => {
       a: null,
     });
     expect(snap.items.every((item) => !/stijn|piet|jan|marie/i.test(item.label))).toBe(true);
+    expect(snap.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+  });
+
+  it("fills lock templates on leftover v6 items without wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    existing.onboarded = true;
+    existing.items = existing.items.map((item) =>
+      item.label === "Wandelen na eten" ||
+      item.label === "Cafeïne 90 min na opstaan" ||
+      item.label === "Low carb"
+        ? { ...item, template: null }
+        : item,
+    );
+    existing.events = [
+      event({
+        id: "keep-template",
+        date: "2026-09-13",
+        kind: "done",
+        item_id: existing.items.find((item) => item.label === "Push-ups")!.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-template"]);
+    expect(snap.items.find((item) => item.label === "Cafeïne 90 min na opstaan")?.template).toBe(
+      "public-framework",
+    );
+    expect(snap.items.find((item) => item.label === "Wandelen na eten")?.template).toBe(
+      "evidence-informed",
+    );
+    expect(snap.items.find((item) => item.label === "Low carb")).toMatchObject({
+      template: "user preference",
+      role: "preference",
+      type: "leefregel",
+    });
     expect(snap.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });

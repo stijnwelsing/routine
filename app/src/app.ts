@@ -31,9 +31,11 @@ import {
   todayActions,
   todayConstraints,
   todayLater,
+  todayPreferences,
   todaySociaal,
   todayStofjes,
 } from "./items";
+import { defaultTemplate, hasTemplate } from "./templates";
 import {
   AGE_BANDS,
   GOALS,
@@ -50,7 +52,7 @@ import {
 import { lineDots, linePointsAttr, progressView } from "./progress";
 import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./themes";
 import { todayConfirm } from "./confirm";
-import { timingNote } from "./timing";
+import { isConstraint, isPreference, timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
 import { SKIP_REASONS, isScreen, isSkipReason, type Item, type Screen, type Snapshot } from "./types";
@@ -61,6 +63,7 @@ interface AppState {
   screen: Screen;
   skipItemId: string | null;
   missKey: string | null;
+  detailItemId: string | null;
   advanceWarn: boolean;
   busy: boolean;
   error: string | null;
@@ -71,6 +74,7 @@ const state: AppState = {
   screen: "vandaag",
   skipItemId: null,
   missKey: null,
+  detailItemId: null,
   advanceWarn: false,
   busy: false,
   error: null,
@@ -145,6 +149,19 @@ function render(): void {
       <button data-nav="profiel" class="${state.screen === "profiel" ? "active" : ""}">${icon("me")}Profiel</button>
     </nav>`;
 
+  if (state.detailItemId) {
+    const item = snapshot.items.find((row) => row.id === state.detailItemId);
+    if (item) {
+      root().innerHTML = `
+      ${header}
+      ${detailView(item)}
+      ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
+      ${nav}`;
+      return;
+    }
+    state.detailItemId = null;
+  }
+
   if (state.screen === "vandaag") {
     const nudge = identityNudge(snapshot.profile.identity_new, snapshot.events);
     const today = todayISO();
@@ -153,6 +170,7 @@ function render(): void {
     const stofjes = todayStofjes(snapshot.items, today);
     const sociaal = todaySociaal(snapshot.items, today);
     const later = todayLater(snapshot.items, today);
+    const prefs = todayPreferences(snapshot.items, today);
     const pending = pendingMisses(snapshot.items, snapshot.events, today, reviewPrimaryId(snapshot.items));
     root().innerHTML = `
       ${header}
@@ -176,6 +194,14 @@ function render(): void {
           <div class="dots">${energyDots(view.energy)}</div>
         </div>
       </div>
+      ${
+        prefs.length
+          ? `<div class="sec-hd">Dag</div>
+      <div class="card quiet">
+        <div class="day-tags">${prefs.map((item) => dayTag(item)).join("")}</div>
+      </div>`
+          : ""
+      }
       ${
         rules.length
           ? `<div class="sec-hd">Regel</div>${rules.map((item) => ruleLine(item)).join("")}`
@@ -369,7 +395,7 @@ function stofCard(item: Item): string {
   const note = timingNote(item);
   return `
       <div class="card stof">
-        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${itemTitle(item)}
         ${note ? `<div class="note">${escapeHtml(note)}</div>` : ""}
         <div class="actions actions-two">
           <button class="btn ico-btn ${day.done ? "track" : ""}" data-act="done" data-item="${item.id}" ${taken ? "disabled" : ""}>${icon("done")}<span>${doneLabel}</span></button>
@@ -585,11 +611,48 @@ function onboardView(step: "goals" | "age" | "themes" | "start"): string {
     </div>`;
 }
 
+function itemTitle(item: Item): string {
+  if (!hasTemplate(item)) {
+    return `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
+  }
+  return `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`;
+}
+
+function dayTag(item: Item): string {
+  return `<button class="chip pick" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`;
+}
+
+function detailView(item: Item): string {
+  const template = defaultTemplate(item);
+  const note = timingNote(item);
+  const work = formatWork(item);
+  const pref = isPreference(item);
+  const rule = isConstraint(item);
+  return `
+      <button class="btn ghost detail-back" data-act="detail-close">Terug</button>
+      <div class="sec-hd">Detail</div>
+      <div class="card">
+        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${note ? `<div class="note">${escapeHtml(note)}</div>` : ""}
+        ${work ? `<div class="work">${escapeHtml(work)}</div>` : ""}
+        ${pref ? `<div class="note">Voorkeur. Geen regel.</div>` : ""}
+        ${rule && !note ? `<div class="note">Regel. Geen afvinken.</div>` : ""}
+      </div>
+      ${
+        template
+          ? `<div class="sec-hd">Bron</div>
+      <div class="card quiet">
+        <div class="src-tag">${escapeHtml(template)}</div>
+      </div>`
+          : ""
+      }`;
+}
+
 function ruleLine(item: Item): string {
   const note = timingNote(item);
   return `
       <div class="card quiet">
-        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${itemTitle(item)}
         ${note ? `<div class="note">${escapeHtml(note)}</div>` : `<div class="note">Regel. Geen afvinken.</div>`}
       </div>`;
 }
@@ -610,7 +673,7 @@ function itemCard(
   const showAdvance = primary && view.suggestedMilestone && item.id === snapshot!.vector.id;
   return `
       <div class="card">
-        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${itemTitle(item)}
         ${note && !work && !track ? `<div class="note">${escapeHtml(note)}</div>` : ""}
         ${
           track
@@ -711,6 +774,7 @@ function bind(): void {
       state.screen = nav;
       state.skipItemId = null;
       state.missKey = null;
+      state.detailItemId = null;
       state.advanceWarn = false;
       render();
       return;
@@ -771,6 +835,20 @@ async function handleAction(target: HTMLElement): Promise<void> {
       skip_reason: null,
       item_id: item.id,
     });
+    return;
+  }
+
+  if (act === "detail-open") {
+    const itemId = target.dataset.item ?? null;
+    if (!itemId || !snapshot.items.some((row) => row.id === itemId)) return;
+    state.detailItemId = itemId;
+    render();
+    return;
+  }
+
+  if (act === "detail-close") {
+    state.detailItemId = null;
+    render();
     return;
   }
 

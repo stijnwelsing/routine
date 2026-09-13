@@ -283,6 +283,53 @@ textarea {
   font-size: 0.95rem;
 }
 
+button.ex-nm.tap {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 0;
+  padding: 4px 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: inherit;
+}
+
+.day-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.day-tags .chip {
+  margin: 0;
+  border-color: var(--border);
+  color: var(--fog);
+  background: transparent;
+}
+
+.day-tags .chip:active {
+  border-color: var(--cream);
+  color: var(--cream);
+}
+
+.detail-back {
+  margin: 0 14px 4px;
+  min-height: 44px;
+}
+
+.src-tag {
+  display: inline-block;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--fog);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+}
+
 .track,
 .work {
   font-family: "Bebas Neue", sans-serif;

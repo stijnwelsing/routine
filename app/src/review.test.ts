@@ -36,6 +36,7 @@ describe("reviewableItems", () => {
     expect(due.some((item) => item.label === "Vitamine D")).toBe(true);
     expect(due.some((item) => item.label === "Bellen met iemand")).toBe(true);
     expect(due.some((item) => item.label === "Iemand zien")).toBe(true);
+    expect(due.some((item) => item.label === "Low carb")).toBe(false);
     expect(due.some((item) => item.id === cafe.id)).toBe(false);
     expect(due.some((item) => item.label === "Dead hang")).toBe(false);
     expect(due.some((item) => item.type === "weekly")).toBe(false);

@@ -20,7 +20,7 @@ Kleuren: Ink `#0C0C0C`, kaarten `#161616`, Cream `#F0ECE4`, Fog `#606060`, Sage 
 
 Vite + vanilla TypeScript. **Vandaag**, **Koers**, **Voortgang**, **Profiel** (max ~4 tabs). Geen aparte Ik-route, geen AI.
 
-- **Vandaag** — Lijf (slaap, energie; 5 dots). Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Koers in één woord.
+- **Vandaag** — Lijf (slaap, energie; 5 dots). Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Low carb is een dag-tag (voorkeur), geen Done/Skip. Tik cafeïne, wandelen of Low carb voor bron-tag in detail (`public-framework` / `evidence-informed` / `user preference`). Tags niet op de Today-lijst. Koers in één woord.
 - **Koers** — thema’s, weekoverzicht (hits/misses), A, B, nu, etappe, venster, trend, rem, volgende actie. **Ik** is een blok op Koers, niet op Vandaag of Profiel.
 - **Voortgang** — dezelfde week-strip, een lijn van de huidige, hits. Geen health score, geen streak-als-core, geen confetti.
 - **Profiel** — doelen, leeftijdsband, thema’s, Later (Nu/Later) zonder wipe. Ik-velden blijven op Koers.

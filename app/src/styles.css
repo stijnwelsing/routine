@@ -27,7 +27,7 @@ body {
 }
 
 body {
-  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 76px);
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 92px);
 }
 
 #app {

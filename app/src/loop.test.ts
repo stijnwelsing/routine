@@ -9,8 +9,13 @@ import {
   nudgeWeight,
   parseWeight,
   suggestNextMilestone,
+  todayActionEvent,
+  todayDone,
+  todayPlus,
+  todaySkip,
   todayWeight,
   weekHitrate,
+  withoutTodayAction,
 } from "./loop";
 import { applySeedLock, emptySnapshot, seedSnapshot } from "./seed";
 import { EMPTY, SEED, type LogEvent, type Stage, type Vector } from "./types";
@@ -302,6 +307,60 @@ describe("body weight", () => {
     expect(parseWeight("x")).toBeNull();
     expect(parseWeight("10")).toBe(40);
     expect(parseWeight("300")).toBe(250);
+  });
+});
+
+describe("undo today action", () => {
+  it("removes only the last Done / +1 / Skip of that day", () => {
+    const events = [
+      event({ id: "old-set", date: "2026-09-12", kind: "set", value: 41 }),
+      event({ id: "old-done", date: "2026-09-11", kind: "done", value: 40 }),
+      event({ id: "today-plus", date: "2026-09-13", kind: "set", value: 42 }),
+      event({ id: "kg", date: "2026-09-13", kind: "body_weight", value: 88.4 }),
+      event({ id: "sleep", date: "2026-09-13", kind: "body_sleep", value: 7 }),
+    ];
+    expect(todayActionEvent(events, "2026-09-13")?.id).toBe("today-plus");
+    const next = withoutTodayAction(events, "2026-09-13");
+    expect(next.map((row) => row.id)).toEqual(["old-set", "old-done", "kg", "sleep"]);
+    expect(todayPlus(next, "2026-09-13")).toBe(false);
+    expect(todayDone(next, "2026-09-13")).toBe(false);
+    expect(computeCurrent(40, next)).toBe(41);
+    expect(events.map((row) => row.id)).toEqual([
+      "old-set",
+      "old-done",
+      "today-plus",
+      "kg",
+      "sleep",
+    ]);
+  });
+
+  it("undoes one item's today Done or Skip and leaves another item's today intact", () => {
+    const events = [
+      event({ id: "keep-walk", date: "2026-09-13", kind: "done", item_id: "walk" }),
+      event({ id: "today-done", date: "2026-09-13", kind: "done", item_id: "push" }),
+    ];
+    const pushOnly = events.filter((row) => row.item_id === "push");
+    const afterPush = withoutTodayAction(pushOnly, "2026-09-13");
+    expect(afterPush).toEqual([]);
+    expect(todayDone(afterPush, "2026-09-13")).toBe(false);
+    expect(events.filter((row) => row.item_id === "walk").map((row) => row.id)).toEqual(["keep-walk"]);
+
+    const skip = [
+      event({ id: "miss", date: "2026-09-12", kind: "miss", skip_reason: "vergeten" }),
+      event({ id: "today-skip", date: "2026-09-13", kind: "skip", skip_reason: "geen tijd" }),
+    ];
+    const afterSkip = withoutTodayAction(skip, "2026-09-13");
+    expect(afterSkip.map((row) => row.id)).toEqual(["miss"]);
+    expect(todaySkip(afterSkip, "2026-09-13")).toBeNull();
+  });
+
+  it("leaves an open day alone and does not undo body or miss", () => {
+    const open = [
+      event({ id: "kg", date: "2026-09-13", kind: "body_weight", value: 88.1 }),
+      event({ id: "miss", date: "2026-09-12", kind: "miss", skip_reason: "pijn" }),
+    ];
+    expect(todayActionEvent(open, "2026-09-13")).toBeUndefined();
+    expect(withoutTodayAction(open, "2026-09-13")).toBe(open);
   });
 });
 

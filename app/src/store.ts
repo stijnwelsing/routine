@@ -1,5 +1,6 @@
 import type { Session, SupabaseClient, User } from "@supabase/supabase-js";
 import { newId, nowISO, todayISO } from "./dates";
+import { isUndoableEvent } from "./loop";
 import { emptyIdentity } from "./identity";
 import { applyStartSelection } from "./goals";
 import {
@@ -48,6 +49,7 @@ export interface Store {
       id?: string;
     },
   ): Promise<LogEvent>;
+  removeEvent(eventId: string): Promise<void>;
   saveProfile(profile: Profile): Promise<void>;
   saveOnboarding(input: { goals: GoalId[]; age_band: AgeBand; startIds: string[] }): Promise<void>;
   saveThemes(themes: string[]): Promise<void>;
@@ -192,6 +194,15 @@ export function createLocalStore(): Store {
       snapshot.events.push(event);
       writeLocal(snapshot);
       return event;
+    },
+
+    async removeEvent(eventId) {
+      const snapshot = readLocal(userId, tenantId);
+      const event = snapshot.events.find((row) => row.id === eventId);
+      if (!event) return;
+      if (!isUndoableEvent(event, todayISO())) throw new Error("alleen vandaag");
+      snapshot.events = snapshot.events.filter((row) => row.id !== eventId);
+      writeLocal(snapshot);
     },
 
     async saveProfile(profile) {
@@ -501,6 +512,20 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         .single();
       const row = await must<EventRow>("event", inserted);
       return { ...row, tenant_id: row.tenant_id ?? tenantId, item_id: row.item_id ?? null, value: row.value === null ? null : Number(row.value) };
+    },
+
+    async removeEvent(eventId) {
+      const current = await this.load();
+      const event = current.events.find((row) => row.id === eventId);
+      if (!event) return;
+      if (!isUndoableEvent(event, todayISO())) throw new Error("alleen vandaag");
+      const result = await client
+        .from("events")
+        .delete()
+        .eq("id", eventId)
+        .eq("tenant_id", tenantId)
+        .eq("user_id", userId);
+      if (result.error) throw new Error(`event: ${result.error.message}`);
     },
 
     async saveProfile(profile) {

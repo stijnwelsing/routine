@@ -716,6 +716,24 @@ button.ex-nm.tap {
   color: var(--sage);
 }
 
+.undo {
+  display: block;
+  margin-top: 6px;
+  min-height: 44px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--fog);
+  font-size: 0.78rem;
+  letter-spacing: 0.04em;
+  text-align: left;
+  cursor: pointer;
+}
+
+.undo:active {
+  color: var(--cream);
+}
+
 .kv {
   display: grid;
   grid-template-columns: 1fr 1fr;

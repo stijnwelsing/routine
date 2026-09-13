@@ -19,6 +19,7 @@ import {
   lastWeight,
   nudgeWeight,
   parseWeight,
+  todayActionEvent,
 } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
@@ -457,6 +458,18 @@ function confirmLine(item: Item): string {
   return `<div class="confirm ${confirm.tone}" role="status">${escapeHtml(confirm.text)}</div>`;
 }
 
+function undoLine(item: Item): string {
+  if (!snapshot) return "";
+  const primary = primaryItem(snapshot.items);
+  const action = todayActionEvent(eventsForItem(snapshot.events, item, primary?.id), todayISO());
+  if (!action) return "";
+  return `<button class="undo" type="button" data-act="undo" data-item="${item.id}">Ongedaan</button>`;
+}
+
+function afterAction(item: Item): string {
+  return `${confirmLine(item)}${undoLine(item)}`;
+}
+
 function stofCard(item: Item): string {
   const day = itemDay(item);
   const taken = day.logged || Boolean(day.skip);
@@ -478,7 +491,7 @@ function stofCard(item: Item): string {
               ).join("")}</div>`
             : ""
         }
-        ${confirmLine(item)}
+        ${afterAction(item)}
       </div>`;
 }
 
@@ -826,6 +839,7 @@ function detailView(item: Item): string {
         ${work ? `<div class="work">${escapeHtml(work)}</div>` : ""}
         ${pref ? `<div class="note">Voorkeur. Geen regel.</div>` : ""}
         ${rule && !note && !window && !cond ? `<div class="note">Regel. Geen afvinken.</div>` : ""}
+        ${afterAction(item)}
       </div>
       ${
         template
@@ -946,7 +960,7 @@ function itemCard(
               ).join("")}</div>`
             : ""
         }
-        ${confirmLine(item)}
+        ${afterAction(item)}
         ${
           showAdvance
             ? `<div class="note">Etappe gehaald. Niet automatisch verder. Voorstel: ${fmt(view.suggestedMilestone!)}.</div>
@@ -1161,6 +1175,17 @@ async function handleAction(target: HTMLElement): Promise<void> {
       skip_reason: reason,
       item_id: item.id,
     });
+    state.skipItemId = null;
+    return;
+  }
+
+  if (act === "undo") {
+    const item = snapshot.items.find((row) => row.id === target.dataset.item);
+    if (!item) return;
+    const primary = primaryItem(snapshot.items);
+    const action = todayActionEvent(eventsForItem(snapshot.events, item, primary?.id), today);
+    if (!action) return;
+    await persistUndo(action.id);
     state.skipItemId = null;
     return;
   }
@@ -1483,6 +1508,13 @@ async function persistEvent(
   await withBusy(async () => {
     const event = await store!.addEvent(input);
     snapshot!.events.push(event);
+  });
+}
+
+async function persistUndo(eventId: string): Promise<void> {
+  await withBusy(async () => {
+    await store!.removeEvent(eventId);
+    snapshot!.events = snapshot!.events.filter((event) => event.id !== eventId);
   });
 }
 

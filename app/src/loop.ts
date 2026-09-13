@@ -1,5 +1,5 @@
 import { addDays, daysBetween, eachDay, mondayOfWeek } from "./dates";
-import type { LogEvent, LoopView, SkipReason, Stage, Vector } from "./types";
+import type { EventKind, LogEvent, LoopView, SkipReason, Stage, Vector } from "./types";
 
 const ENERGY_LOW = 2;
 const SLEEP_FLOOR = 6;
@@ -63,14 +63,31 @@ export function parseWeight(raw: string): number | null {
   return Math.round(Math.max(WEIGHT_MIN, Math.min(WEIGHT_MAX, n)) * 10) / 10;
 }
 
-function latestSession(events: LogEvent[], date: string): LogEvent | undefined {
+export function isTodayActionKind(kind: EventKind): boolean {
+  return kind === "set" || kind === "done" || kind === "skip";
+}
+
+export function isUndoableEvent(event: LogEvent, today: string): boolean {
+  return event.date === today && isTodayActionKind(event.kind);
+}
+
+/** Latest Done / +1 / Skip on that date. Body, miss, and other days stay out. */
+export function todayActionEvent(events: LogEvent[], date: string): LogEvent | undefined {
   return events
-    .filter(
-      (event) =>
-        event.date === date && (event.kind === "set" || event.kind === "done" || event.kind === "skip"),
-    )
+    .filter((event) => isUndoableEvent(event, date))
     .sort(byCreated)
     .at(-1);
+}
+
+function latestSession(events: LogEvent[], date: string): LogEvent | undefined {
+  return todayActionEvent(events, date);
+}
+
+/** Drop only that last today-action. Other events stay in place. */
+export function withoutTodayAction(events: LogEvent[], today: string): LogEvent[] {
+  const action = todayActionEvent(events, today);
+  if (!action) return events;
+  return events.filter((event) => event.id !== action.id);
 }
 
 export function todaySkip(events: LogEvent[], today: string): SkipReason | null {

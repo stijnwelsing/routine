@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { todayISO } from "./dates";
 import { exportPayload } from "./export";
 import { IMPORT_ERROR } from "./import";
 import { seedSnapshot } from "./seed";
@@ -819,6 +820,81 @@ describe("local store data preserve", () => {
     expect(again.events.filter((row) => row.id === "new-kg")).toHaveLength(1);
     expect(again.items.filter((item) => item.label === "Push-ups")).toHaveLength(1);
     expect(again.items.find((item) => item.label === "Push-ups")?.id).toBe(push.id);
+  });
+
+  it("undoes today's last action on leftover v6 without wiping other events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    const walk = existing.items.find((item) => item.label === "Wandelen na eten")!;
+    existing.onboarded = true;
+    existing.profile.themes = ["Kickbox"];
+    const today = todayISO();
+    existing.events = [
+      event({
+        id: "keep-old",
+        date: "2026-09-12",
+        kind: "done",
+        item_id: push.id,
+      }),
+      event({
+        id: "keep-walk",
+        date: today,
+        kind: "done",
+        item_id: walk.id,
+      }),
+      event({
+        id: "keep-kg",
+        date: today,
+        kind: "body_weight",
+        value: 88.4,
+        item_id: null,
+      }),
+      event({
+        id: "today-plus",
+        date: today,
+        kind: "set",
+        value: 41,
+        item_id: push.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg", "today-plus"]),
+    );
+
+    await store.removeEvent("today-plus");
+    const after = await store.load();
+    expect(after.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg"]),
+    );
+    expect(after.events.map((row) => row.id)).not.toContain("today-plus");
+    expect(after.events).toHaveLength(3);
+    expect(after.events.find((row) => row.id === "keep-kg")).toMatchObject({
+      kind: "body_weight",
+      value: 88.4,
+    });
+    expect(after.items.find((item) => item.id === push.id)).toMatchObject({
+      label: "Push-ups",
+      a: 40,
+    });
+    expect(after.profile.themes).toEqual(["Kickbox"]);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events.map((row: { id: string }) => row.id)).toEqual(
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg"]),
+    );
+
+    await expect(store.removeEvent("keep-old")).rejects.toThrow("alleen vandaag");
+    await expect(store.removeEvent("keep-kg")).rejects.toThrow("alleen vandaag");
+    const again = await store.load();
+    expect(again.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg"]),
+    );
+    expect(again.events).toHaveLength(3);
   });
 
   it("sees leftover keys as an existing session", () => {

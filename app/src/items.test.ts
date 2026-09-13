@@ -6,9 +6,12 @@ import {
   createUserItem,
   dueItems,
   dueToday,
+  eventsForItem,
   formatWork,
   hasCurrent,
+  isBodyEvent,
   isSeedSuggestion,
+  loopEvents,
   isUserAddedItem,
   kindFromItem,
   mergeSeedItems,
@@ -375,5 +378,35 @@ describe("test tenant items", () => {
       id: own.id,
       removed: true,
     });
+  });
+});
+
+describe("body events", () => {
+  it("keeps sleep, energy, and weight off the item loop", () => {
+    const seed = testTenantItems("t1");
+    const push = seed.find((item) => item.label === "Push-ups")!;
+    const sleep: LogEvent = {
+      id: "s1",
+      tenant_id: "t1",
+      user_id: "u1",
+      item_id: null,
+      date: "2026-09-13",
+      kind: "body_sleep",
+      value: 7,
+      skip_reason: null,
+      created_at: "2026-09-13T07:00:00.000Z",
+    };
+    const energy: LogEvent = { ...sleep, id: "e1", kind: "body_energy", value: 3 };
+    const weight: LogEvent = { ...sleep, id: "w1", kind: "body_weight", value: 88.4 };
+    const done: LogEvent = { ...sleep, id: "d1", kind: "done", item_id: push.id, value: 40 };
+    expect(isBodyEvent(weight)).toBe(true);
+    expect(isBodyEvent(done)).toBe(false);
+    expect(eventsForItem([sleep, energy, weight, done], push, push.id).map((row) => row.id)).toEqual(["d1"]);
+    expect(loopEvents([sleep, energy, weight, done], push).map((row) => row.kind)).toEqual([
+      "body_sleep",
+      "body_energy",
+      "body_weight",
+      "done",
+    ]);
   });
 });

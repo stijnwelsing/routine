@@ -681,6 +681,64 @@ describe("local store data preserve", () => {
     expect(again.events.map((row) => row.id)).toEqual(["keep-edit", again.events[1].id]);
   });
 
+  it("keeps a body_weight event on leftover v6 without wiping other events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    existing.onboarded = true;
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    existing.events = [
+      event({
+        id: "keep-weight",
+        date: "2026-09-13",
+        kind: "done",
+        item_id: push.id,
+      }),
+      event({
+        id: "old-kg",
+        date: "2026-09-12",
+        kind: "body_weight",
+        value: 88.4,
+        item_id: null,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events.map((row) => row.id)).toEqual(expect.arrayContaining(["keep-weight", "old-kg"]));
+    expect(snap.events).toHaveLength(2);
+    expect(snap.events.find((row) => row.id === "old-kg")).toMatchObject({
+      kind: "body_weight",
+      value: 88.4,
+      item_id: null,
+    });
+    expect(snap.items.find((item) => item.id === push.id)).toMatchObject({
+      label: "Push-ups",
+      a: 40,
+    });
+
+    const logged = await store.addEvent({
+      date: "2026-09-13",
+      kind: "body_weight",
+      value: 88.3,
+      skip_reason: null,
+      item_id: null,
+    });
+    expect(logged).toMatchObject({ kind: "body_weight", value: 88.3, item_id: null });
+    const again = await store.load();
+    expect(again.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-weight", "old-kg", logged.id]),
+    );
+    expect(again.events).toHaveLength(3);
+    expect(again.events.find((row) => row.id === logged.id)).toMatchObject({
+      kind: "body_weight",
+      value: 88.3,
+    });
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(3);
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

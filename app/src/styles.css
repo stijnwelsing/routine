@@ -244,6 +244,50 @@ textarea {
   line-height: 1;
 }
 
+.nwrap {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  min-width: 72px;
+}
+
+.ninp {
+  width: 72px;
+  min-width: 64px;
+  min-height: 44px;
+  text-align: center;
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.8rem;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  outline: none;
+  -moz-appearance: textfield;
+}
+
+.ninp::-webkit-outer-spin-button,
+.ninp::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.ninp::placeholder {
+  color: var(--cream);
+  opacity: 1;
+}
+
+.ninp:focus {
+  color: var(--cream);
+}
+
+.nunit {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+
 .dots {
   display: flex;
   gap: 10px;
@@ -369,6 +413,7 @@ button.ex-nm.tap {
 
 .btn,
 .nb,
+.ninp,
 .dot-btn,
 .chip,
 .nav button {

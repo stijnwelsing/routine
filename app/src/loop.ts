@@ -28,6 +28,41 @@ export function todayEnergy(events: LogEvent[], today: string): number | null {
   return latestOf(events, today, "body_energy")?.value ?? null;
 }
 
+const WEIGHT_MIN = 40;
+const WEIGHT_MAX = 250;
+const WEIGHT_FALLBACK = 80;
+
+export function todayWeight(events: LogEvent[], today: string): number | null {
+  return latestOf(events, today, "body_weight")?.value ?? null;
+}
+
+/** Latest logged kg, any day. First tap from — starts here, not a score. */
+export function lastWeight(events: LogEvent[]): number | null {
+  return (
+    events
+      .filter((event) => event.kind === "body_weight" && event.value !== null)
+      .sort(byCreated)
+      .at(-1)?.value ?? null
+  );
+}
+
+export function nudgeWeight(
+  current: number | null,
+  last: number | null,
+  delta: number,
+): number {
+  const base = current ?? last ?? WEIGHT_FALLBACK;
+  return Math.round(Math.max(WEIGHT_MIN, Math.min(WEIGHT_MAX, base + delta)) * 10) / 10;
+}
+
+export function parseWeight(raw: string): number | null {
+  const trimmed = raw.trim().replace(",", ".");
+  if (!trimmed) return null;
+  const n = Number(trimmed);
+  if (!Number.isFinite(n)) return null;
+  return Math.round(Math.max(WEIGHT_MIN, Math.min(WEIGHT_MAX, n)) * 10) / 10;
+}
+
 function latestSession(events: LogEvent[], date: string): LogEvent | undefined {
   return events
     .filter(
@@ -210,6 +245,7 @@ export function computeLoop(
   const current = computeCurrent(vector.a, events);
   const sleep = todaySleep(events, today);
   const energy = todayEnergy(events, today);
+  const weight = todayWeight(events, today);
   const doneToday = todayDone(events, today);
   const plusToday = todayPlus(events, today);
   const logged = setLoggedToday(events, today);
@@ -234,6 +270,7 @@ export function computeLoop(
     current,
     sleep,
     energy,
+    weight,
     doneToday,
     plusToday,
     setLoggedToday: logged,

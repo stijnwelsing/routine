@@ -15,6 +15,9 @@ import {
   todayPlus,
   todaySkip,
   todaySleep,
+  lastWeight,
+  nudgeWeight,
+  parseWeight,
 } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
@@ -224,15 +227,33 @@ function render(): void {
       ${view.gearDown ? `<div class="banner hot">Lijf vraagt tempo omlaag. Etappe gaat niet omhoog.</div>` : ""}
       <div class="sec-hd">Lijf</div>
       <div class="card split">
+        <div class="note" style="margin-top:0">Optioneel. Blokkeert de dag niet.</div>
         <div class="row">
-          <div>
-            <div class="lbl lbl-ico">${icon("moon")} Slaap</div>
-            <div class="note">Optioneel. Blokkeert de dag niet.</div>
-          </div>
+          <div class="lbl lbl-ico">${icon("moon")} Slaap</div>
           <div class="num-row">
-            <button class="nb" data-act="sleep-dec">−</button>
+            <button class="nb" data-act="sleep-dec" aria-label="Slaap omlaag">−</button>
             <div class="ndisp">${view.sleep === null ? "—" : view.sleep.toFixed(1)}</div>
-            <button class="nb" data-act="sleep-inc">+</button>
+            <button class="nb" data-act="sleep-inc" aria-label="Slaap omhoog">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">Gewicht</div>
+          <div class="num-row">
+            <button class="nb" data-act="weight-dec" aria-label="Gewicht omlaag">−</button>
+            <div class="nwrap">
+              <input
+                class="ninp"
+                data-id="weight"
+                type="text"
+                inputmode="decimal"
+                enterkeyhint="done"
+                aria-label="Gewicht in kilogram"
+                placeholder="—"
+                value="${view.weight === null ? "" : view.weight.toFixed(1)}"
+              >
+              <div class="nunit">kg</div>
+            </div>
+            <button class="nb" data-act="weight-inc" aria-label="Gewicht omhoog">+</button>
           </div>
         </div>
         <div>
@@ -932,6 +953,19 @@ function bind(): void {
     if (el.dataset.id === "edit-label" || el.dataset.id === "edit-timing") {
       event.preventDefault();
       void persistEditItem();
+      return;
+    }
+    if (el.dataset.id === "weight") {
+      event.preventDefault();
+      void persistWeightInput(el.value);
+    }
+  });
+
+  document.addEventListener("change", (event) => {
+    const el = event.target as HTMLElement;
+    if (!(el instanceof HTMLInputElement)) return;
+    if (el.dataset.id === "weight") {
+      void persistWeightInput(el.value);
     }
   });
 
@@ -972,6 +1006,17 @@ async function handleAction(target: HTMLElement): Promise<void> {
     const value = view.energy === n ? null : n;
     if (value === null) return;
     await persistEvent({ date: today, kind: "body_energy", value, skip_reason: null, item_id: null });
+    return;
+  }
+
+  if (act === "weight-inc" || act === "weight-dec") {
+    const next = nudgeWeight(
+      view.weight,
+      lastWeight(snapshot.events),
+      act === "weight-inc" ? 0.1 : -0.1,
+    );
+    if (view.weight === next) return;
+    await persistEvent({ date: today, kind: "body_weight", value: next, skip_reason: null, item_id: null });
     return;
   }
 
@@ -1343,5 +1388,19 @@ async function persistEvent(
   await withBusy(async () => {
     const event = await store!.addEvent(input);
     snapshot!.events.push(event);
+  });
+}
+
+async function persistWeightInput(raw: string): Promise<void> {
+  if (!store || !snapshot) return;
+  const value = parseWeight(raw);
+  if (value === null) return;
+  if (loop().weight === value) return;
+  await persistEvent({
+    date: todayISO(),
+    kind: "body_weight",
+    value,
+    skip_reason: null,
+    item_id: null,
   });
 }

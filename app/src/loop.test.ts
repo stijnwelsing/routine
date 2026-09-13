@@ -4,8 +4,12 @@ import {
   computeLoop,
   isGearDown,
   isStalled,
+  lastWeight,
   localStreak,
+  nudgeWeight,
+  parseWeight,
   suggestNextMilestone,
+  todayWeight,
   weekHitrate,
 } from "./loop";
 import { applySeedLock, emptySnapshot, seedSnapshot } from "./seed";
@@ -255,6 +259,49 @@ describe("gear down", () => {
     expect(view.suggestedMilestone).toBeNull();
     expect(view.nextAction).toMatch(/geen stop/i);
     expect(view.trend.word).toBe("herstel");
+  });
+
+  it("ignores weight for gear-down and the day's set", () => {
+    const events = [
+      event({ date: "2026-08-29", kind: "body_weight", value: 88.4 }),
+    ];
+    const fresh = { ...stage, started_on: "2026-08-29" };
+    const view = computeLoop(vector, fresh, events, "2026-08-29");
+    expect(view.weight).toBe(88.4);
+    expect(view.gearDown).toBe(false);
+    expect(view.doneToday).toBe(false);
+    expect(view.plusToday).toBe(false);
+    expect(view.setLoggedToday).toBe(false);
+    expect(view.skipToday).toBeNull();
+    expect(view.trend.word).toBe("stabiel");
+  });
+});
+
+describe("body weight", () => {
+  it("reads today's kg and keeps yesterday as last only", () => {
+    const events = [
+      event({ date: "2026-08-28", kind: "body_weight", value: 88.0, created_at: "2026-08-28T07:00:00.000Z" }),
+      event({ date: "2026-08-29", kind: "body_weight", value: 87.6, created_at: "2026-08-29T07:00:00.000Z" }),
+    ];
+    expect(todayWeight(events, "2026-08-29")).toBe(87.6);
+    expect(todayWeight(events, "2026-08-28")).toBe(88.0);
+    expect(todayWeight(events, "2026-08-30")).toBeNull();
+    expect(lastWeight(events)).toBe(87.6);
+    expect(lastWeight([])).toBeNull();
+  });
+
+  it("nudges from last kg or 80, and parses typed kg", () => {
+    expect(nudgeWeight(null, null, 0.1)).toBe(80.1);
+    expect(nudgeWeight(null, 88.4, -0.1)).toBe(88.3);
+    expect(nudgeWeight(88.4, 80, 0.1)).toBe(88.5);
+    expect(nudgeWeight(40, null, -0.1)).toBe(40);
+    expect(nudgeWeight(250, null, 0.1)).toBe(250);
+    expect(parseWeight("88,4")).toBe(88.4);
+    expect(parseWeight(" 91.0 ")).toBe(91);
+    expect(parseWeight("")).toBeNull();
+    expect(parseWeight("x")).toBeNull();
+    expect(parseWeight("10")).toBe(40);
+    expect(parseWeight("300")).toBe(250);
   });
 });
 

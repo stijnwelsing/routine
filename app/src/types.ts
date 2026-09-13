@@ -159,6 +159,7 @@ export interface LoopView {
   current: number;
   sleep: number | null;
   energy: number | null;
+  weight: number | null;
   doneToday: boolean;
   plusToday: boolean;
   setLoggedToday: boolean;

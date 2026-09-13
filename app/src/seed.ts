@@ -324,6 +324,28 @@ export function testTenantItems(tenantId: string): Item[] {
         condition: null,
       },
     }),
+    row({
+      type: "gedrag",
+      label: "Korte rust",
+      unit: null,
+      a: null,
+      b: null,
+      milestone: null,
+      weekdays: null,
+      times_per_week: null,
+      sort: 17,
+      role: "action",
+      template: "user preference",
+      timing: {
+        mode: "clock",
+        clock: "08:00",
+        anchor: null,
+        offset_min: null,
+        window_min: 840,
+        frequency: "daily",
+        condition: "body",
+      },
+    }),
   ];
 }
 

@@ -41,6 +41,11 @@ describe("reviewableItems", () => {
     expect(due.some((item) => item.label === "Scherm uit 22:00")).toBe(false);
     expect(due.some((item) => item.label === "Dead hang")).toBe(false);
     expect(due.some((item) => item.type === "weekly")).toBe(false);
+    expect(due.some((item) => item.label === "Korte rust")).toBe(false);
+    const withBody = reviewableItems(items, today, [
+      event({ date: today, kind: "body_energy", value: 3, item_id: null }),
+    ]);
+    expect(withBody.some((item) => item.label === "Korte rust")).toBe(true);
   });
 });
 

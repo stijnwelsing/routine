@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { defaultRole, emptyTiming, normalizeTiming, opensAt, timingNote, timingPhase } from "./timing";
+import {
+  applyLockedTiming,
+  conditionNote,
+  defaultRole,
+  emptyTiming,
+  isVisibleToday,
+  normalizeTiming,
+  opensAt,
+  timingNote,
+  timingPhase,
+  windowNote,
+} from "./timing";
 import { testTenantItems } from "./seed";
 import type { Item, Timing, TimingContext } from "./types";
 
@@ -9,6 +20,8 @@ function ctx(partial: Partial<TimingContext> = {}): TimingContext {
     today: partial.today ?? "2026-09-07",
     wakeAt: partial.wakeAt ?? null,
     mealAt: partial.mealAt ?? null,
+    sleepSet: partial.sleepSet,
+    energySet: partial.energySet,
   };
 }
 
@@ -166,5 +179,59 @@ describe("timing engine", () => {
       ctx({ now: new Date(2026, 8, 7, 9, 30, 0) }),
     );
     expect(late).toBe("closed");
+    expect(windowNote(timing)).toBe("08:00–09:00");
+  });
+
+  it("keeps a windowed action due only inside the clock window", () => {
+    const rest = testTenantItems("t1").find((row) => row.label === "Korte rust")!;
+    expect(rest.timing).toMatchObject({
+      mode: "clock",
+      clock: "08:00",
+      window_min: 840,
+      condition: "body",
+    });
+    expect(windowNote(rest.timing)).toBe("08:00–22:00");
+    expect(conditionNote(rest.timing)).toBe("na slaap of energie");
+    expect(timingNote(rest)).toBeNull();
+    const body = ctx({
+      now: new Date(2026, 8, 7, 10, 0, 0),
+      sleepSet: true,
+    });
+    expect(timingPhase(rest, body)).toBe("due");
+    expect(isVisibleToday(rest, body)).toBe(true);
+    expect(
+      isVisibleToday(
+        rest,
+        ctx({ now: new Date(2026, 8, 7, 7, 0, 0), energySet: true }),
+      ),
+    ).toBe(false);
+    expect(
+      timingPhase(rest, ctx({ now: new Date(2026, 8, 7, 22, 30, 0), energySet: true })),
+    ).toBe("closed");
+    expect(
+      isVisibleToday(rest, ctx({ now: new Date(2026, 8, 7, 22, 30, 0), energySet: true })),
+    ).toBe(false);
+  });
+
+  it("hides a conditioned action until sleep or energy is set", () => {
+    const rest = testTenantItems("t1").find((row) => row.label === "Korte rust")!;
+    const noon = ctx({ now: new Date(2026, 8, 7, 12, 0, 0) });
+    expect(timingPhase(rest, noon)).toBe("hidden");
+    expect(isVisibleToday(rest, noon)).toBe(false);
+    expect(isVisibleToday(rest, ctx({ ...noon, energySet: true }))).toBe(true);
+    expect(isVisibleToday(rest, ctx({ ...noon, sleepSet: true }))).toBe(true);
+    expect(applyLockedTiming(emptyTiming(), "Korte rust")).toMatchObject({
+      clock: "08:00",
+      window_min: 840,
+      condition: "body",
+    });
+    expect(applyLockedTiming(emptyTiming(), "Push-ups")).toEqual(emptyTiming());
+  });
+
+  it("keeps a clock-only reminder visible before its time", () => {
+    const call = testTenantItems("t1").find((row) => row.label === "Bellen met iemand")!;
+    const early = ctx({ now: new Date(2026, 8, 7, 17, 0, 0) });
+    expect(timingPhase(call, early)).toBe("wait");
+    expect(isVisibleToday(call, early)).toBe(true);
   });
 });

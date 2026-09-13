@@ -72,6 +72,9 @@ export interface TimingContext {
   today: string;
   wakeAt: Date | null;
   mealAt: Date | null;
+  /** Leftover ctx omits these. Missing means not set. */
+  sleepSet?: boolean;
+  energySet?: boolean;
 }
 
 export interface Profile {

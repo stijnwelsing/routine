@@ -336,6 +336,46 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
+  it("adds korte rust window and condition to leftover v6 without wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    existing.onboarded = true;
+    existing.items = existing.items.filter((item) => item.label !== "Korte rust");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    existing.events = [
+      event({
+        id: "keep-rest",
+        date: "2026-09-13",
+        kind: "done",
+        item_id: push.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-rest"]);
+    expect(snap.items.find((item) => item.label === "Korte rust")).toMatchObject({
+      type: "gedrag",
+      role: "action",
+      template: "user preference",
+    });
+    expect(snap.items.find((item) => item.label === "Korte rust")?.timing).toMatchObject({
+      mode: "clock",
+      clock: "08:00",
+      window_min: 840,
+      condition: "body",
+    });
+    expect(snap.items.find((item) => item.id === push.id)).toMatchObject({
+      label: "Push-ups",
+      a: 40,
+    });
+    expect(snap.items.some((item) => item.label === "Scherm uit 22:00")).toBe(true);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+  });
+
   it("does not force onboarding on leftover v6 data", async () => {
     const existing = seedSnapshot("u1", "2026-09-09", "t1");
     existing.onboarded = undefined as unknown as boolean;

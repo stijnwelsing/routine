@@ -2,6 +2,7 @@ import { newId } from "./dates";
 import type { Item, ItemType, LogEvent, Profile, Snapshot } from "./types";
 import { defaultTemplate } from "./templates";
 import {
+  applyLockedTiming,
   defaultRole,
   dueByFrequency,
   emptyTiming,
@@ -51,7 +52,7 @@ export function normalizeItem(item: Item, tenantId: string): Item {
     tenant_id: item.tenant_id ?? tenantId,
     weekdays: item.weekdays ?? null,
     times_per_week: item.times_per_week ?? null,
-    timing: normalizeTiming(item.timing),
+    timing: applyLockedTiming(normalizeTiming(item.timing), item.label),
     role: defaultRole(item),
     template: defaultTemplate(item),
     later: Boolean(item.later),
@@ -186,6 +187,7 @@ export const SEED_ITEM_LABELS = [
   "Bellen met iemand",
   "Iemand zien",
   "Scherm uit 22:00",
+  "Korte rust",
 ] as const;
 
 export function isSeedItemLabel(label: string): boolean {

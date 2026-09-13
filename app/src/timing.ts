@@ -1,6 +1,8 @@
 import { isoWeekday, parseISO } from "./dates";
 import type { Item, ItemRole, Timing, TimingAnchor, TimingContext, TimingPhase } from "./types";
 
+export type ConditionGate = "body" | "energy" | "sleep";
+
 export function emptyTiming(): Timing {
   return {
     mode: null,
@@ -24,6 +26,60 @@ export function normalizeTiming(raw: Partial<Timing> | null | undefined): Timing
     frequency: raw?.frequency ?? null,
     condition: raw?.condition ?? null,
   };
+}
+
+function labelKey(label: string): string {
+  return label.trim().toLowerCase().normalize("NFC");
+}
+
+/** Lock window + condition on one seed label. Never rewrite other rows. */
+export function lockedTiming(label: string): Partial<Timing> | null {
+  if (labelKey(label) === "korte rust") {
+    return {
+      mode: "clock",
+      clock: "08:00",
+      window_min: 840,
+      frequency: "daily",
+      condition: "body",
+    };
+  }
+  return null;
+}
+
+/** Fill lock timing on leftover rows with that label. */
+export function applyLockedTiming(timing: Timing, label: string): Timing {
+  const lock = lockedTiming(label);
+  if (!lock) return timing;
+  return { ...timing, ...lock };
+}
+
+export function timingContext(partial: Partial<TimingContext> & Pick<TimingContext, "today">): TimingContext {
+  return {
+    now: partial.now ?? new Date(),
+    today: partial.today,
+    wakeAt: partial.wakeAt ?? null,
+    mealAt: partial.mealAt ?? null,
+    sleepSet: Boolean(partial.sleepSet),
+    energySet: Boolean(partial.energySet),
+  };
+}
+
+export function conditionGate(condition: string | null | undefined): ConditionGate | null {
+  const key = condition?.trim().toLowerCase();
+  if (key === "body" || key === "energy|sleep") return "body";
+  if (key === "energy") return "energy";
+  if (key === "sleep") return "sleep";
+  return null;
+}
+
+export function conditionMet(timing: Timing, ctx: TimingContext): boolean {
+  const gate = conditionGate(timing.condition);
+  if (!gate) return true;
+  const sleep = Boolean(ctx.sleepSet);
+  const energy = Boolean(ctx.energySet);
+  if (gate === "energy") return energy;
+  if (gate === "sleep") return sleep;
+  return sleep || energy;
 }
 
 export function clockOnDay(today: string, clock: string): Date | null {
@@ -85,6 +141,7 @@ export function isAction(item: Item): boolean {
 export function timingPhase(item: Item, ctx: TimingContext): TimingPhase {
   if (isConstraint(item)) return "silent";
   if (!dueByFrequency(item, ctx.today)) return "hidden";
+  if (!conditionMet(item.timing, ctx)) return "hidden";
   const timing = item.timing;
   if (!timing.mode) return "due";
   const open = opensAt(timing, ctx);
@@ -95,8 +152,43 @@ export function timingPhase(item: Item, ctx: TimingContext): TimingPhase {
   return "due";
 }
 
+/** Today stays quiet: hide when not relevant. Clock-only wait stays visible. */
+export function isVisibleToday(item: Item, ctx: TimingContext): boolean {
+  const phase = timingPhase(item, ctx);
+  if (phase === "hidden" || phase === "closed") return false;
+  if (phase === "wait" && item.timing.window_min !== null) return false;
+  return true;
+}
+
+function formatClock(date: Date): string {
+  return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
+/** Detail only. Today does not show the window. */
+export function windowNote(timing: Timing): string | null {
+  if (timing.window_min === null) return null;
+  if (timing.mode === "clock" && timing.clock) {
+    const open = clockOnDay("2000-01-01", timing.clock);
+    if (!open) return null;
+    const close = closesAt(timing, open);
+    if (!close) return null;
+    return `${formatClock(open)}–${formatClock(close)}`;
+  }
+  return `${timing.window_min} min`;
+}
+
+/** Detail only. Structured gates stay off the Today list. */
+export function conditionNote(timing: Timing): string | null {
+  const gate = conditionGate(timing.condition);
+  if (gate === "body") return "na slaap of energie";
+  if (gate === "energy") return "na energie";
+  if (gate === "sleep") return "na slaap";
+  return null;
+}
+
 export function timingNote(item: Item): string | null {
   const timing = item.timing;
+  if (conditionGate(timing.condition)) return null;
   if (timing.condition) return timing.condition;
   if (timing.mode === "relative" && timing.anchor === "wake" && timing.offset_min !== null) {
     return `${timing.offset_min} min na opstaan`;
@@ -106,13 +198,9 @@ export function timingNote(item: Item): string | null {
   return null;
 }
 
-function roleKey(label: string): string {
-  return label.trim().toLowerCase().normalize("NFC");
-}
-
 export function defaultRole(item: Pick<Item, "role" | "label">): ItemRole | null {
   if (item.role) return item.role;
-  const key = roleKey(item.label);
+  const key = labelKey(item.label);
   if (key === "low carb") return "preference";
   if (key === "cafeïne 90 min na opstaan") return "constraint";
   if (key === "scherm uit 22:00") return "constraint";

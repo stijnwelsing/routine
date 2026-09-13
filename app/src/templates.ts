@@ -16,6 +16,7 @@ export function lockedTemplate(label: string): ItemTemplate | null {
   if (key === "wandelen na eten") return "evidence-informed";
   if (key === "low carb") return "user preference";
   if (key === "scherm uit 22:00") return "user preference";
+  if (key === "korte rust") return "user preference";
   return null;
 }
 

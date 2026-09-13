@@ -11,8 +11,10 @@ import {
   computeLoop,
   setLoggedToday,
   todayDone,
+  todayEnergy,
   todayPlus,
   todaySkip,
+  todaySleep,
 } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
@@ -63,7 +65,15 @@ import {
 import { lineDots, linePointsAttr, progressView } from "./progress";
 import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./themes";
 import { todayConfirm } from "./confirm";
-import { isConstraint, isPreference, timingNote } from "./timing";
+import {
+  conditionNote,
+  isConstraint,
+  isPreference,
+  isVisibleToday,
+  timingContext,
+  timingNote,
+  windowNote,
+} from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
 import { SKIP_REASONS, isScreen, isSkipReason, type Item, type Screen, type Snapshot } from "./types";
@@ -138,6 +148,16 @@ function missKey(itemId: string, date: string): string {
   return `${itemId}:${date}`;
 }
 
+function nowContext(today = todayISO()) {
+  const events = snapshot?.events ?? [];
+  return timingContext({
+    today,
+    now: new Date(),
+    sleepSet: todaySleep(events, today) !== null,
+    energySet: todayEnergy(events, today) !== null,
+  });
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -190,10 +210,11 @@ function render(): void {
   if (state.screen === "vandaag") {
     const nudge = identityNudge(snapshot.profile.identity_new, snapshot.events);
     const today = todayISO();
-    const actions = todayActions(snapshot.items, today);
+    const ctx = nowContext(today);
+    const actions = todayActions(snapshot.items, today).filter((item) => isVisibleToday(item, ctx));
     const rules = todayConstraints(snapshot.items, today);
-    const stofjes = todayStofjes(snapshot.items, today);
-    const sociaal = todaySociaal(snapshot.items, today);
+    const stofjes = todayStofjes(snapshot.items, today).filter((item) => isVisibleToday(item, ctx));
+    const sociaal = todaySociaal(snapshot.items, today).filter((item) => isVisibleToday(item, ctx));
     const later = todayLater(snapshot.items, today);
     const prefs = todayPreferences(snapshot.items, today);
     const pending = pendingMisses(snapshot.items, snapshot.events, today, reviewPrimaryId(snapshot.items));
@@ -704,6 +725,8 @@ function dayTag(item: Item): string {
 function detailView(item: Item): string {
   const template = defaultTemplate(item);
   const note = timingNote(item);
+  const window = windowNote(item.timing);
+  const cond = conditionNote(item.timing);
   const work = formatWork(item);
   const pref = isPreference(item);
   const rule = isConstraint(item);
@@ -713,10 +736,12 @@ function detailView(item: Item): string {
       <div class="sec-hd">Detail</div>
       <div class="card">
         <div class="ex-nm">${escapeHtml(item.label)}</div>
-        ${note ? `<div class="note">${escapeHtml(note)}</div>` : ""}
+        ${window ? `<div class="note">${escapeHtml(window)}</div>` : ""}
+        ${cond ? `<div class="note">${escapeHtml(cond)}</div>` : ""}
+        ${note && !cond ? `<div class="note">${escapeHtml(note)}</div>` : ""}
         ${work ? `<div class="work">${escapeHtml(work)}</div>` : ""}
         ${pref ? `<div class="note">Voorkeur. Geen regel.</div>` : ""}
-        ${rule && !note ? `<div class="note">Regel. Geen afvinken.</div>` : ""}
+        ${rule && !note && !window && !cond ? `<div class="note">Regel. Geen afvinken.</div>` : ""}
       </div>
       ${
         template

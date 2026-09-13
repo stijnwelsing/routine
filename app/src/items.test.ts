@@ -152,6 +152,23 @@ describe("test tenant items", () => {
       withoutScreen.find((item) => item.label === "Wandelen na eten")!.id,
     );
     expect(withScreen.filter((item) => item.label === "Scherm uit 22:00")).toHaveLength(1);
+    const withoutRest = items.filter((item) => item.label !== "Korte rust");
+    const withRest = mergeSeedItems(withoutRest, testTenantItems("t1"), "t1");
+    expect(withRest.find((item) => item.label === "Korte rust")).toMatchObject({
+      type: "gedrag",
+      role: "action",
+      template: "user preference",
+    });
+    expect(withRest.find((item) => item.label === "Korte rust")?.timing).toMatchObject({
+      mode: "clock",
+      clock: "08:00",
+      window_min: 840,
+      condition: "body",
+    });
+    expect(withRest.find((item) => item.label === "Push-ups")?.id).toBe(
+      withoutRest.find((item) => item.label === "Push-ups")!.id,
+    );
+    expect(withRest.filter((item) => item.label === "Korte rust")).toHaveLength(1);
   });
 
   it("recovers leftover keys without wiping events or renaming items", () => {

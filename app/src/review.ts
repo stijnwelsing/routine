@@ -1,5 +1,7 @@
-import { addDays, eachDay, formatShort, mondayOfWeek, weekdayShort } from "./dates";
+import { addDays, eachDay, formatShort, mondayOfWeek, parseISO, weekdayShort } from "./dates";
 import { eventsForItem, primaryItem, todayActions, todaySociaal, todayStofjes } from "./items";
+import { todayEnergy, todaySleep } from "./loop";
+import { isVisibleToday, timingContext } from "./timing";
 import type { Item, LogEvent, SkipReason } from "./types";
 
 function hasSessionHistory(
@@ -67,9 +69,23 @@ function latestSession(events: LogEvent[], date: string): LogEvent | undefined {
     .at(-1);
 }
 
+function reviewContext(date: string, events: LogEvent[] = []): ReturnType<typeof timingContext> {
+  const midday = parseISO(date);
+  midday.setHours(12, 0, 0, 0);
+  return timingContext({
+    today: date,
+    now: midday,
+    sleepSet: todaySleep(events, date) !== null,
+    energySet: todayEnergy(events, date) !== null,
+  });
+}
+
 /** Action items that can take +1 / Done / Skip that day. Later and regels stay out. */
-export function reviewableItems(items: Item[], date: string): Item[] {
-  return [...todayActions(items, date), ...todayStofjes(items, date), ...todaySociaal(items, date)];
+export function reviewableItems(items: Item[], date: string, events: LogEvent[] = []): Item[] {
+  const ctx = reviewContext(date, events);
+  return [...todayActions(items, date), ...todayStofjes(items, date), ...todaySociaal(items, date)].filter(
+    (item) => isVisibleToday(item, ctx),
+  );
 }
 
 export function itemDayMark(
@@ -105,7 +121,7 @@ export function pendingMisses(
   primaryId?: string,
 ): ItemDay[] {
   const yesterday = addDays(today, -1);
-  return reviewableItems(items, yesterday)
+  return reviewableItems(items, yesterday, events)
     .filter((item) => hasSessionHistory(events, item, primaryId, yesterday))
     .map((item) => {
       const row = itemDayMark(events, item, yesterday, today, primaryId);
@@ -135,7 +151,7 @@ export function weekReview(
   const pending = pendingMisses(items, events, today, primaryId);
   const pendingKey = new Set(pending.map((row) => `${row.item.id}:${row.date}`));
   const days: WeekDay[] = eachDay(start, end).map((date) => {
-    const rows = reviewableItems(items, date).map((item) => {
+    const rows = reviewableItems(items, date, events).map((item) => {
       const row = itemDayMark(events, item, date, today, primaryId);
       if (pendingKey.has(`${item.id}:${date}`)) {
         return { ...row, mark: "miss" as const, reason: row.reason };
@@ -157,7 +173,7 @@ export function weekReview(
   const misses = closed.reduce((sum, day) => sum + day.misses, 0);
   const skips = closed.reduce((sum, day) => sum + day.skips, 0);
   const missRows = closed.flatMap((day) =>
-    reviewableItems(items, day.date).map((item) => {
+    reviewableItems(items, day.date, events).map((item) => {
       const row = itemDayMark(events, item, day.date, today, primaryId);
       if (pendingKey.has(`${item.id}:${day.date}`)) {
         return { ...row, mark: "miss" as const, reason: row.reason };

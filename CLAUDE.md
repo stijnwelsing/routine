@@ -30,6 +30,7 @@ Vandaag: Lijf (slaap, energie; optioneel). Items zijn tenant-inrichting (dagelij
 
 - +1 = set gedaan, huidige mag omhoog
 - Done = set op het werkgetal, huidige blijft
+- Na +1/Done: korte rustige bevestiging op de kaart (geen streak/grind/protocol/OS/confetti). Sage alleen ná Done. Ember blijft Skip/miss. Geen health score, geen badges
 - Geen van beide schuift de etappe
 - Milestone: gebruiker kiest, nooit auto-advance
 - Skip = chip, geen miss

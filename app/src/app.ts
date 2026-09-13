@@ -49,6 +49,7 @@ import {
 } from "./goals";
 import { lineDots, linePointsAttr, progressView } from "./progress";
 import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./themes";
+import { todayConfirm } from "./confirm";
 import { timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
@@ -348,6 +349,19 @@ function render(): void {
   }
 }
 
+function confirmLine(item: Item): string {
+  const day = itemDay(item);
+  const confirm = todayConfirm({
+    plus: day.plus,
+    done: day.done,
+    skip: day.skip,
+    type: item.type,
+    track: hasCurrent(item),
+  });
+  if (!confirm) return "";
+  return `<div class="confirm ${confirm.tone}" role="status">${escapeHtml(confirm.text)}</div>`;
+}
+
 function stofCard(item: Item): string {
   const day = itemDay(item);
   const taken = day.logged || Boolean(day.skip);
@@ -369,6 +383,7 @@ function stofCard(item: Item): string {
               ).join("")}</div>`
             : ""
         }
+        ${confirmLine(item)}
       </div>`;
 }
 
@@ -627,6 +642,7 @@ function itemCard(
               ).join("")}</div>`
             : ""
         }
+        ${confirmLine(item)}
         ${
           showAdvance
             ? `<div class="note">Etappe gehaald. Niet automatisch verder. Voorstel: ${fmt(view.suggestedMilestone!)}.</div>

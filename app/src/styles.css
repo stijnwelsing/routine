@@ -584,6 +584,18 @@ textarea {
   line-height: 1.4;
 }
 
+.confirm {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--fog);
+  letter-spacing: 0.02em;
+  line-height: 1.35;
+}
+
+.confirm.sage {
+  color: var(--sage);
+}
+
 .kv {
   display: grid;
   grid-template-columns: 1fr 1fr;

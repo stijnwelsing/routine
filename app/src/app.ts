@@ -436,6 +436,9 @@ function render(): void {
       </div>
       ${ownItemsCard(snapshot.items)}
       ${addItemCard()}
+      <div class="card stack">
+        <button class="btn ghost ico-btn" data-act="export">${icon("export")}<span>Exporteer JSON</span></button>
+      </div>
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
       ${nav}`;
     return;

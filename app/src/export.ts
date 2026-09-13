@@ -1,13 +1,20 @@
 import type { Snapshot } from "./types";
+import { LOCAL_STORAGE_KEY } from "./types";
 
+/** Full v6 snapshot. Read-only. Does not write or wipe storage. */
 export function exportPayload(snapshot: Snapshot): string {
   return JSON.stringify(
     {
       exported_at: new Date().toISOString(),
+      key: LOCAL_STORAGE_KEY,
       profile: snapshot.profile,
       items: snapshot.items,
+      vector: snapshot.vector,
       stage: snapshot.stage,
       events: snapshot.events,
+      rotated: snapshot.rotated,
+      onboarded: snapshot.onboarded,
+      theme_step: snapshot.theme_step,
     },
     null,
     2,

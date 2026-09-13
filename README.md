@@ -20,7 +20,7 @@ Kleuren: Ink `#0C0C0C`, kaarten `#161616`, Cream `#F0ECE4`, Fog `#606060`, Sage 
 
 Vite + vanilla TypeScript. **Vandaag**, **Koers**, **Voortgang**, **Profiel** (max ~4 tabs). Geen aparte Ik-route, geen AI.
 
-- **Vandaag** — Lijf (slaap, energie, gewicht; optioneel). Gewicht in kg (`body_weight`), geen blokkade van de dag. Geen bloed/urine/foto’s, geen health score, geen wearables. Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Low carb is een dag-tag (voorkeur), geen Done/Skip. Cafeïne en scherm uit 22:00 zijn stille regels, geen Done/Skip. **Korte rust** is een actie met tijdvenster (08:00–22:00) en conditie (alleen na slaap of energie). Geen extra tekst op de lijst; venster en conditie staan in detail. Tik cafeïne, wandelen, Low carb, scherm uit of korte rust voor bron-tag in detail (`public-framework` / `evidence-informed` / `user preference`). Tags niet op de Today-lijst. Koers in één woord.
+- **Vandaag** — Lijf (slaap, energie, gewicht; optioneel). Gewicht in kg (`body_weight`), geen blokkade van de dag. Geen bloed/urine/foto’s, geen health score, geen wearables. Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Low carb is een dag-tag (voorkeur), geen Done/Skip. Cafeïne en scherm uit 22:00 zijn stille regels, geen Done/Skip. **Korte rust** is een actie met tijdvenster (08:00–22:00) en conditie (alleen na slaap of energie). Geen extra tekst op de lijst; venster en conditie staan in detail. Tik cafeïne, wandelen, Low carb, scherm uit, korte rust, vitamine D of koud douchen voor bron-tag in detail (`public-framework` / `evidence-informed` / `user preference` / `guideline` / `hypothesis`). Tags niet op de Today-lijst. Koers in één woord.
 - **Koers** — thema’s, weekoverzicht (hits/misses), A, B, nu, etappe, venster, trend, rem, volgende actie. **Ik** is een blok op Koers, niet op Vandaag of Profiel.
 - **Voortgang** — dezelfde week-strip, een lijn van de huidige, hits, rustige kg-reeks van `body_weight`. Leeg mag. Geen health score, geen BMI, geen doelgewicht, geen streak-als-core, geen confetti.
 - **Profiel** — doelen, leeftijdsband, thema’s, Later (Nu/Later) en eigen item (toevoegen, wijzigen, weg) zonder wipe. Seed-suggestie gaat naar Later, niet hard-delete. Events blijven. Ik-velden blijven op Koers.
@@ -106,7 +106,7 @@ Authentication → Providers → Email: password én magic link aan. B mag tenan
 
 ## Export
 
-Op Koers: **Exporteer JSON** (profiel + items + etappe + log).
+Op Koers en Profiel: **Exporteer JSON** (v6-snapshot: profiel/doelen/thema’s + items + vector + etappe + events inclusief `body_weight`). Geen wipe.
 
 ## Preview, geen product-live
 

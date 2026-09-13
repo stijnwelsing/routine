@@ -213,6 +213,7 @@ describe("local store data preserve", () => {
     expect(snap.items.find((item) => item.label === "Vitamine D")).toMatchObject({
       type: "supplement",
       a: null,
+      template: "guideline",
     });
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
@@ -260,7 +261,9 @@ describe("local store data preserve", () => {
       item.label === "Wandelen na eten" ||
       item.label === "Cafeïne 90 min na opstaan" ||
       item.label === "Low carb" ||
-      item.label === "Scherm uit 22:00"
+      item.label === "Scherm uit 22:00" ||
+      item.label === "Vitamine D" ||
+      item.label === "Koud douchen"
         ? { ...item, template: null }
         : item,
     );
@@ -295,6 +298,8 @@ describe("local store data preserve", () => {
       template: "user preference",
       role: "constraint",
     });
+    expect(snap.items.find((item) => item.label === "Vitamine D")?.template).toBe("guideline");
+    expect(snap.items.find((item) => item.label === "Koud douchen")?.template).toBe("hypothesis");
     expect(snap.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });

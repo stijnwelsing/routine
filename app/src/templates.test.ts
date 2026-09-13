@@ -39,6 +39,8 @@ describe("template confidence lock", () => {
     expect(lockedTemplate("Low carb")).toBe("user preference");
     expect(lockedTemplate("Scherm uit 22:00")).toBe("user preference");
     expect(lockedTemplate("Korte rust")).toBe("user preference");
+    expect(lockedTemplate("Vitamine D")).toBe("guideline");
+    expect(lockedTemplate("Koud douchen")).toBe("hypothesis");
     expect(lockedTemplate("Push-ups")).toBeNull();
   });
 
@@ -48,6 +50,8 @@ describe("template confidence lock", () => {
     expect(defaultTemplate(leftover("Low carb"))).toBe("user preference");
     expect(defaultTemplate(leftover("Scherm uit 22:00"))).toBe("user preference");
     expect(defaultTemplate(leftover("Korte rust"))).toBe("user preference");
+    expect(defaultTemplate(leftover("Vitamine D"))).toBe("guideline");
+    expect(defaultTemplate(leftover("Koud douchen"))).toBe("hypothesis");
     expect(defaultTemplate(leftover("Push-ups", "hypothesis"))).toBe("hypothesis");
     expect(defaultTemplate(leftover("Push-ups"))).toBeNull();
   });
@@ -85,5 +89,7 @@ describe("template confidence lock", () => {
       template: "user preference",
       role: "action",
     });
+    expect(items.find((item) => item.label === "Vitamine D")?.template).toBe("guideline");
+    expect(items.find((item) => item.label === "Koud douchen")?.template).toBe("hypothesis");
   });
 });

@@ -123,6 +123,7 @@ export function testTenantItems(tenantId: string): Item[] {
       weekdays: null,
       times_per_week: null,
       sort: 5,
+      template: "hypothesis",
     }),
     row({
       type: "leefregel",
@@ -247,7 +248,7 @@ export function testTenantItems(tenantId: string): Item[] {
       times_per_week: null,
       sort: 13,
       role: "action",
-      template: null,
+      template: "guideline",
       timing: {
         mode: null,
         clock: null,

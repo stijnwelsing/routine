@@ -312,6 +312,49 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(2);
   });
 
+  it("edits goals, age, and Later on leftover v6 without wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    const squat = existing.items.find((item) => item.label === "Squats")!;
+    existing.onboarded = true;
+    existing.profile.goals = ["kracht"];
+    existing.profile.age_band = "50–59";
+    existing.profile.themes = ["Kickbox"];
+    existing.events = [
+      event({
+        id: "keep-line",
+        date: "2026-09-10",
+        kind: "set",
+        value: 41,
+        item_id: push.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-line"]);
+
+    await store.saveProfile({
+      ...snap.profile,
+      goals: ["kracht", "bewegen"],
+      age_band: "40–49",
+    });
+    await store.setItemLater(squat.id, true);
+    const after = await store.load();
+    expect(after.events.map((row) => row.id)).toEqual(["keep-line"]);
+    expect(after.profile.goals).toEqual(["kracht", "bewegen"]);
+    expect(after.profile.age_band).toBe("40–49");
+    expect(after.profile.themes).toEqual(["Kickbox"]);
+    expect(after.items.find((item) => item.id === squat.id)?.later).toBe(true);
+    expect(after.items.find((item) => item.id === push.id)?.later).toBe(false);
+    expect(after.onboarded).toBe(true);
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

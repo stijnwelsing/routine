@@ -31,7 +31,12 @@ export type TimingMode = "clock" | "relative";
 export type TimingAnchor = "wake" | "meal";
 export type TimingFrequency = "daily" | "weekly";
 export type TimingPhase = "due" | "wait" | "closed" | "silent" | "hidden";
-export type Screen = "vandaag" | "koers";
+export const SCREENS = ["vandaag", "koers", "voortgang", "profiel"] as const;
+export type Screen = (typeof SCREENS)[number];
+
+export function isScreen(value: string | undefined): value is Screen {
+  return Boolean(value && (SCREENS as readonly string[]).includes(value));
+}
 export type TrendArrow = "↑" | "→" | "↓";
 export type GoalId = "kracht" | "eten" | "slaap" | "stofjes" | "bewegen";
 export type AgeBand = "18–29" | "30–39" | "40–49" | "50–59" | "60+";

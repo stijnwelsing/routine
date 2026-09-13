@@ -510,6 +510,37 @@ textarea {
   letter-spacing: 0.02em;
 }
 
+.prog-line {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 10px;
+}
+
+.prog-path {
+  fill: none;
+  stroke: var(--cream);
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.prog-dot {
+  fill: var(--card);
+  stroke: var(--fog);
+  stroke-width: 1.5;
+}
+
+.prog-dot.now {
+  fill: var(--cream);
+  stroke: var(--cream);
+}
+
+.prog-dot.miss {
+  fill: var(--card);
+  stroke: var(--ember);
+}
+
 .later-box {
   padding-bottom: 8px;
 }
@@ -669,6 +700,12 @@ textarea {
   background: transparent;
   border: 0;
   cursor: pointer;
+}
+
+.nav-4 button {
+  font-size: 0.48rem;
+  letter-spacing: 0.06em;
+  padding: 0 2px;
 }
 
 .nav button.active {

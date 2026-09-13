@@ -4,6 +4,7 @@ import {
   GOALS,
   MAX_START,
   applyStartSelection,
+  laterEditableItems,
   needsOnboarding,
   onboardStep,
   suggestStartItems,
@@ -83,5 +84,16 @@ describe("goals onboarding", () => {
     ids = toggleStartId(ids, "c");
     ids = toggleStartId(ids, "d");
     expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("lets Later stay editable after start without dropping regels", () => {
+    const items = testTenantItems("t1").map((item) =>
+      item.label === "Squats" ? { ...item, later: true } : item,
+    );
+    const editable = laterEditableItems(items);
+    expect(editable.some((item) => item.label === "Push-ups" && !item.later)).toBe(true);
+    expect(editable.some((item) => item.label === "Squats" && item.later)).toBe(true);
+    expect(editable.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(false);
+    expect(editable.some((item) => item.type === "weekly")).toBe(false);
   });
 });

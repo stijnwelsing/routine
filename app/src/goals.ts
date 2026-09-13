@@ -28,6 +28,11 @@ export function isStartCandidate(item: Item): boolean {
   return item.type === "daily" || item.type === "leefregel" || item.type === "gedrag" || isStofje(item);
 }
 
+/** Start-candidates after onboarding. Later/Nu toggle does not wipe events. */
+export function laterEditableItems(items: Item[]): Item[] {
+  return items.filter(isStartCandidate).sort((a, b) => a.sort - b.sort);
+}
+
 /** Existing local data skips onboarding. Only a fresh empty session sees the flow. */
 export function needsOnboarding(snapshot: Snapshot): boolean {
   if (snapshot.onboarded !== false) return false;

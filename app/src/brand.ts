@@ -105,6 +105,15 @@ export const SPRITE = `
   <symbol id="i-ik" viewBox="0 0 24 24">
     <line class="s" x1="4" y1="12" x2="20" y2="12" />
   </symbol>
+  <symbol id="i-line" viewBox="0 0 24 24">
+    <polyline class="s" points="3 17 8 12 13 14 21 7" />
+  </symbol>
+  <symbol id="i-me" viewBox="0 0 24 24">
+    <g class="s">
+      <circle cx="12" cy="8" r="3" />
+      <path d="M6 19 A6 6 0 0 1 18 19" />
+    </g>
+  </symbol>
   <symbol id="i-dot" viewBox="0 0 24 24">
     <circle class="s" cx="12" cy="12" r="7" />
   </symbol>

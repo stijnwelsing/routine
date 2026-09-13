@@ -4,7 +4,7 @@ Gesloten lus. Meet A→B. Grijpt alleen in bij stilstand of als het lijf het tem
 
 De oude `legacy/index.html` is het prototype. Niet uitbreiden. Het product is `app/` (Vite + vanilla TypeScript).
 
-Lock 29 aug 2026: alleen Vandaag en Koers. Ik is een blok op Koers, geen extra scherm of route. Geen 8-oefening-Home. Geen AI. Geen GTM. Niet live. Product-domein bedoeld: aretan.app (reserve .nl / .eu). Geen DNS, geen Pages. Twee TEST-tenants in seed (README); geen namen in productcode.
+Lock 29 aug 2026: Vandaag en Koers blijven. Daarna Voortgang + Profiel (max ~4 tabs). Ik blijft een blok op Koers, geen extra Ik-route. Geen 8-oefening-Home. Geen AI. Geen GTM. Niet live. Product-domein bedoeld: aretan.app (reserve .nl / .eu). Geen DNS, geen custom domain. Preview: GitHub Pages `/preview`. Twee TEST-tenants in seed (README); geen namen in productcode.
 
 ## Stack
 
@@ -24,7 +24,7 @@ GTM, Stripe, landing, waitlist, App Store, HealthKit, AI-coach, chatbot, Memory/
 
 ## Schermen
 
-Alleen **Vandaag** en **Koers**.
+**Vandaag**, **Koers**, **Voortgang**, **Profiel**. Max ~4 tabs.
 
 Vandaag: Lijf (slaap, energie; optioneel). Items zijn tenant-inrichting (dagelijks / wekelijks / leefregel). Alleen wat vandaag moet. Wekelijks alleen op gezette dagen. +1 alleen op een item met huidige. Rest Done/Skip. Koers ↑/→/↓ één woord. Geen habit-Home, geen catalogus, Meetblad later.
 
@@ -34,7 +34,9 @@ Vandaag: Lijf (slaap, energie; optioneel). Items zijn tenant-inrichting (dagelij
 - Milestone: gebruiker kiest, nooit auto-advance
 - Skip = chip, geen miss
 - Miss = dag die dichtging zonder +1 / Done / Skip op een actie-item. Korte reden (zelfde chips als Skip). Geen straf-UI, geen gamification
-- Week = mini-overzicht op Koers (hits / overgeslagen / niet gedaan). Geen health score, geen streak-als-core, geen confetti
+- Week = mini-overzicht op Koers én Voortgang (hits / overgeslagen / niet gedaan). Geen health score, geen streak-als-core, geen confetti
+- Voortgang = rustige week + lijn (huidige) + hits. Geen score, geen streak-core, geen confetti
+- Profiel = doelen, leeftijdsband, thema’s, Later (Nu/Later) zonder wipe. Ik-velden blijven op Koers, niet dubbel op Profiel
 - Stok = miss. Niet “geen set in de laatste dagen inclusief vandaag”
 - Startstaat is rustig. Ember alleen Skip, gear-down, en stokt bij een echte miss. Geen Ember op Koers bij een verse dag.
 - Gear-down blokkeert etappe-omhoog, is geen stop

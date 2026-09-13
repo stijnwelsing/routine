@@ -39,17 +39,19 @@ import {
   MAX_START,
   isAgeBand,
   isGoalId,
+  laterEditableItems,
   needsOnboarding,
   onboardStep,
   suggestStartItems,
   toggleGoal,
   toggleStartId,
 } from "./goals";
+import { lineDots, linePointsAttr, progressView } from "./progress";
 import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./themes";
 import { timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
-import { SKIP_REASONS, isSkipReason, type Item, type Screen, type Snapshot } from "./types";
+import { SKIP_REASONS, isScreen, isSkipReason, type Item, type Screen, type Snapshot } from "./types";
 
 const root = () => document.querySelector<HTMLElement>("#app")!;
 
@@ -134,9 +136,11 @@ function render(): void {
     </div>`;
 
   const nav = `
-    <nav class="nav">
+    <nav class="nav nav-4">
       <button data-nav="vandaag" class="${state.screen === "vandaag" ? "active" : ""}">${icon("day")}Vandaag</button>
       <button data-nav="koers" class="${state.screen === "koers" ? "active" : ""}">${icon("mark")}Koers</button>
+      <button data-nav="voortgang" class="${state.screen === "voortgang" ? "active" : ""}">${icon("line")}Voortgang</button>
+      <button data-nav="profiel" class="${state.screen === "profiel" ? "active" : ""}">${icon("me")}Profiel</button>
     </nav>`;
 
   if (state.screen === "vandaag") {
@@ -277,6 +281,64 @@ function render(): void {
       ${nav}`;
     return;
   }
+
+  if (state.screen === "voortgang") {
+    const progress = progressView(
+      snapshot.items,
+      snapshot.events,
+      todayISO(),
+      snapshot.vector.a,
+      reviewPrimaryId(snapshot.items),
+    );
+    root().innerHTML = `
+      ${header}
+      ${weekBlock(progress.week)}
+      <div class="sec-hd">Lijn</div>
+      <div class="card">
+        <div class="note" style="margin-top:0">Huidige deze week. Geen score.</div>
+        ${progressLineSvg(progress.line.map((point) => point.current), todayISO(), progress.line)}
+        <div class="kv" style="margin-top:12px">
+          <div><div class="lbl">Nu</div><div class="val">${fmt(view.current)}</div></div>
+          <div><div class="lbl">Gedaan</div><div class="val">${progress.hits}</div></div>
+        </div>
+      </div>
+      ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
+      ${nav}`;
+    return;
+  }
+
+  if (state.screen === "profiel") {
+    const goals = snapshot.profile.goals ?? [];
+    const age = snapshot.profile.age_band;
+    const laterItems = laterEditableItems(snapshot.items);
+    root().innerHTML = `
+      ${header}
+      <div class="sec-hd">Doelen</div>
+      <div class="card">
+        <div class="note" style="margin-top:0">Later aan te passen. Geen wipe.</div>
+        <div class="chips">${GOALS.map(
+          (goal) =>
+            `<button class="chip pick ${goals.includes(goal.id) ? "on" : ""}" data-act="onboard-goal" data-goal="${goal.id}">${goal.label}</button>`,
+        ).join("")}</div>
+      </div>
+      <div class="sec-hd">Leeftijd</div>
+      <div class="card">
+        <div class="note" style="margin-top:0">Alleen een band. Geen geboortedatum.</div>
+        <div class="chips">${AGE_BANDS.map(
+          (band) =>
+            `<button class="chip pick ${age === band ? "on" : ""}" data-act="onboard-age" data-age="${band}">${band}</button>`,
+        ).join("")}</div>
+      </div>
+      ${themeSection(snapshot.profile.themes, "Tik een suggestie of typ zelf. Later aan te passen.")}
+      <div class="sec-hd">Later</div>
+      <div class="card later-box">
+        <div class="note" style="margin-top:0">Parkeren of terughalen. Events blijven.</div>
+        ${laterItems.map((item) => laterEditRow(item)).join("")}
+      </div>
+      ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
+      ${nav}`;
+    return;
+  }
 }
 
 function stofCard(item: Item): string {
@@ -369,6 +431,42 @@ function laterRow(item: Item): string {
         <div class="ex-nm">${escapeHtml(item.label)}</div>
         <button class="btn ghost later-now" data-act="later-now" data-item="${item.id}">Nu</button>
       </div>`;
+}
+
+function laterEditRow(item: Item): string {
+  const parked = item.later;
+  return `
+      <div class="later-row">
+        <div>
+          <div class="ex-nm">${escapeHtml(item.label)}</div>
+          <div class="note" style="margin-top:4px">${parked ? "Later" : "Nu"}</div>
+        </div>
+        <button class="btn ghost later-now" data-act="${parked ? "later-now" : "later-park"}" data-item="${item.id}">${parked ? "Nu" : "Later"}</button>
+      </div>`;
+}
+
+function progressLineSvg(
+  values: number[],
+  today: string,
+  points: { date: string; mark: string }[],
+): string {
+  const width = 294;
+  const height = 72;
+  const dots = lineDots(values, width, height);
+  if (dots.length === 0) return `<div class="note">Nog geen lijn.</div>`;
+  const marks = dots
+    .map((dot, i) => {
+      const todayDot = points[i]?.date === today;
+      const miss = points[i]?.mark === "miss";
+      const cls = miss ? "prog-dot miss" : todayDot ? "prog-dot now" : "prog-dot";
+      return `<circle class="${cls}" cx="${dot.x.toFixed(1)}" cy="${dot.y.toFixed(1)}" r="${todayDot ? 3.2 : 2.2}" />`;
+    })
+    .join("");
+  return `
+        <svg class="prog-line" viewBox="0 0 ${width} ${height}" aria-hidden="true">
+          <polyline class="prog-path" points="${linePointsAttr(dots)}" />
+          ${marks}
+        </svg>`;
 }
 
 function themeSection(themes: unknown, note: string): string {
@@ -585,8 +683,8 @@ function bind(): void {
   document.addEventListener("click", (event) => {
     const target = (event.target as HTMLElement).closest<HTMLElement>("[data-act], [data-nav]");
     if (!target) return;
-    const nav = target.dataset.nav as Screen | undefined;
-    if (nav === "vandaag" || nav === "koers") {
+    const nav = target.dataset.nav;
+    if (isScreen(nav)) {
       state.screen = nav;
       state.skipItemId = null;
       state.missKey = null;
@@ -793,11 +891,11 @@ async function handleAction(target: HTMLElement): Promise<void> {
     return;
   }
 
-  if (act === "later-now") {
+  if (act === "later-now" || act === "later-park") {
     const id = target.dataset.item;
     if (!id) return;
     await withBusy(async () => {
-      await store!.setItemLater(id, false);
+      await store!.setItemLater(id, act === "later-park");
       snapshot = await store!.load();
     });
     return;

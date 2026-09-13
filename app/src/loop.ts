@@ -193,7 +193,7 @@ function formatReps(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(1);
 }
 
-function currentAt(a: number, events: LogEvent[], onOrBefore: string): number {
+export function currentAt(a: number, events: LogEvent[], onOrBefore: string): number {
   const lastSet = events
     .filter((event) => event.kind === "set" && event.date <= onOrBefore)
     .sort(byCreated)

@@ -115,5 +115,12 @@ describe("goals onboarding", () => {
     expect(laterEditableItems([...items, { ...own, removed: true }]).some((item) => item.id === own.id)).toBe(
       false,
     );
+    const screen = items.find((item) => item.label === "Scherm uit 22:00")!;
+    expect(laterEditableItems(items).some((item) => item.label === "Scherm uit 22:00")).toBe(false);
+    expect(
+      laterEditableItems(items.map((item) => (item.id === screen.id ? { ...item, later: true } : item))).some(
+        (item) => item.label === "Scherm uit 22:00" && item.later,
+      ),
+    ).toBe(true);
   });
 });

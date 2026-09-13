@@ -79,7 +79,7 @@ export function todayPreferences(items: Item[], today: string): Item[] {
 }
 
 export function todayConstraints(items: Item[], today: string): Item[] {
-  return dueItems(items, today).filter(isConstraint);
+  return dueItems(items, today).filter((item) => isConstraint(item) && !item.later);
 }
 
 export function todayStofjes(items: Item[], today: string): Item[] {
@@ -91,7 +91,9 @@ export function todaySociaal(items: Item[], today: string): Item[] {
 }
 
 export function todayLater(items: Item[], today: string): Item[] {
-  return dueItems(items, today).filter((item) => item.later && isAction(item));
+  return dueItems(items, today).filter(
+    (item) => item.later && (isAction(item) || isConstraint(item)),
+  );
 }
 
 export function dueItems(items: Item[], today: string): Item[] {

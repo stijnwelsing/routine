@@ -344,6 +344,15 @@ describe("test tenant items", () => {
     expect(parked).toMatchObject({ mode: "parked" });
     expect(parked?.item.later).toBe(true);
     expect(parked?.item.removed).toBeFalsy();
+    const screen = seed.find((item) => item.label === "Scherm uit 22:00")!;
+    const parkedRule = applyItemRemoval(screen);
+    expect(parkedRule).toMatchObject({ mode: "parked" });
+    expect(todayConstraints([parkedRule!.item], "2026-09-13")).toEqual([]);
+    expect(todayLater([parkedRule!.item], "2026-09-13")[0]?.label).toBe("Scherm uit 22:00");
+    expect(todayConstraints(seed, "2026-09-13").map((item) => item.label)).toEqual([
+      "Cafeïne 90 min na opstaan",
+      "Scherm uit 22:00",
+    ]);
     expect(seed.find((item) => item.label === "Push-ups")?.a).toBe(40);
     expect(mergeSeedItems([...seed, gone!.item], seed, "t1").find((item) => item.id === own.id)).toMatchObject({
       id: own.id,

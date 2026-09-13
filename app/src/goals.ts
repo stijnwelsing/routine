@@ -34,10 +34,14 @@ export function isStartCandidate(item: Item): boolean {
   );
 }
 
-/** Start-candidates after onboarding. Later/Nu toggle does not wipe events. */
+/** Start-candidates after onboarding. Parked seed rules can come back. No wipe. */
 export function laterEditableItems(items: Item[]): Item[] {
   return items
-    .filter((item) => isStartCandidate(item) && !item.removed)
+    .filter((item) => {
+      if (item.removed) return false;
+      if (isStartCandidate(item)) return true;
+      return isConstraint(item) && item.later;
+    })
     .sort((a, b) => a.sort - b.sort);
 }
 

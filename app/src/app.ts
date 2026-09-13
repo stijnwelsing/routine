@@ -497,26 +497,27 @@ function weekBlock(view: WeekReview): string {
       </div>`;
 }
 
+function laterName(item: Item): string {
+  if (hasTemplate(item) || isUserAddedItem(item)) {
+    return `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`;
+  }
+  return `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
+}
+
 function laterRow(item: Item): string {
-  const name = isUserAddedItem(item)
-    ? `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`
-    : `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
   return `
       <div class="later-row">
-        ${name}
+        ${laterName(item)}
         <button class="btn ghost later-now" data-act="later-now" data-item="${item.id}">Nu</button>
       </div>`;
 }
 
 function laterEditRow(item: Item): string {
   const parked = item.later;
-  const name = isUserAddedItem(item)
-    ? `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`
-    : `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
   return `
       <div class="later-row">
         <div>
-          ${name}
+          ${laterName(item)}
           <div class="note" style="margin-top:4px">${parked ? "Later" : "Nu"}</div>
         </div>
         <button class="btn ghost later-now" data-act="${parked ? "later-now" : "later-park"}" data-item="${item.id}">${parked ? "Nu" : "Later"}</button>

@@ -37,6 +37,7 @@ describe("template confidence lock", () => {
     expect(lockedTemplate("Cafeïne 90 min na opstaan")).toBe("public-framework");
     expect(lockedTemplate("Wandelen na eten")).toBe("evidence-informed");
     expect(lockedTemplate("Low carb")).toBe("user preference");
+    expect(lockedTemplate("Scherm uit 22:00")).toBe("user preference");
     expect(lockedTemplate("Push-ups")).toBeNull();
   });
 
@@ -44,6 +45,7 @@ describe("template confidence lock", () => {
     expect(defaultTemplate(leftover("Wandelen na eten"))).toBe("evidence-informed");
     expect(defaultTemplate(leftover("Cafeïne 90 min na opstaan"))).toBe("public-framework");
     expect(defaultTemplate(leftover("Low carb"))).toBe("user preference");
+    expect(defaultTemplate(leftover("Scherm uit 22:00"))).toBe("user preference");
     expect(defaultTemplate(leftover("Push-ups", "hypothesis"))).toBe("hypothesis");
     expect(defaultTemplate(leftover("Push-ups"))).toBeNull();
   });
@@ -58,7 +60,11 @@ describe("template confidence lock", () => {
     expect(todayActions(items, today).some((item) => item.label === "Wandelen na eten")).toBe(true);
     expect(todayConstraints(items, today).map((item) => item.label)).toEqual([
       "Cafeïne 90 min na opstaan",
+      "Scherm uit 22:00",
     ]);
+    expect(todayConstraints(items, today).find((item) => item.label === "Scherm uit 22:00")?.template).toBe(
+      "user preference",
+    );
   });
 
   it("stores lock tags on the seed items", () => {
@@ -71,5 +77,7 @@ describe("template confidence lock", () => {
     );
     expect(items.find((item) => item.label === "Low carb")?.template).toBe("user preference");
     expect(items.find((item) => item.label === "Low carb")?.role).toBe("preference");
+    expect(items.find((item) => item.label === "Scherm uit 22:00")?.template).toBe("user preference");
+    expect(items.find((item) => item.label === "Scherm uit 22:00")?.role).toBe("constraint");
   });
 });

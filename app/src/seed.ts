@@ -302,6 +302,28 @@ export function testTenantItems(tenantId: string): Item[] {
         condition: "deze week",
       },
     }),
+    row({
+      type: "gedrag",
+      label: "Scherm uit 22:00",
+      unit: null,
+      a: null,
+      b: null,
+      milestone: null,
+      weekdays: null,
+      times_per_week: null,
+      sort: 16,
+      role: "constraint",
+      template: "user preference",
+      timing: {
+        mode: "clock",
+        clock: "22:00",
+        anchor: null,
+        offset_min: null,
+        window_min: null,
+        frequency: "daily",
+        condition: null,
+      },
+    }),
   ];
 }
 

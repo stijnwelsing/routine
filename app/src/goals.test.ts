@@ -64,7 +64,12 @@ describe("goals onboarding", () => {
     const walk = items.find((item) => item.label === "Wandelen na eten")!;
     const vit = items.find((item) => item.label === "Vitamine D")!;
     const next = applyStartSelection(items, [push.id, walk.id, vit.id, items[1].id]);
-    const start = next.filter((item) => !item.later && item.label !== "Cafeïne 90 min na opstaan");
+    const start = next.filter(
+      (item) =>
+        !item.later &&
+        item.label !== "Cafeïne 90 min na opstaan" &&
+        item.label !== "Scherm uit 22:00",
+    );
     const later = todayLater(next, "2026-09-09");
     expect(start.filter((item) => [push.id, walk.id, vit.id].includes(item.id))).toHaveLength(3);
     expect(later.length).toBeGreaterThan(0);
@@ -72,6 +77,7 @@ describe("goals onboarding", () => {
     expect(todayActions(next, "2026-09-09").some((item) => item.label === "Squats")).toBe(false);
     expect(todayStofjes(next, "2026-09-09").map((item) => item.label)).toEqual(["Vitamine D"]);
     expect(next.find((item) => item.label === "Cafeïne 90 min na opstaan")?.later).toBe(false);
+    expect(next.find((item) => item.label === "Scherm uit 22:00")?.later).toBe(false);
   });
 
   it("suggests from chosen goals and caps start toggles at 3", () => {
@@ -94,6 +100,7 @@ describe("goals onboarding", () => {
     expect(editable.some((item) => item.label === "Push-ups" && !item.later)).toBe(true);
     expect(editable.some((item) => item.label === "Squats" && item.later)).toBe(true);
     expect(editable.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(false);
+    expect(editable.some((item) => item.label === "Scherm uit 22:00")).toBe(false);
     expect(editable.some((item) => item.label === "Bellen met iemand")).toBe(true);
     expect(editable.some((item) => item.type === "weekly")).toBe(false);
   });

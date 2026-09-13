@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emptyTiming, normalizeTiming, opensAt, timingNote, timingPhase } from "./timing";
+import { defaultRole, emptyTiming, normalizeTiming, opensAt, timingNote, timingPhase } from "./timing";
 import { testTenantItems } from "./seed";
 import type { Item, Timing, TimingContext } from "./types";
 
@@ -106,6 +106,19 @@ describe("timing engine", () => {
     });
     expect(timingPhase(caffeine, ctx())).toBe("silent");
     expect(timingNote(caffeine)).toBe("90 min na opstaan");
+    const screen = testTenantItems("t1").find((row) => row.label === "Scherm uit 22:00")!;
+    expect(screen.role).toBe("constraint");
+    expect(screen.template).toBe("user preference");
+    expect(screen.timing).toMatchObject({
+      mode: "clock",
+      clock: "22:00",
+      frequency: "daily",
+    });
+    expect(timingPhase(screen, ctx({ now: new Date(2026, 8, 7, 21, 0, 0) }))).toBe("silent");
+    expect(timingPhase(screen, ctx({ now: new Date(2026, 8, 7, 22, 5, 0) }))).toBe("silent");
+    expect(timingNote(screen)).toBe("22:00");
+    expect(defaultRole({ role: null, label: "Scherm uit 22:00" })).toBe("constraint");
+    expect(defaultRole({ role: null, label: "Cafeïne 90 min na opstaan" })).toBe("constraint");
   });
 
   it("lets a social clock reminder wait until that time", () => {

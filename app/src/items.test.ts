@@ -49,6 +49,7 @@ describe("test tenant items", () => {
     expect(todayActions(items, "2026-08-29").some((item) => item.role === "constraint")).toBe(false);
     expect(todayConstraints(items, "2026-08-29").map((item) => item.label)).toEqual([
       "Cafeïne 90 min na opstaan",
+      "Scherm uit 22:00",
     ]);
     const stof = todayStofjes(items, "2026-08-29");
     expect(stof.map((item) => item.label)).toEqual(["Medicijn ochtend", "Vitamine D"]);
@@ -94,11 +95,14 @@ describe("test tenant items", () => {
     expect(merged.find((item) => item.label === "Low carb")?.type).toBe("leefregel");
     const old = items.filter(
       (item) =>
-        item.label !== "Cafeïne 90 min na opstaan" && item.label !== "Wandelen na eten",
+        item.label !== "Cafeïne 90 min na opstaan" &&
+        item.label !== "Wandelen na eten" &&
+        item.label !== "Scherm uit 22:00",
     );
     const withTiming = mergeSeedItems(old, testTenantItems("t1"), "t1");
     expect(withTiming.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(true);
     expect(withTiming.some((item) => item.label === "Wandelen na eten")).toBe(true);
+    expect(withTiming.some((item) => item.label === "Scherm uit 22:00")).toBe(true);
     expect(withTiming.find((item) => item.label === "Low carb")?.id).toBe(
       old.find((item) => item.label === "Low carb")!.id,
     );
@@ -121,6 +125,20 @@ describe("test tenant items", () => {
       withoutSociaal.find((item) => item.label === "Push-ups")!.id,
     );
     expect(withSociaal.filter((item) => item.label === "Bellen met iemand")).toHaveLength(1);
+    const withoutScreen = items.filter((item) => item.label !== "Scherm uit 22:00");
+    const withScreen = mergeSeedItems(withoutScreen, testTenantItems("t1"), "t1");
+    expect(withScreen.some((item) => item.label === "Scherm uit 22:00")).toBe(true);
+    expect(withScreen.find((item) => item.label === "Scherm uit 22:00")).toMatchObject({
+      role: "constraint",
+      template: "user preference",
+    });
+    expect(withScreen.find((item) => item.label === "Cafeïne 90 min na opstaan")?.id).toBe(
+      withoutScreen.find((item) => item.label === "Cafeïne 90 min na opstaan")!.id,
+    );
+    expect(withScreen.find((item) => item.label === "Wandelen na eten")?.id).toBe(
+      withoutScreen.find((item) => item.label === "Wandelen na eten")!.id,
+    );
+    expect(withScreen.filter((item) => item.label === "Scherm uit 22:00")).toHaveLength(1);
   });
 
   it("recovers leftover keys without wiping events or renaming items", () => {

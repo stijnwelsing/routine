@@ -38,6 +38,7 @@ describe("reviewableItems", () => {
     expect(due.some((item) => item.label === "Iemand zien")).toBe(true);
     expect(due.some((item) => item.label === "Low carb")).toBe(false);
     expect(due.some((item) => item.id === cafe.id)).toBe(false);
+    expect(due.some((item) => item.label === "Scherm uit 22:00")).toBe(false);
     expect(due.some((item) => item.label === "Dead hang")).toBe(false);
     expect(due.some((item) => item.type === "weekly")).toBe(false);
   });

@@ -106,8 +106,15 @@ export function timingNote(item: Item): string | null {
   return null;
 }
 
+function roleKey(label: string): string {
+  return label.trim().toLowerCase().normalize("NFC");
+}
+
 export function defaultRole(item: Pick<Item, "role" | "label">): ItemRole | null {
   if (item.role) return item.role;
-  if (item.label.trim().toLowerCase() === "low carb") return "preference";
+  const key = roleKey(item.label);
+  if (key === "low carb") return "preference";
+  if (key === "cafeïne 90 min na opstaan") return "constraint";
+  if (key === "scherm uit 22:00") return "constraint";
   return null;
 }

@@ -37,7 +37,7 @@ Vandaag: Lijf (slaap, energie; optioneel). Items zijn tenant-inrichting (dagelij
 - Miss = dag die dichtging zonder +1 / Done / Skip op een actie-item. Korte reden (zelfde chips als Skip). Geen straf-UI, geen gamification
 - Week = mini-overzicht op Koers én Voortgang (hits / overgeslagen / niet gedaan). Geen health score, geen streak-als-core, geen confetti
 - Voortgang = rustige week + lijn (huidige) + hits. Geen score, geen streak-core, geen confetti
-- Profiel = doelen, leeftijdsband, thema’s, Later (Nu/Later) en eigen item (label + type + optionele timing) zonder wipe. Geen catalogus-only. Ik-velden blijven op Koers, niet dubbel op Profiel
+- Profiel = doelen, leeftijdsband, thema’s, Later (Nu/Later) en eigen item (label + type + optionele timing) zonder wipe. Eigen item wijzigen of weg (soft: uit Vandaag, events blijven). Seed-suggestie niet hard-delete, wel Later. Geen catalogus-only. Ik-velden blijven op Koers, niet dubbel op Profiel
 - Stok = miss. Niet “geen set in de laatste dagen inclusief vandaag”
 - Startstaat is rustig. Ember alleen Skip, gear-down, en stokt bij een echte miss. Geen Ember op Koers bij een verse dag.
 - Gear-down blokkeert etappe-omhoog, is geen stop

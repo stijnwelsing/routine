@@ -551,6 +551,96 @@ describe("local store data preserve", () => {
     );
   });
 
+  it("edits and removes a user item on leftover v6 without wiping events or seed", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    const squat = existing.items.find((item) => item.label === "Squats")!;
+    existing.onboarded = true;
+    existing.profile.themes = ["Kickbox"];
+    existing.events = [
+      event({
+        id: "keep-edit",
+        date: "2026-09-12",
+        kind: "done",
+        item_id: push.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const own = await store.addItem({
+      label: "Avondwandeling",
+      kind: "gedrag",
+      timing: "20:00",
+    });
+    await store.addEvent({
+      date: "2026-09-13",
+      kind: "done",
+      item_id: own.id,
+      value: null,
+      skip_reason: null,
+    });
+
+    const edited = await store.updateItem({
+      id: own.id,
+      label: "Nachtwandeling",
+      kind: "regel",
+      timing: "avond",
+    });
+    expect(edited).toMatchObject({
+      id: own.id,
+      type: "leefregel",
+      label: "Nachtwandeling",
+      a: null,
+      unit: null,
+    });
+    await expect(
+      store.updateItem({ id: own.id, label: "Push-ups", kind: "gedrag" }),
+    ).rejects.toThrow("item bestaat al");
+    await expect(
+      store.updateItem({ id: push.id, label: "Eigen kracht", kind: "gedrag" }),
+    ).rejects.toThrow("alleen eigen item");
+
+    const afterEdit = await store.load();
+    expect(afterEdit.events.map((row) => row.id)).toEqual(["keep-edit", afterEdit.events[1].id]);
+    expect(afterEdit.events[1].item_id).toBe(own.id);
+    expect(afterEdit.items.find((item) => item.id === own.id)?.label).toBe("Nachtwandeling");
+    expect(afterEdit.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+
+    const gone = await store.removeItem(own.id);
+    expect(gone).toMatchObject({ id: own.id, removed: true });
+    const parked = await store.removeItem(squat.id);
+    expect(parked).toMatchObject({ id: squat.id, later: true });
+    expect(parked.removed).toBeFalsy();
+
+    const after = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(after.events.map((row) => row.id)).toEqual(["keep-edit", after.events[1].id]);
+    expect(after.events[1].item_id).toBe(own.id);
+    expect(after.items.find((item) => item.id === own.id)?.removed).toBe(true);
+    expect(after.items.find((item) => item.label === "Squats")?.later).toBe(true);
+    expect(after.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(after.items.find((item) => item.label === "Scherm uit 22:00")).toMatchObject({
+      role: "constraint",
+      template: "user preference",
+    });
+    expect(after.profile.themes).toEqual(["Kickbox"]);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(2);
+
+    const restored = await store.addItem({
+      label: "nachtwandeling",
+      kind: "sociaal",
+      timing: "19:00",
+    });
+    expect(restored.id).toBe(own.id);
+    expect(restored).toMatchObject({ type: "sociaal", removed: false, later: false });
+    const again = await store.load();
+    expect(again.events[1].item_id).toBe(own.id);
+    expect(again.events.map((row) => row.id)).toEqual(["keep-edit", again.events[1].id]);
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

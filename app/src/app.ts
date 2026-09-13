@@ -30,15 +30,20 @@ import {
   eventsForItem,
   formatWork,
   hasCurrent,
+  isSeedSuggestion,
+  isUserAddedItem,
   isUserItemKind,
+  kindFromItem,
   loopEvents,
   primaryItem,
+  timingInputValue,
   todayActions,
   todayConstraints,
   todayLater,
   todayPreferences,
   todaySociaal,
   todayStofjes,
+  userAddedItems,
   type UserItemKind,
 } from "./items";
 import { defaultTemplate, hasTemplate } from "./templates";
@@ -77,6 +82,10 @@ interface AppState {
   addKind: UserItemKind;
   addLabel: string;
   addTiming: string;
+  editKind: UserItemKind;
+  editLabel: string;
+  editTiming: string;
+  removeAsk: boolean;
 }
 
 const state: AppState = {
@@ -91,6 +100,10 @@ const state: AppState = {
   addKind: "gedrag",
   addLabel: "",
   addTiming: "",
+  editKind: "gedrag",
+  editLabel: "",
+  editTiming: "",
+  removeAsk: false,
 };
 
 let store: Store | null = null;
@@ -378,6 +391,7 @@ function render(): void {
         <div class="note" style="margin-top:0">Parkeren of terughalen. Events blijven.</div>
         ${laterItems.map((item) => laterEditRow(item)).join("")}
       </div>
+      ${ownItemsCard(snapshot.items)}
       ${addItemCard()}
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
       ${nav}`;
@@ -484,22 +498,52 @@ function weekBlock(view: WeekReview): string {
 }
 
 function laterRow(item: Item): string {
+  const name = isUserAddedItem(item)
+    ? `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`
+    : `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
   return `
       <div class="later-row">
-        <div class="ex-nm">${escapeHtml(item.label)}</div>
+        ${name}
         <button class="btn ghost later-now" data-act="later-now" data-item="${item.id}">Nu</button>
       </div>`;
 }
 
 function laterEditRow(item: Item): string {
   const parked = item.later;
+  const name = isUserAddedItem(item)
+    ? `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`
+    : `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
   return `
       <div class="later-row">
         <div>
-          <div class="ex-nm">${escapeHtml(item.label)}</div>
+          ${name}
           <div class="note" style="margin-top:4px">${parked ? "Later" : "Nu"}</div>
         </div>
         <button class="btn ghost later-now" data-act="${parked ? "later-now" : "later-park"}" data-item="${item.id}">${parked ? "Nu" : "Later"}</button>
+      </div>`;
+}
+
+function ownItemRow(item: Item): string {
+  const kind = USER_ITEM_KIND_LABEL[kindFromItem(item)];
+  const when = timingInputValue(item);
+  return `
+      <div class="later-row">
+        <div>
+          <button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>
+          <div class="note" style="margin-top:4px">${escapeHtml(kind)}${when ? ` · ${escapeHtml(when)}` : ""}</div>
+        </div>
+        <button class="btn ghost later-now" data-act="detail-open" data-item="${item.id}">Wijzig</button>
+      </div>`;
+}
+
+function ownItemsCard(items: Item[]): string {
+  const own = userAddedItems(items);
+  if (own.length === 0) return "";
+  return `
+      <div class="sec-hd">Eigen items</div>
+      <div class="card later-box">
+        <div class="note" style="margin-top:0">Label, type of tijd. Weg haalt het uit Vandaag. Log blijft.</div>
+        ${own.map((item) => ownItemRow(item)).join("")}
       </div>`;
 }
 
@@ -646,7 +690,7 @@ function onboardView(step: "goals" | "age" | "themes" | "start"): string {
 }
 
 function itemTitle(item: Item): string {
-  if (!hasTemplate(item)) {
+  if (!hasTemplate(item) && !isUserAddedItem(item)) {
     return `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
   }
   return `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`;
@@ -662,6 +706,7 @@ function detailView(item: Item): string {
   const work = formatWork(item);
   const pref = isPreference(item);
   const rule = isConstraint(item);
+  const own = isUserAddedItem(item);
   return `
       <button class="btn ghost detail-back" data-act="detail-close">Terug</button>
       <div class="sec-hd">Detail</div>
@@ -679,7 +724,59 @@ function detailView(item: Item): string {
         <div class="src-tag">${escapeHtml(template)}</div>
       </div>`
           : ""
-      }`;
+      }
+      ${own ? editItemCard() : seedParkCard(item)}`;
+}
+
+function editItemCard(): string {
+  return `
+      <div class="sec-hd">Wijzig</div>
+      <div class="card add-item">
+        <div class="note" style="margin-top:0">Zelfde item. Geen dosis. Log blijft.</div>
+        <div class="field">
+          <div class="lbl">Naam</div>
+          <input data-id="edit-label" type="text" maxlength="${ITEM_LABEL_LIMIT}" placeholder="Naam" autocomplete="off" enterkeyhint="done" value="${escapeHtml(state.editLabel)}" />
+        </div>
+        <div class="lbl">Type</div>
+        <div class="chips">${USER_ITEM_KINDS.map(
+          (kind) =>
+            `<button class="chip pick ${state.editKind === kind ? "on" : ""}" data-act="edit-kind" data-kind="${kind}">${USER_ITEM_KIND_LABEL[kind]}</button>`,
+        ).join("")}</div>
+        <div class="field" style="margin-top:12px">
+          <div class="lbl">Tijd</div>
+          <input data-id="edit-timing" type="text" maxlength="${ITEM_TIMING_LIMIT}" placeholder="22:00 of ochtend" autocomplete="off" enterkeyhint="done" value="${escapeHtml(state.editTiming)}" />
+        </div>
+        <div class="stack">
+          <button class="btn primary" data-act="item-save">Bewaar</button>
+          ${
+            state.removeAsk
+              ? `<div class="note">Weg uit Vandaag. Log blijft.</div>
+          <button class="btn primary" data-act="item-remove">Bevestig</button>
+          <button class="btn ghost" data-act="item-remove-cancel">Niet nu</button>`
+              : `<button class="btn ghost" data-act="item-remove-ask">Weg</button>`
+          }
+        </div>
+      </div>`;
+}
+
+function seedParkCard(item: Item): string {
+  if (!isSeedSuggestion(item)) return "";
+  if (item.later) {
+    return `
+      <div class="card quiet">
+        <div class="note" style="margin-top:0">Suggestie in Later. Niet wissen.</div>
+        <div class="stack">
+          <button class="btn ghost" data-act="later-now" data-item="${item.id}">Nu</button>
+        </div>
+      </div>`;
+  }
+  return `
+      <div class="card quiet">
+        <div class="note" style="margin-top:0">Suggestie. Niet wissen, wel parkeren.</div>
+        <div class="stack">
+          <button class="btn ghost" data-act="later-park" data-item="${item.id}">Naar Later</button>
+        </div>
+      </div>`;
 }
 
 function ruleLine(item: Item): string {
@@ -804,6 +901,11 @@ function bind(): void {
     if (el.dataset.id === "item-label" || el.dataset.id === "item-timing") {
       event.preventDefault();
       void persistCustomItem();
+      return;
+    }
+    if (el.dataset.id === "edit-label" || el.dataset.id === "edit-timing") {
+      event.preventDefault();
+      void persistEditItem();
     }
   });
 
@@ -881,8 +983,10 @@ async function handleAction(target: HTMLElement): Promise<void> {
 
   if (act === "detail-open") {
     const itemId = target.dataset.item ?? null;
-    if (!itemId || !snapshot.items.some((row) => row.id === itemId)) return;
-    state.detailItemId = itemId;
+    const item = itemId ? snapshot.items.find((row) => row.id === itemId) : undefined;
+    if (!item) return;
+    hydrateEdit(item);
+    state.detailItemId = item.id;
     render();
     return;
   }
@@ -1057,6 +1161,46 @@ async function handleAction(target: HTMLElement): Promise<void> {
     return;
   }
 
+  if (act === "edit-kind") {
+    const kind = target.dataset.kind;
+    if (!isUserItemKind(kind)) return;
+    rememberEditDraft();
+    state.editKind = kind;
+    render();
+    return;
+  }
+
+  if (act === "item-save") {
+    await persistEditItem();
+    return;
+  }
+
+  if (act === "item-remove-ask") {
+    rememberEditDraft();
+    state.removeAsk = true;
+    render();
+    return;
+  }
+
+  if (act === "item-remove-cancel") {
+    state.removeAsk = false;
+    render();
+    return;
+  }
+
+  if (act === "item-remove") {
+    const id = state.detailItemId;
+    if (!id) return;
+    await withBusy(async () => {
+      await store!.removeItem(id);
+      snapshot = await store!.load();
+      state.detailItemId = null;
+      state.removeAsk = false;
+      state.screen = "profiel";
+    });
+    return;
+  }
+
   if (act === "save-ik") {
     const profile = {
       ...snapshot.profile,
@@ -1081,6 +1225,34 @@ async function handleAction(target: HTMLElement): Promise<void> {
 function rememberAddDraft(): void {
   state.addLabel = valueOf("item-label") ?? state.addLabel;
   state.addTiming = valueOf("item-timing") ?? state.addTiming;
+}
+
+function rememberEditDraft(): void {
+  state.editLabel = valueOf("edit-label") ?? state.editLabel;
+  state.editTiming = valueOf("edit-timing") ?? state.editTiming;
+}
+
+function hydrateEdit(item: Item): void {
+  state.editLabel = item.label;
+  state.editKind = kindFromItem(item);
+  state.editTiming = timingInputValue(item);
+  state.removeAsk = false;
+}
+
+async function persistEditItem(): Promise<void> {
+  if (!store || !snapshot || !state.detailItemId) return;
+  rememberEditDraft();
+  await withBusy(async () => {
+    const item = await store!.updateItem({
+      id: state.detailItemId!,
+      label: state.editLabel,
+      kind: state.editKind,
+      timing: state.editTiming,
+    });
+    snapshot = await store!.load();
+    hydrateEdit(item);
+    state.detailItemId = item.id;
+  });
 }
 
 async function persistCustomItem(): Promise<void> {

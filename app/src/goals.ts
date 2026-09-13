@@ -36,7 +36,9 @@ export function isStartCandidate(item: Item): boolean {
 
 /** Start-candidates after onboarding. Later/Nu toggle does not wipe events. */
 export function laterEditableItems(items: Item[]): Item[] {
-  return items.filter(isStartCandidate).sort((a, b) => a.sort - b.sort);
+  return items
+    .filter((item) => isStartCandidate(item) && !item.removed)
+    .sort((a, b) => a.sort - b.sort);
 }
 
 /** Existing local data skips onboarding. Only a fresh empty session sees the flow. */

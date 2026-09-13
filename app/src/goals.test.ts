@@ -112,5 +112,8 @@ describe("goals onboarding", () => {
     const withOwn = laterEditableItems([...items, own]);
     expect(withOwn.some((item) => item.label === "Avondwandeling")).toBe(true);
     expect(withOwn.some((item) => item.label === "Push-ups")).toBe(true);
+    expect(laterEditableItems([...items, { ...own, removed: true }]).some((item) => item.id === own.id)).toBe(
+      false,
+    );
   });
 });

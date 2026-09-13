@@ -125,6 +125,8 @@ export interface Item {
   role: ItemRole | null;
   template: ItemTemplate | null;
   later: boolean;
+  /** Soft-gone. Row stays so events keep item_id. Leftover snaps omit this. */
+  removed?: boolean;
 }
 
 export interface LogEvent {

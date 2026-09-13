@@ -23,7 +23,7 @@ Vite + vanilla TypeScript. **Vandaag**, **Koers**, **Voortgang**, **Profiel** (m
 - **Vandaag** — Lijf (slaap, energie; 5 dots). Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Low carb is een dag-tag (voorkeur), geen Done/Skip. Cafeïne en scherm uit 22:00 zijn stille regels, geen Done/Skip. Tik cafeïne, wandelen, Low carb of scherm uit voor bron-tag in detail (`public-framework` / `evidence-informed` / `user preference`). Tags niet op de Today-lijst. Koers in één woord.
 - **Koers** — thema’s, weekoverzicht (hits/misses), A, B, nu, etappe, venster, trend, rem, volgende actie. **Ik** is een blok op Koers, niet op Vandaag of Profiel.
 - **Voortgang** — dezelfde week-strip, een lijn van de huidige, hits. Geen health score, geen streak-als-core, geen confetti.
-- **Profiel** — doelen, leeftijdsband, thema’s, Later (Nu/Later) zonder wipe. Ik-velden blijven op Koers.
+- **Profiel** — doelen, leeftijdsband, thema’s, Later (Nu/Later) en eigen item (toevoegen, wijzigen, weg) zonder wipe. Seed-suggestie gaat naar Later, niet hard-delete. Events blijven. Ik-velden blijven op Koers.
 
 Knoppen (lock 29 aug 2026):
 

@@ -634,6 +634,12 @@ button.ex-nm.tap {
   margin-top: 4px;
 }
 
+.later-row .ex-nm.tap {
+  text-align: left;
+  min-height: 44px;
+  padding: 8px 0;
+}
+
 .koers-one {
   display: flex;
   align-items: center;

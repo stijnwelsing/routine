@@ -1,20 +1,29 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyItemRemoval,
   canAddItem,
+  canRenameItem,
   createUserItem,
   dueItems,
   dueToday,
   formatWork,
   hasCurrent,
+  isSeedSuggestion,
+  isUserAddedItem,
+  kindFromItem,
   mergeSeedItems,
   parseUserTiming,
   recoverSnapshots,
+  restoreUserItem,
+  timingInputValue,
   todayActions,
   todayConstraints,
   todayLater,
   todayPreferences,
   todaySociaal,
   todayStofjes,
+  updateUserItem,
+  userAddedItems,
 } from "./items";
 import { emptySnapshot, seedSnapshot, testTenantItems } from "./seed";
 import type { Item, LogEvent, Snapshot } from "./types";
@@ -277,5 +286,68 @@ describe("test tenant items", () => {
     expect(createUserItem({ tenantId: "t1", label: "   ", kind: "gedrag", sort: 0 })).toBeNull();
     expect(parseUserTiming("22:00")).toMatchObject({ mode: "clock", clock: "22:00" });
     expect(parseUserTiming("")).toMatchObject({ mode: null, clock: null, condition: null });
+  });
+
+  it("edits and soft-removes user items without touching seed or inventing a dose", () => {
+    const seed = testTenantItems("t1");
+    const own = createUserItem({
+      tenantId: "t1",
+      label: "Avondwandeling",
+      kind: "gedrag",
+      timing: "20:00",
+      sort: 40,
+    })!;
+    expect(isUserAddedItem(own)).toBe(true);
+    expect(isSeedSuggestion(seed.find((item) => item.label === "Push-ups")!)).toBe(true);
+    expect(isUserAddedItem(seed.find((item) => item.label === "Scherm uit 22:00")!)).toBe(false);
+    expect(kindFromItem(own)).toBe("gedrag");
+    expect(timingInputValue(own)).toBe("20:00");
+
+    const edited = updateUserItem(own, {
+      label: "Nachtwandeling",
+      kind: "regel",
+      timing: "avond",
+    });
+    expect(edited).toMatchObject({
+      id: own.id,
+      type: "leefregel",
+      label: "Nachtwandeling",
+      a: null,
+      unit: null,
+    });
+    expect(edited?.timing).toMatchObject({ condition: "avond", mode: null });
+    expect(updateUserItem(own, { label: "Push-ups", kind: "gedrag" })).toBeNull();
+    expect(updateUserItem(seed[0], { label: "Eigen kracht", kind: "gedrag" })).toBeNull();
+    expect(canRenameItem([...seed, own], own.id, "nachtwandeling")).toBe(true);
+    expect(canRenameItem([...seed, own], own.id, "Push-ups")).toBe(false);
+
+    const gone = applyItemRemoval(own);
+    expect(gone).toMatchObject({ mode: "removed" });
+    expect(gone?.item).toMatchObject({ id: own.id, removed: true, label: "Avondwandeling" });
+    expect(todayActions([gone!.item], "2026-09-13")).toEqual([]);
+    expect(userAddedItems([gone!.item])).toEqual([]);
+    expect(canAddItem([...seed, gone!.item], "avondwandeling")).toBe(true);
+
+    const restored = restoreUserItem(gone!.item, {
+      label: "Avondwandeling",
+      kind: "sociaal",
+      timing: "19:00",
+    });
+    expect(restored).toMatchObject({
+      id: own.id,
+      type: "sociaal",
+      removed: false,
+      later: false,
+    });
+
+    const parked = applyItemRemoval(seed.find((item) => item.label === "Squats")!);
+    expect(parked).toMatchObject({ mode: "parked" });
+    expect(parked?.item.later).toBe(true);
+    expect(parked?.item.removed).toBeFalsy();
+    expect(seed.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(mergeSeedItems([...seed, gone!.item], seed, "t1").find((item) => item.id === own.id)).toMatchObject({
+      id: own.id,
+      removed: true,
+    });
   });
 });

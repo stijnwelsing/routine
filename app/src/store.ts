@@ -3,12 +3,18 @@ import { newId, nowISO, todayISO } from "./dates";
 import { emptyIdentity } from "./identity";
 import { applyStartSelection } from "./goals";
 import {
+  applyItemRemoval,
   canAddItem,
+  canRenameItem,
   createUserItem,
+  findRemovedUserItem,
   mergeSeedItems,
   nextItemSort,
   normalizeItem,
+  normalizeItemLabel,
   recoverSnapshots,
+  restoreUserItem,
+  updateUserItem,
   type UserItemKind,
 } from "./items";
 import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage, testTenantItems } from "./seed";
@@ -46,6 +52,8 @@ export interface Store {
   saveThemes(themes: string[]): Promise<void>;
   setItemLater(itemId: string, later: boolean): Promise<void>;
   addItem(input: { label: string; kind: UserItemKind; timing?: string }): Promise<Item>;
+  updateItem(input: { id: string; label: string; kind: UserItemKind; timing?: string }): Promise<Item>;
+  removeItem(itemId: string): Promise<Item>;
   saveVectorConstraint(vectorId: string, paceConstraint: string | null): Promise<void>;
   advanceStage(current: Stage, nextMilestone: number): Promise<Stage>;
   signOut(): Promise<void>;
@@ -222,6 +230,18 @@ export function createLocalStore(): Store {
 
     async addItem(input) {
       const snapshot = readLocal(userId, tenantId);
+      const restorable = findRemovedUserItem(snapshot.items, input.label);
+      if (restorable) {
+        const restored = restoreUserItem(restorable, {
+          label: input.label,
+          kind: input.kind,
+          timing: input.timing,
+        });
+        if (!restored) throw new Error("naam ontbreekt");
+        snapshot.items = snapshot.items.map((row) => (row.id === restored.id ? restored : row));
+        writeLocal(snapshot);
+        return restored;
+      }
       const item = createUserItem({
         tenantId,
         label: input.label,
@@ -234,6 +254,30 @@ export function createLocalStore(): Store {
       snapshot.items = [...snapshot.items, item];
       writeLocal(snapshot);
       return item;
+    },
+
+    async updateItem(input) {
+      const snapshot = readLocal(userId, tenantId);
+      const current = snapshot.items.find((row) => row.id === input.id);
+      if (!current) throw new Error("item ontbreekt");
+      if (!normalizeItemLabel(input.label)) throw new Error("naam ontbreekt");
+      if (!canRenameItem(snapshot.items, current.id, input.label)) throw new Error("item bestaat al");
+      const item = updateUserItem(current, input);
+      if (!item) throw new Error("alleen eigen item");
+      snapshot.items = snapshot.items.map((row) => (row.id === item.id ? item : row));
+      writeLocal(snapshot);
+      return item;
+    },
+
+    async removeItem(itemId) {
+      const snapshot = readLocal(userId, tenantId);
+      const current = snapshot.items.find((row) => row.id === itemId);
+      if (!current) throw new Error("item ontbreekt");
+      const next = applyItemRemoval(current);
+      if (!next) throw new Error("item blijft");
+      snapshot.items = snapshot.items.map((row) => (row.id === next.item.id ? next.item : row));
+      writeLocal(snapshot);
+      return next.item;
     },
 
     async saveVectorConstraint(vectorId, paceConstraint) {
@@ -491,6 +535,30 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
 
     async addItem(input) {
       const current = await this.load();
+      const restorable = findRemovedUserItem(current.items, input.label);
+      if (restorable) {
+        const restored = restoreUserItem(restorable, {
+          label: input.label,
+          kind: input.kind,
+          timing: input.timing,
+        });
+        if (!restored) throw new Error("naam ontbreekt");
+        const result = await client
+          .from("items")
+          .update({
+            type: restored.type,
+            label: restored.label,
+            timing: restored.timing,
+            later: restored.later,
+            removed: restored.removed,
+          })
+          .eq("id", restored.id)
+          .eq("tenant_id", tenantId)
+          .select("*")
+          .single();
+        const row = await must<Item>("item", result);
+        return normalizeItem(row, tenantId);
+      }
       const item = createUserItem({
         tenantId,
         label: input.label,
@@ -518,10 +586,54 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
           role: item.role,
           template: item.template,
           later: item.later,
+          removed: item.removed ?? false,
         })
         .select("*")
         .single();
       const row = await must<Item>("item", inserted);
+      return normalizeItem(row, tenantId);
+    },
+
+    async updateItem(input) {
+      const current = await this.load();
+      const existing = current.items.find((row) => row.id === input.id);
+      if (!existing) throw new Error("item ontbreekt");
+      if (!normalizeItemLabel(input.label)) throw new Error("naam ontbreekt");
+      if (!canRenameItem(current.items, existing.id, input.label)) throw new Error("item bestaat al");
+      const item = updateUserItem(existing, input);
+      if (!item) throw new Error("alleen eigen item");
+      const result = await client
+        .from("items")
+        .update({
+          type: item.type,
+          label: item.label,
+          timing: item.timing,
+        })
+        .eq("id", item.id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .single();
+      const row = await must<Item>("item", result);
+      return normalizeItem(row, tenantId);
+    },
+
+    async removeItem(itemId) {
+      const current = await this.load();
+      const existing = current.items.find((row) => row.id === itemId);
+      if (!existing) throw new Error("item ontbreekt");
+      const next = applyItemRemoval(existing);
+      if (!next) throw new Error("item blijft");
+      const result = await client
+        .from("items")
+        .update({
+          later: next.item.later,
+          removed: next.item.removed ?? false,
+        })
+        .eq("id", next.item.id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .single();
+      const row = await must<Item>("item", result);
       return normalizeItem(row, tenantId);
     },
 

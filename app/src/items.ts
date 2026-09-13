@@ -55,6 +55,7 @@ export function normalizeItem(item: Item, tenantId: string): Item {
     role: defaultRole(item),
     template: defaultTemplate(item),
     later: Boolean(item.later),
+    removed: Boolean(item.removed),
   };
 }
 
@@ -94,7 +95,9 @@ export function todayLater(items: Item[], today: string): Item[] {
 }
 
 export function dueItems(items: Item[], today: string): Item[] {
-  return items.filter((item) => dueToday(item, today)).sort((a, b) => a.sort - b.sort);
+  return items
+    .filter((item) => !item.removed && dueToday(item, today))
+    .sort((a, b) => a.sort - b.sort);
 }
 
 export function primaryItem(items: Item[]): Item | undefined {
@@ -162,10 +165,82 @@ export function nextItemSort(items: Item[]): number {
   return items.reduce((max, item) => Math.max(max, item.sort), -1) + 1;
 }
 
+/** Seed-suggesties. Label match only. User rows are everything else. */
+export const SEED_ITEM_LABELS = [
+  "Push-ups",
+  "Squats",
+  "Plank",
+  "Dead hang",
+  "Gerichte kracht",
+  "Koud douchen",
+  "Niet snoepen",
+  "Low carb",
+  "Intermittent fasting",
+  "Geen alcohol",
+  "Cafeïne 90 min na opstaan",
+  "Wandelen na eten",
+  "Medicijn ochtend",
+  "Vitamine D",
+  "Bellen met iemand",
+  "Iemand zien",
+  "Scherm uit 22:00",
+] as const;
+
+export function isSeedItemLabel(label: string): boolean {
+  const key = labelKey(label);
+  return SEED_ITEM_LABELS.some((seed) => labelKey(seed) === key);
+}
+
+export function isSeedSuggestion(item: Pick<Item, "label">): boolean {
+  return isSeedItemLabel(item.label);
+}
+
+/** User-made row, not a seed suggestion. */
+export function isUserAddedItem(item: Pick<Item, "label">): boolean {
+  return !isSeedSuggestion(item);
+}
+
+export function isRemoved(item: Pick<Item, "removed">): boolean {
+  return Boolean(item.removed);
+}
+
+export function userAddedItems(items: Item[]): Item[] {
+  return items
+    .filter((item) => isUserAddedItem(item) && !isRemoved(item))
+    .sort((a, b) => a.sort - b.sort);
+}
+
+export function kindFromItem(item: Pick<Item, "type">): UserItemKind {
+  if (item.type === "leefregel") return "regel";
+  if (item.type === "medicijn") return "medicijn";
+  if (item.type === "supplement") return "supplement";
+  if (item.type === "sociaal") return "sociaal";
+  return "gedrag";
+}
+
+export function timingInputValue(item: Pick<Item, "timing">): string {
+  if (item.timing.mode === "clock" && item.timing.clock) return item.timing.clock;
+  return item.timing.condition ?? "";
+}
+
 export function canAddItem(items: Item[], label: string): boolean {
   const key = normalizeItemLabel(label);
   if (!key) return false;
-  return !items.some((item) => labelKey(item.label) === labelKey(key));
+  return !items.some((item) => !isRemoved(item) && labelKey(item.label) === labelKey(key));
+}
+
+export function canRenameItem(items: Item[], itemId: string, label: string): boolean {
+  const key = normalizeItemLabel(label);
+  if (!key || isSeedItemLabel(key)) return false;
+  return !items.some(
+    (item) => item.id !== itemId && !isRemoved(item) && labelKey(item.label) === labelKey(key),
+  );
+}
+
+export function findRemovedUserItem(items: Item[], label: string): Item | undefined {
+  const key = normalizeItemLabel(label);
+  if (!key) return undefined;
+  return items.find((item) => isRemoved(item) && isUserAddedItem(item) && labelKey(item.label) === labelKey(key));
 }
 
 /** Tenant inrichting. User-made row, not catalog-only. No dose. */
@@ -195,7 +270,53 @@ export function createUserItem(input: {
     role: "action",
     template: "user preference",
     later: Boolean(input.later),
+    removed: false,
   };
+}
+
+/** Same id. No dose. Seed rows stay untouched. */
+export function updateUserItem(
+  item: Item,
+  input: { label: string; kind: UserItemKind; timing?: string },
+): Item | null {
+  if (!isUserAddedItem(item) || isRemoved(item)) return null;
+  const label = normalizeItemLabel(input.label);
+  if (!label || isSeedItemLabel(label)) return null;
+  return {
+    ...item,
+    type: USER_ITEM_KIND_TYPE[input.kind],
+    label,
+    timing: parseUserTiming(input.timing ?? ""),
+    template: "user preference",
+  };
+}
+
+export function restoreUserItem(
+  item: Item,
+  input: { label: string; kind: UserItemKind; timing?: string },
+): Item | null {
+  if (!isUserAddedItem(item) || !isRemoved(item)) return null;
+  const label = normalizeItemLabel(input.label);
+  if (!label || isSeedItemLabel(label)) return null;
+  return {
+    ...item,
+    type: USER_ITEM_KIND_TYPE[input.kind],
+    label,
+    timing: parseUserTiming(input.timing ?? ""),
+    template: "user preference",
+    later: false,
+    removed: false,
+  };
+}
+
+export type ItemRemovalMode = "removed" | "parked";
+
+/** User-added: soft-gone. Seed: Later. Events stay on the caller. */
+export function applyItemRemoval(item: Item): { item: Item; mode: ItemRemovalMode } | null {
+  if (isRemoved(item)) return { item, mode: "removed" };
+  if (isUserAddedItem(item)) return { item: { ...item, removed: true }, mode: "removed" };
+  if (isSeedSuggestion(item)) return { item: { ...item, later: true }, mode: "parked" };
+  return null;
 }
 
 export function uniqueItemsByLabel(items: Item[]): Item[] {

@@ -33,13 +33,14 @@ Vandaag: Lijf (slaap, energie; optioneel). Items zijn tenant-inrichting (dagelij
 - Geen van beide schuift de etappe
 - Milestone: gebruiker kiest, nooit auto-advance
 - Skip = chip, geen miss
-- Miss = dag die dichtging zonder +1 / Done / Skip. Verse dag (0 events) is startstaat, geen miss, geen stokt
+- Miss = dag die dichtging zonder +1 / Done / Skip op een actie-item. Korte reden (zelfde chips als Skip). Geen straf-UI, geen gamification
+- Week = mini-overzicht op Koers (hits / overgeslagen / niet gedaan). Geen health score, geen streak-als-core, geen confetti
 - Stok = miss. Niet “geen set in de laatste dagen inclusief vandaag”
 - Startstaat is rustig. Ember alleen Skip, gear-down, en stokt bij een echte miss. Geen Ember op Koers bij een verse dag.
 - Gear-down blokkeert etappe-omhoog, is geen stop
 - WON'T-skip = `geen zin`; herhaald toont `identity_new` (geen interview)
 
-Koers: A/B/nu/etappe/venster/trend/hitrate/rem/actie + Ik-blok.
+Koers: thema’s, weekoverzicht, A/B/nu/etappe/venster/trend/rem/actie + Ik-blok.
 
 Ik-velden (leeg mag, geen seed-tekst, geen namen in defaults):
 

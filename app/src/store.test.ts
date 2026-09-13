@@ -277,6 +277,41 @@ describe("local store data preserve", () => {
     expect(after.onboarded).toBe(true);
   });
 
+  it("keeps a miss reason on the live v6 key without wiping other events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    existing.events = [
+      event({
+        id: "keep-done",
+        date: "2026-09-10",
+        kind: "done",
+        item_id: push.id,
+      }),
+    ];
+    existing.onboarded = true;
+    existing.profile.themes = ["Kickbox"];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-done"]);
+    const miss = await store.addEvent({
+      date: "2026-09-12",
+      kind: "miss",
+      value: null,
+      skip_reason: "vergeten",
+      item_id: push.id,
+    });
+    const again = await store.load();
+    expect(again.events.map((row) => row.id)).toEqual(["keep-done", miss.id]);
+    expect(again.events[1]).toMatchObject({ kind: "miss", skip_reason: "vergeten" });
+    expect(again.profile.themes).toEqual(["Kickbox"]);
+    expect(again.onboarded).toBe(true);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(2);
+  });
+
   it("sees leftover keys as an existing session", () => {
     localStorage.setItem("routine_loop_v4", JSON.stringify(seedSnapshot("u1", "2026-09-07", "t1")));
     expect(hasLocalSession()).toBe(true);

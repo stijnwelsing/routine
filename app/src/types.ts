@@ -8,6 +8,10 @@ export const SKIP_REASONS = [
 
 export type SkipReason = (typeof SKIP_REASONS)[number];
 
+export function isSkipReason(value: string | null | undefined): value is SkipReason {
+  return Boolean(value && (SKIP_REASONS as readonly string[]).includes(value));
+}
+
 export type EventKind =
   | "body_sleep"
   | "body_energy"

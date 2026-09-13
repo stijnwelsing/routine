@@ -21,7 +21,7 @@ Kleuren: Ink `#0C0C0C`, kaarten `#161616`, Cream `#F0ECE4`, Fog `#606060`, Sage 
 Vite + vanilla TypeScript. Alleen **Vandaag** en **Koers**. Geen derde scherm, geen aparte Ik-route, geen AI.
 
 - **Vandaag** — Lijf (slaap, energie; 5 dots). Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Koers in één woord.
-- **Koers** — A, B, nu, etappe, venster, trend, hitrate, rem, volgende actie. **Ik** is een blok op Koers, niet op Vandaag.
+- **Koers** — thema’s, weekoverzicht (hits/misses), A, B, nu, etappe, venster, trend, rem, volgende actie. **Ik** is een blok op Koers, niet op Vandaag.
 
 Knoppen (lock 29 aug 2026):
 
@@ -30,7 +30,8 @@ Knoppen (lock 29 aug 2026):
 - Geen van beide schuift de etappe
 - Milestone: gebruiker kiest, nooit auto-advance
 - **Skip** = chip, geen miss
-- **Miss** = dag die dichtging zonder +1 / Done / Skip. Verse dag (0 events) is geen miss en geen stokt
+- **Miss** = dag die dichtging zonder +1 / Done / Skip op een actie-item. Korte reden (zelfde chips als Skip). Geen straf-UI. Verse dag (0 events) is geen miss en geen stokt
+- **Week** = mini-overzicht op Koers: hits / overgeslagen / niet gedaan. Geen health score, geen streak-als-core, geen confetti
 - **Stok** = miss. Niet de startstaat van vandaag
 - Gear-down (slaap &lt; 6u of energie laag) blokkeert etappe-omhoog, is geen stop
 - Eén set per dag

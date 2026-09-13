@@ -16,6 +16,13 @@ import {
 } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
+  pendingMisses,
+  reviewPrimaryId,
+  weekReview,
+  type ItemDay,
+  type WeekReview,
+} from "./review";
+import {
   eventsForItem,
   formatWork,
   hasCurrent,
@@ -42,13 +49,14 @@ import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./theme
 import { timingNote } from "./timing";
 import { createLocalStore, type Store } from "./store";
 import { energyDots, icon, mountSprite, statusIcon, wordmarkHtml } from "./brand";
-import { SKIP_REASONS, type Item, type Screen, type Snapshot } from "./types";
+import { SKIP_REASONS, isSkipReason, type Item, type Screen, type Snapshot } from "./types";
 
 const root = () => document.querySelector<HTMLElement>("#app")!;
 
 interface AppState {
   screen: Screen;
   skipItemId: string | null;
+  missKey: string | null;
   advanceWarn: boolean;
   busy: boolean;
   error: string | null;
@@ -58,6 +66,7 @@ interface AppState {
 const state: AppState = {
   screen: "vandaag",
   skipItemId: null,
+  missKey: null,
   advanceWarn: false,
   busy: false,
   error: null,
@@ -78,19 +87,22 @@ function loop() {
   );
 }
 
-function itemDay(item: Item) {
+function itemDay(item: Item, date = todayISO()) {
   if (!snapshot) throw new Error("geen snapshot");
-  const today = todayISO();
   const primary = primaryItem(snapshot.items);
   const ev = eventsForItem(snapshot.events, item, primary?.id);
   const current = item.a === null ? null : computeCurrent(item.a, ev);
   return {
-    done: todayDone(ev, today),
-    plus: todayPlus(ev, today),
-    skip: todaySkip(ev, today),
-    logged: setLoggedToday(ev, today),
+    done: todayDone(ev, date),
+    plus: todayPlus(ev, date),
+    skip: todaySkip(ev, date),
+    logged: setLoggedToday(ev, date),
     current,
   };
+}
+
+function missKey(itemId: string, date: string): string {
+  return `${itemId}:${date}`;
 }
 
 function escapeHtml(value: string): string {
@@ -134,6 +146,7 @@ function render(): void {
     const rules = todayConstraints(snapshot.items, today);
     const stofjes = todayStofjes(snapshot.items, today);
     const later = todayLater(snapshot.items, today);
+    const pending = pendingMisses(snapshot.items, snapshot.events, today, reviewPrimaryId(snapshot.items));
     root().innerHTML = `
       ${header}
       ${store.mode === "local" ? `<div class="banner">Lokaal — geen Supabase. +1 / Done / Skip blijven op dit apparaat.</div>` : ""}
@@ -166,6 +179,15 @@ function render(): void {
           ? `<div class="sec-hd">Stofjes</div>${stofjes.map((item) => stofCard(item)).join("")}`
           : ""
       }
+      ${
+        pending.length
+          ? `<div class="sec-hd">Niet gedaan</div>
+      <div class="card">
+        <div class="note" style="margin-top:0">Geen +1, Done of Skip. Korte reden.</div>
+        ${pending.map((row) => missRow(row)).join("")}
+      </div>`
+          : ""
+      }
       <div class="sec-hd">Vandaag</div>
       ${actions.map((item) => itemCard(item, view, nudge)).join("")}
       ${
@@ -190,13 +212,10 @@ function render(): void {
   }
 
   if (state.screen === "koers") {
-    const hit =
-      view.hitrate.eligible === 0
-        ? "—"
-        : `${view.hitrate.hits}/${view.hitrate.eligible}`;
     root().innerHTML = `
       ${header}
       ${themeSection(snapshot.profile.themes, "Tik een suggestie of typ zelf. Geen vaste lijst. Later aan te passen.")}
+      ${weekBlock(weekReview(snapshot.items, snapshot.events, todayISO(), reviewPrimaryId(snapshot.items)))}
       <div class="sec-hd">Strength · push-ups</div>
       <div class="card">
         <div class="kv">
@@ -215,10 +234,6 @@ function render(): void {
           <div>
             <div class="lbl">Trend</div>
             <div class="val status">${statusIcon(view.trend.word)} ${view.trend.word}</div>
-          </div>
-          <div>
-            <div class="lbl">Hitrate week</div>
-            <div class="val">${hit}</div>
           </div>
           <div>
             <div class="lbl">Rem</div>
@@ -283,6 +298,67 @@ function stofCard(item: Item): string {
                 (reason) =>
                   `<button class="chip ${day.skip === reason ? "on" : ""}" data-act="skip" data-item="${item.id}" data-reason="${reason}">${reason}</button>`,
               ).join("")}</div>`
+            : ""
+        }
+      </div>`;
+}
+
+function reasonChips(itemId: string, date: string, selected: string | null, act: "skip" | "miss"): string {
+  return `<div class="chips">${SKIP_REASONS.map(
+    (reason) =>
+      `<button class="chip ${selected === reason ? "on" : ""}" data-act="${act}" data-item="${itemId}" data-date="${date}" data-reason="${reason}">${reason}</button>`,
+  ).join("")}</div>`;
+}
+
+function missRow(row: ItemDay): string {
+  const open = state.missKey === missKey(row.item.id, row.date) || Boolean(row.reason);
+  return `
+      <div class="miss-row">
+        <button class="miss-item" data-act="miss-open" data-item="${row.item.id}" data-date="${row.date}">
+          <span class="ex-nm">${escapeHtml(row.item.label)}</span>
+          <span class="note">${row.reason ? escapeHtml(row.reason) : formatShort(row.date)}</span>
+        </button>
+        ${open ? reasonChips(row.item.id, row.date, row.reason, "miss") : ""}
+      </div>`;
+}
+
+function weekCounts(view: WeekReview): string {
+  const parts: string[] = [];
+  if (view.hits) parts.push(`${view.hits} gedaan`);
+  if (view.skips) parts.push(`${view.skips} overgeslagen`);
+  if (view.misses) parts.push(`${view.misses} niet gedaan`);
+  if (parts.length === 0) return "Nog geen dagen deze week.";
+  return parts.join(" · ");
+}
+
+function weekMark(mark: WeekReview["days"][number]["mark"]): string {
+  if (mark === "hit") return "ok";
+  if (mark === "skip") return "–";
+  if (mark === "miss") return "×";
+  return "·";
+}
+
+function weekBlock(view: WeekReview): string {
+  return `
+      <div class="sec-hd">Week</div>
+      <div class="card">
+        <div class="note" style="margin-top:0">${escapeHtml(view.range)}</div>
+        <div class="week-strip" aria-label="Weekoverzicht">
+          ${view.days
+            .map(
+              (day) =>
+                `<div class="week-day ${day.mark}${day.date === todayISO() ? " today" : ""}">
+            <span class="week-lbl">${day.label}</span>
+            <span class="week-mark">${weekMark(day.mark)}</span>
+          </div>`,
+            )
+            .join("")}
+        </div>
+        <div class="note">${escapeHtml(weekCounts(view))}</div>
+        ${view.note ? `<div class="week-note">${escapeHtml(view.note)}</div>` : ""}
+        ${
+          view.missRows.length
+            ? view.missRows.map((row) => missRow(row)).join("")
             : ""
         }
       </div>`;
@@ -514,6 +590,7 @@ function bind(): void {
     if (nav === "vandaag" || nav === "koers") {
       state.screen = nav;
       state.skipItemId = null;
+      state.missKey = null;
       state.advanceWarn = false;
       render();
       return;
@@ -590,15 +667,43 @@ async function handleAction(target: HTMLElement): Promise<void> {
     const day = itemDay(item);
     if (day.logged) return;
     const reason = target.dataset.reason;
-    if (!reason) return;
+    if (!isSkipReason(reason)) return;
     await persistEvent({
       date: today,
       kind: "skip",
       value: null,
-      skip_reason: reason as (typeof SKIP_REASONS)[number],
+      skip_reason: reason,
       item_id: item.id,
     });
     state.skipItemId = null;
+    return;
+  }
+
+  if (act === "miss-open") {
+    const itemId = target.dataset.item;
+    const date = target.dataset.date;
+    if (!itemId || !date) return;
+    const key = missKey(itemId, date);
+    state.missKey = state.missKey === key ? null : key;
+    render();
+    return;
+  }
+
+  if (act === "miss") {
+    const item = snapshot.items.find((row) => row.id === target.dataset.item);
+    const date = target.dataset.date;
+    const reason = target.dataset.reason;
+    if (!item || !date || date >= today || !isSkipReason(reason)) return;
+    const day = itemDay(item, date);
+    if (day.logged || day.skip) return;
+    await persistEvent({
+      date,
+      kind: "miss",
+      value: null,
+      skip_reason: reason,
+      item_id: item.id,
+    });
+    state.missKey = null;
     return;
   }
 

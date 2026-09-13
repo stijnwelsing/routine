@@ -428,6 +428,88 @@ textarea {
   background: rgba(240, 236, 228, 0.08);
 }
 
+.miss-row {
+  padding-top: 10px;
+  margin-top: 10px;
+  border-top: 1px solid var(--border);
+}
+
+.miss-row:first-of-type {
+  border-top: 0;
+  margin-top: 8px;
+  padding-top: 0;
+}
+
+.miss-item {
+  width: 100%;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  background: transparent;
+  border: 0;
+  padding: 8px 0;
+  text-align: left;
+  cursor: pointer;
+}
+
+.miss-item .note {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
+.week-strip {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin: 14px 0 4px;
+}
+
+.week-day {
+  min-height: 56px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.week-lbl {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fog);
+}
+
+.week-mark {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 1.15rem;
+  line-height: 1;
+  color: var(--fog);
+}
+
+.week-day.hit .week-mark {
+  color: var(--sage);
+}
+
+.week-day.miss .week-mark {
+  color: var(--ember);
+}
+
+.week-day.today {
+  border-color: var(--cream);
+}
+
+.week-note {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--cream);
+  letter-spacing: 0.02em;
+}
+
 .later-box {
   padding-bottom: 8px;
 }

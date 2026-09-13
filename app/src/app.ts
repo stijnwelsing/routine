@@ -1,4 +1,5 @@
 import { downloadExport } from "./export";
+import { IMPORT_ERROR } from "./import";
 import {
   IDENTITY_LIMITS,
   clipField,
@@ -99,6 +100,7 @@ interface AppState {
   editLabel: string;
   editTiming: string;
   removeAsk: boolean;
+  importPaste: string;
 }
 
 const state: AppState = {
@@ -117,6 +119,7 @@ const state: AppState = {
   editLabel: "",
   editTiming: "",
   removeAsk: false,
+  importPaste: "",
 };
 
 let store: Store | null = null;
@@ -372,9 +375,7 @@ function render(): void {
         </div>
         <button class="btn primary" data-act="save-ik">Bewaar</button>
       </div>
-      <div class="card stack">
-        <button class="btn ghost ico-btn" data-act="export">${icon("export")}<span>Exporteer JSON</span></button>
-      </div>
+      ${ioCard()}
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
       ${nav}`;
     return;
@@ -436,9 +437,7 @@ function render(): void {
       </div>
       ${ownItemsCard(snapshot.items)}
       ${addItemCard()}
-      <div class="card stack">
-        <button class="btn ghost ico-btn" data-act="export">${icon("export")}<span>Exporteer JSON</span></button>
-      </div>
+      ${ioCard()}
       ${state.error ? `<p class="error" style="padding:0 18px">${escapeHtml(state.error)}</p>` : ""}
       ${nav}`;
     return;
@@ -591,6 +590,21 @@ function ownItemsCard(items: Item[]): string {
       <div class="card later-box">
         <div class="note" style="margin-top:0">Label, type of tijd. Weg haalt het uit Vandaag. Log blijft.</div>
         ${own.map((item) => ownItemRow(item)).join("")}
+      </div>`;
+}
+
+function ioCard(): string {
+  return `
+      <div class="card stack io-card">
+        <button class="btn ghost ico-btn" data-act="export">${icon("export")}<span>Exporteer JSON</span></button>
+        <div class="note" style="margin-top:4px">Voegt toe. Bestaande rijen blijven.</div>
+        <button class="btn ghost ico-btn" data-act="import-pick">${icon("import")}<span>Kies bestand</span></button>
+        <input data-id="import-file" class="import-file" type="file" accept="application/json,.json" />
+        <div class="field">
+          <div class="lbl">Of plak JSON</div>
+          <textarea data-id="import-paste" placeholder='{"key":"routine_loop_v6"}'>${escapeHtml(state.importPaste)}</textarea>
+        </div>
+        <button class="btn ghost ico-btn" data-act="import-go">${icon("import")}<span>Importeer JSON</span></button>
       </div>`;
 }
 
@@ -1016,6 +1030,11 @@ function bind(): void {
     if (el.dataset.id === "weight") {
       void persistWeightInput(el.value);
     }
+    if (el.dataset.id === "import-file" && el.files?.[0]) {
+      const file = el.files[0];
+      el.value = "";
+      void file.text().then((text) => runImport(text));
+    }
   });
 
   document.addEventListener("click", (event) => {
@@ -1038,6 +1057,9 @@ function bind(): void {
 async function handleAction(target: HTMLElement): Promise<void> {
   const act = target.dataset.act;
   if (!act) return;
+
+  const importDraft = valueOf("import-paste");
+  if (importDraft !== null) state.importPaste = importDraft;
 
   if (!store || !snapshot) return;
   const view = loop();
@@ -1340,6 +1362,29 @@ async function handleAction(target: HTMLElement): Promise<void> {
     downloadExport(snapshot);
     return;
   }
+
+  if (act === "import-pick") {
+    document.querySelector<HTMLInputElement>("[data-id=import-file]")?.click();
+    return;
+  }
+
+  if (act === "import-go") {
+    await runImport(state.importPaste);
+    return;
+  }
+}
+
+async function runImport(raw: string): Promise<void> {
+  const text = raw.trim();
+  if (!text) {
+    state.error = IMPORT_ERROR;
+    render();
+    return;
+  }
+  await withBusy(async () => {
+    snapshot = await store!.importJson(text);
+    state.importPaste = "";
+  });
 }
 
 function rememberAddDraft(): void {

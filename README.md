@@ -104,9 +104,11 @@ Staat in `supabase/migrations/20260829150000_test_tenants.sql`. Niet in de clien
 
 Authentication → Providers → Email: password én magic link aan. B mag tenant 1 niet zien (RLS). Geen namen in de UI.
 
-## Export
+## Export en import
 
-Op Koers en Profiel: **Exporteer JSON** (v6-snapshot: profiel/doelen/thema’s + items + vector + etappe + events inclusief `body_weight`). Geen wipe.
+Op Koers en Profiel: **Exporteer JSON** (v6-snapshot: profiel/doelen/thema’s + items + vector + etappe + events inclusief `body_weight`). Read-only.
+
+Daarnaast **Importeer JSON** (bestand kiezen of plakken). Merge in `routine_loop_v6`: nieuwe labels en event-ids erbij, bestaande ids/events blijven. Ongeldig bestand = fout, geen reset. Geen wipe.
 
 ## Preview, geen product-live
 

@@ -102,6 +102,13 @@ export const SPRITE = `
       <polyline points="8 9 12 5 16 9" />
     </g>
   </symbol>
+  <symbol id="i-import" viewBox="0 0 24 24">
+    <g class="s">
+      <path d="M6 14 v5 h12 v-5" />
+      <line x1="12" y1="5" x2="12" y2="16" />
+      <polyline points="8 12 12 16 16 12" />
+    </g>
+  </symbol>
   <symbol id="i-ik" viewBox="0 0 24 24">
     <line class="s" x1="4" y1="12" x2="20" y2="12" />
   </symbol>

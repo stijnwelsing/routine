@@ -17,6 +17,7 @@ import {
   updateUserItem,
   type UserItemKind,
 } from "./items";
+import { parseImport, mergeImport } from "./import";
 import { applySeedLock, emptyProfile, emptySnapshot, emptyStage, seedSnapshot, seedStage, testTenantItems } from "./seed";
 import { normalizeThemes } from "./themes";
 import {
@@ -56,6 +57,7 @@ export interface Store {
   removeItem(itemId: string): Promise<Item>;
   saveVectorConstraint(vectorId: string, paceConstraint: string | null): Promise<void>;
   advanceStage(current: Stage, nextMilestone: number): Promise<Stage>;
+  importJson(raw: string): Promise<Snapshot>;
   signOut(): Promise<void>;
 }
 
@@ -301,6 +303,14 @@ export function createLocalStore(): Store {
       return next;
     },
 
+    async importJson(raw) {
+      const incoming = parseImport(raw);
+      const snapshot = readLocal(userId, tenantId);
+      const next = applySeedLock(normalizeSnapshot(mergeImport(snapshot, incoming), userId, tenantId));
+      writeLocal(next);
+      return next;
+    },
+
     async signOut() {
       /* local mode has no session */
     },
@@ -478,6 +488,7 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
       const inserted = await client
         .from("events")
         .insert({
+          ...(input.id ? { id: input.id } : {}),
           tenant_id: tenantId,
           user_id: userId,
           item_id: input.item_id ?? null,
@@ -671,6 +682,56 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         .single();
       const row = await must<StageRow>("volgende etappe", inserted);
       return { ...row, tenant_id: row.tenant_id ?? tenantId, milestone: Number(row.milestone) };
+    },
+
+    async importJson(raw) {
+      const incoming = parseImport(raw);
+      const current = await this.load();
+      const merged = mergeImport(current, incoming);
+      await this.saveProfile(merged.profile);
+      if (merged.theme_step) {
+        await this.saveThemes(merged.profile.themes);
+      }
+      const haveItem = new Set(current.items.map((item) => item.id));
+      for (const item of merged.items) {
+        if (haveItem.has(item.id)) continue;
+        const inserted = await client
+          .from("items")
+          .insert({
+            id: item.id,
+            tenant_id: tenantId,
+            type: item.type,
+            label: item.label,
+            unit: item.unit,
+            a: item.a,
+            b: item.b,
+            milestone: item.milestone,
+            weekdays: item.weekdays ?? [],
+            times_per_week: item.times_per_week,
+            sort: item.sort,
+            timing: item.timing,
+            role: item.role,
+            template: item.template,
+            later: item.later,
+            removed: item.removed ?? false,
+          })
+          .select("*")
+          .single();
+        await must<Item>("item", inserted);
+      }
+      const haveEvent = new Set(current.events.map((event) => event.id));
+      for (const event of merged.events) {
+        if (haveEvent.has(event.id)) continue;
+        await this.addEvent({
+          id: event.id,
+          item_id: event.item_id,
+          date: event.date,
+          kind: event.kind,
+          value: event.value,
+          skip_reason: event.skip_reason,
+        });
+      }
+      return this.load();
     },
 
     async signOut() {

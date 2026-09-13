@@ -1047,6 +1047,7 @@ function bind(): void {
       state.missKey = null;
       state.detailItemId = null;
       state.advanceWarn = false;
+      state.error = null;
       render();
       return;
     }

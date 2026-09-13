@@ -200,6 +200,42 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
+  it("adds sociaal ritme items to leftover v6 without wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-07", "t1");
+    existing.items = existing.items.filter(
+      (item) => item.label !== "Bellen met iemand" && item.label !== "Iemand zien",
+    );
+    existing.onboarded = true;
+    existing.events = [
+      event({
+        id: "keep-sociaal",
+        date: "2026-09-07",
+        kind: "done",
+        item_id: existing.items.find((item) => item.label === "Vitamine D")!.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-sociaal"]);
+    expect(snap.items.find((item) => item.label === "Bellen met iemand")).toMatchObject({
+      type: "sociaal",
+      a: null,
+      unit: null,
+    });
+    expect(snap.items.find((item) => item.label === "Iemand zien")).toMatchObject({
+      type: "sociaal",
+      a: null,
+    });
+    expect(snap.items.every((item) => !/stijn|piet|jan|marie/i.test(item.label))).toBe(true);
+    expect(snap.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+  });
+
   it("does not force onboarding on leftover v6 data", async () => {
     const existing = seedSnapshot("u1", "2026-09-09", "t1");
     existing.onboarded = undefined as unknown as boolean;

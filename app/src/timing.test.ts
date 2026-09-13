@@ -106,6 +106,23 @@ describe("timing engine", () => {
     expect(timingNote(caffeine)).toBe("90 min na opstaan");
   });
 
+  it("lets a social clock reminder wait until that time", () => {
+    const call = testTenantItems("t1").find((row) => row.label === "Bellen met iemand")!;
+    expect(call.type).toBe("sociaal");
+    expect(call.timing).toMatchObject({
+      mode: "clock",
+      clock: "18:00",
+      frequency: "daily",
+    });
+    expect(timingNote(call)).toBe("18:00");
+    expect(
+      timingPhase(call, ctx({ now: new Date(2026, 8, 7, 17, 0, 0) })),
+    ).toBe("wait");
+    expect(
+      timingPhase(call, ctx({ now: new Date(2026, 8, 7, 18, 5, 0) })),
+    ).toBe("due");
+  });
+
   it("lets frequency-only reminders be due without a relative event", () => {
     const medicine = testTenantItems("t1").find((row) => row.label === "Medicijn ochtend")!;
     expect(medicine.timing.mode).toBeNull();
@@ -113,6 +130,12 @@ describe("timing engine", () => {
     expect(medicine.timing.frequency).toBe("daily");
     expect(timingPhase(medicine, ctx())).toBe("due");
     expect(timingNote(medicine)).toBe("ochtend");
+    const see = testTenantItems("t1").find((row) => row.label === "Iemand zien")!;
+    expect(see.type).toBe("sociaal");
+    expect(see.timing.mode).toBeNull();
+    expect(see.timing.frequency).toBe("daily");
+    expect(timingPhase(see, ctx())).toBe("due");
+    expect(timingNote(see)).toBe("deze week");
   });
 
   it("respects a window after open", () => {

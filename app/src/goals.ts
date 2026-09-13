@@ -25,7 +25,13 @@ const GOAL_LABELS: Record<GoalId, string[]> = {
 export function isStartCandidate(item: Item): boolean {
   if (isConstraint(item)) return false;
   if (item.type === "weekly") return false;
-  return item.type === "daily" || item.type === "leefregel" || item.type === "gedrag" || isStofje(item);
+  return (
+    item.type === "daily" ||
+    item.type === "leefregel" ||
+    item.type === "gedrag" ||
+    item.type === "sociaal" ||
+    isStofje(item)
+  );
 }
 
 /** Start-candidates after onboarding. Later/Nu toggle does not wipe events. */

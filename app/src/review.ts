@@ -1,5 +1,5 @@
 import { addDays, eachDay, formatShort, mondayOfWeek, weekdayShort } from "./dates";
-import { eventsForItem, primaryItem, todayActions, todayStofjes } from "./items";
+import { eventsForItem, primaryItem, todayActions, todaySociaal, todayStofjes } from "./items";
 import type { Item, LogEvent, SkipReason } from "./types";
 
 function hasSessionHistory(
@@ -69,7 +69,7 @@ function latestSession(events: LogEvent[], date: string): LogEvent | undefined {
 
 /** Action items that can take +1 / Done / Skip that day. Later and regels stay out. */
 export function reviewableItems(items: Item[], date: string): Item[] {
-  return [...todayActions(items, date), ...todayStofjes(items, date)];
+  return [...todayActions(items, date), ...todayStofjes(items, date), ...todaySociaal(items, date)];
 }
 
 export function itemDayMark(

@@ -31,6 +31,7 @@ import {
   todayActions,
   todayConstraints,
   todayLater,
+  todaySociaal,
   todayStofjes,
 } from "./items";
 import {
@@ -149,6 +150,7 @@ function render(): void {
     const actions = todayActions(snapshot.items, today);
     const rules = todayConstraints(snapshot.items, today);
     const stofjes = todayStofjes(snapshot.items, today);
+    const sociaal = todaySociaal(snapshot.items, today);
     const later = todayLater(snapshot.items, today);
     const pending = pendingMisses(snapshot.items, snapshot.events, today, reviewPrimaryId(snapshot.items));
     root().innerHTML = `
@@ -181,6 +183,11 @@ function render(): void {
       ${
         stofjes.length
           ? `<div class="sec-hd">Stofjes</div>${stofjes.map((item) => stofCard(item)).join("")}`
+          : ""
+      }
+      ${
+        sociaal.length
+          ? `<div class="sec-hd">Sociaal</div>${sociaal.map((item) => stofCard(item)).join("")}`
           : ""
       }
       ${
@@ -501,7 +508,7 @@ function onboardView(step: "goals" | "age" | "themes" | "start"): string {
       <div class="sec-hd">Doelen</div>
       <div class="card">
         <div class="ex-nm">Wat is je richting?</div>
-        <div class="note">Eerst doelen. Types (gedrag, regel, medicijn, supplement) komen daarna.</div>
+        <div class="note">Eerst doelen. Types (gedrag, regel, medicijn, supplement, sociaal) komen daarna.</div>
         <div class="chips">${GOALS.map(
           (goal) =>
             `<button class="chip pick ${goals.includes(goal.id) ? "on" : ""}" data-act="onboard-goal" data-goal="${goal.id}">${goal.label}</button>`,

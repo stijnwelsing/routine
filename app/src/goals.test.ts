@@ -94,6 +94,7 @@ describe("goals onboarding", () => {
     expect(editable.some((item) => item.label === "Push-ups" && !item.later)).toBe(true);
     expect(editable.some((item) => item.label === "Squats" && item.later)).toBe(true);
     expect(editable.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(false);
+    expect(editable.some((item) => item.label === "Bellen met iemand")).toBe(true);
     expect(editable.some((item) => item.type === "weekly")).toBe(false);
   });
 });

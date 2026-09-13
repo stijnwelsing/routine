@@ -8,6 +8,7 @@ import {
   recoverSnapshots,
   todayActions,
   todayConstraints,
+  todaySociaal,
   todayStofjes,
 } from "./items";
 import { emptySnapshot, seedSnapshot, testTenantItems } from "./seed";
@@ -51,6 +52,11 @@ describe("test tenant items", () => {
     expect(stof.every((item) => item.a === null && item.unit === null)).toBe(true);
     expect(todayActions(items, "2026-08-29").some((item) => item.type === "medicijn")).toBe(false);
     expect(todayActions(items, "2026-08-29").some((item) => item.type === "supplement")).toBe(false);
+    const sociaal = todaySociaal(items, "2026-08-29");
+    expect(sociaal.map((item) => item.label)).toEqual(["Bellen met iemand", "Iemand zien"]);
+    expect(sociaal.every((item) => item.type === "sociaal" && item.a === null)).toBe(true);
+    expect(sociaal.every((item) => !/stijn|piet|jan|marie/i.test(item.label))).toBe(true);
+    expect(todayActions(items, "2026-08-29").some((item) => item.type === "sociaal")).toBe(false);
     expect(dueToday({ ...items[4], weekdays: [] }, "2026-08-29")).toBe(false);
     expect(dueToday({ ...items[4], weekdays: [6] }, "2026-08-29")).toBe(true);
   });
@@ -102,6 +108,16 @@ describe("test tenant items", () => {
     expect(withStof.find((item) => item.label === "Push-ups")?.id).toBe(
       withoutStof.find((item) => item.label === "Push-ups")!.id,
     );
+    const withoutSociaal = items.filter(
+      (item) => item.label !== "Bellen met iemand" && item.label !== "Iemand zien",
+    );
+    const withSociaal = mergeSeedItems(withoutSociaal, testTenantItems("t1"), "t1");
+    expect(withSociaal.some((item) => item.label === "Bellen met iemand")).toBe(true);
+    expect(withSociaal.some((item) => item.label === "Iemand zien")).toBe(true);
+    expect(withSociaal.find((item) => item.label === "Push-ups")?.id).toBe(
+      withoutSociaal.find((item) => item.label === "Push-ups")!.id,
+    );
+    expect(withSociaal.filter((item) => item.label === "Bellen met iemand")).toHaveLength(1);
   });
 
   it("recovers leftover keys without wiping events or renaming items", () => {

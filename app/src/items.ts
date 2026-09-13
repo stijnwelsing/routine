@@ -26,8 +26,14 @@ export function isStofje(item: Item): boolean {
   return item.type === "medicijn" || item.type === "supplement";
 }
 
+export function isSociaal(item: Item): boolean {
+  return item.type === "sociaal";
+}
+
 export function todayActions(items: Item[], today: string): Item[] {
-  return dueItems(items, today).filter((item) => isAction(item) && !isStofje(item) && !item.later);
+  return dueItems(items, today).filter(
+    (item) => isAction(item) && !isStofje(item) && !isSociaal(item) && !item.later,
+  );
 }
 
 export function todayConstraints(items: Item[], today: string): Item[] {
@@ -36,6 +42,10 @@ export function todayConstraints(items: Item[], today: string): Item[] {
 
 export function todayStofjes(items: Item[], today: string): Item[] {
   return dueItems(items, today).filter((item) => isStofje(item) && !item.later);
+}
+
+export function todaySociaal(items: Item[], today: string): Item[] {
+  return dueItems(items, today).filter((item) => isSociaal(item) && !item.later);
 }
 
 export function todayLater(items: Item[], today: string): Item[] {

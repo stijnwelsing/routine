@@ -6,6 +6,7 @@ import { applyStartSelection } from "./goals";
 import {
   applyItemLater,
   applyItemRemoval,
+  applyItemWeekdays,
   canAddItem,
   canRenameItem,
   createUserItem,
@@ -16,6 +17,7 @@ import {
   normalizeItemLabel,
   recoverSnapshots,
   restoreUserItem,
+  toggleWeekday,
   updateUserItem,
   type UserItemKind,
 } from "./items";
@@ -55,6 +57,7 @@ export interface Store {
   saveOnboarding(input: { goals: GoalId[]; age_band: AgeBand; startIds: string[] }): Promise<void>;
   saveThemes(themes: string[]): Promise<void>;
   setItemLater(itemId: string, later: boolean): Promise<void>;
+  toggleItemWeekday(itemId: string, day: number): Promise<Item>;
   addItem(input: { label: string; kind: UserItemKind; timing?: string }): Promise<Item>;
   updateItem(input: { id: string; label: string; kind: UserItemKind; timing?: string }): Promise<Item>;
   removeItem(itemId: string): Promise<Item>;
@@ -243,6 +246,17 @@ export function createLocalStore(): Store {
         return applyItemLater(item, later) ?? item;
       });
       writeLocal(snapshot);
+    },
+
+    async toggleItemWeekday(itemId, day) {
+      const snapshot = readLocal(userId, tenantId);
+      const current = snapshot.items.find((item) => item.id === itemId);
+      if (!current) throw new Error("item ontbreekt");
+      const item = applyItemWeekdays(current, toggleWeekday(current.weekdays, day));
+      if (!item) throw new Error("geen weekdagen");
+      snapshot.items = snapshot.items.map((row) => (row.id === item.id ? item : row));
+      writeLocal(snapshot);
+      return item;
     },
 
     async addItem(input) {
@@ -578,6 +592,22 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
         .eq("id", itemId)
         .eq("tenant_id", tenantId);
       if (result.error) throw new Error(`later: ${result.error.message}`);
+    },
+
+    async toggleItemWeekday(itemId, day) {
+      const current = (await this.load()).items.find((item) => item.id === itemId);
+      if (!current) throw new Error("item ontbreekt");
+      const item = applyItemWeekdays(current, toggleWeekday(current.weekdays, day));
+      if (!item) throw new Error("geen weekdagen");
+      const result = await client
+        .from("items")
+        .update({ weekdays: item.weekdays ?? [] })
+        .eq("id", item.id)
+        .eq("tenant_id", tenantId)
+        .select("*")
+        .single();
+      const row = await must<Item>("weekdagen", result);
+      return normalizeItem(row, tenantId);
     },
 
     async addItem(input) {

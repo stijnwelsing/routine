@@ -1,4 +1,4 @@
-import { newId } from "./dates";
+import { isIsoWeekday, newId, WEEKDAYS } from "./dates";
 import type { Item, ItemType, LogEvent, Profile, Snapshot } from "./types";
 import { defaultTemplate } from "./templates";
 import {
@@ -44,6 +44,40 @@ export function hasCurrent(item: Item): boolean {
 
 export function dueToday(item: Item, today: string): boolean {
   return dueByFrequency(item, today);
+}
+
+export function isWeeklyItem(item: Pick<Item, "type" | "timing">): boolean {
+  return item.type === "weekly" || item.timing?.frequency === "weekly";
+}
+
+/** ISO 1–7, unique, sorted. Empty stays empty. Never invents a day. */
+export function normalizeWeekdays(raw: number[] | null | undefined): number[] {
+  const seen = new Set<number>();
+  for (const day of raw ?? []) {
+    if (isIsoWeekday(day)) seen.add(day);
+  }
+  return [...seen].sort((a, b) => a - b);
+}
+
+export function toggleWeekday(days: number[] | null | undefined, day: number): number[] {
+  if (!isIsoWeekday(day)) return normalizeWeekdays(days);
+  const next = new Set(normalizeWeekdays(days));
+  if (next.has(day)) next.delete(day);
+  else next.add(day);
+  return [...next].sort((a, b) => a - b);
+}
+
+/** Same id. Events stay on the caller. Empty days stay off Vandaag. */
+export function applyItemWeekdays(item: Item, weekdays: number[]): Item | null {
+  if (item.removed || !isWeeklyItem(item)) return null;
+  return { ...item, weekdays: normalizeWeekdays(weekdays) };
+}
+
+export function formatWeekdays(days: number[] | null | undefined): string {
+  const set = new Set(normalizeWeekdays(days));
+  return WEEKDAYS.filter((day) => set.has(day.iso))
+    .map((day) => day.short)
+    .join(" · ");
 }
 
 export function normalizeItem(item: Item, tenantId: string): Item {

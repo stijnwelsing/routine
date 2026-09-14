@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 import {
   applyItemLater,
   applyItemRemoval,
+  applyItemWeekdays,
   canAddItem,
   canRenameItem,
   createUserItem,
   dueItems,
   dueToday,
+  formatWeekdays,
   eventsForItem,
   formatWork,
   hasCurrent,
@@ -14,12 +16,14 @@ import {
   isSeedSuggestion,
   loopEvents,
   isUserAddedItem,
+  isWeeklyItem,
   kindFromItem,
   mergeSeedItems,
   parseUserTiming,
   recoverSnapshots,
   restoreUserItem,
   timingInputValue,
+  toggleWeekday,
   todayActions,
   todayConstraints,
   todayLater,
@@ -80,6 +84,39 @@ describe("test tenant items", () => {
     expect(todayActions(items, "2026-08-29").some((item) => item.type === "sociaal")).toBe(false);
     expect(dueToday({ ...items[4], weekdays: [] }, "2026-08-29")).toBe(false);
     expect(dueToday({ ...items[4], weekdays: [6] }, "2026-08-29")).toBe(true);
+  });
+
+  it("lets the user set weekdays on a weekly item without inventing seed days", () => {
+    const items = testTenantItems("t1");
+    const weekly = items.find((item) => item.label === "Gerichte kracht")!;
+    expect(isWeeklyItem(weekly)).toBe(true);
+    expect(weekly.weekdays).toEqual([]);
+    expect(formatWeekdays(weekly.weekdays)).toBe("");
+    expect(toggleWeekday([], 6)).toEqual([6]);
+    expect(toggleWeekday([6], 6)).toEqual([]);
+    expect(toggleWeekday([6, 1, 1, 9], 3)).toEqual([1, 3, 6]);
+
+    const sat = applyItemWeekdays(weekly, [6]);
+    expect(sat).toMatchObject({ id: weekly.id, later: false, weekdays: [6] });
+    expect(dueToday(sat!, "2026-08-29")).toBe(true);
+    expect(dueToday(sat!, "2026-08-28")).toBe(false);
+    expect(todayActions([sat!], "2026-08-29").map((item) => item.label)).toEqual(["Gerichte kracht"]);
+    expect(todayActions([sat!], "2026-08-28")).toEqual([]);
+
+    const empty = applyItemWeekdays(sat!, []);
+    expect(empty?.weekdays).toEqual([]);
+    expect(dueToday(empty!, "2026-08-29")).toBe(false);
+    expect(applyItemWeekdays({ ...weekly, removed: true }, [1])).toBeNull();
+    expect(applyItemWeekdays(items[0], [1])).toBeNull();
+    expect(formatWeekdays([6, 1])).toBe("ma · za");
+
+    const kept = applyItemWeekdays({ ...weekly, weekdays: [2, 4] }, [2, 4]);
+    const merged = mergeSeedItems([kept!], items, "t1");
+    expect(merged.find((item) => item.label === "Gerichte kracht")).toMatchObject({
+      id: weekly.id,
+      weekdays: [2, 4],
+    });
+    expect(testTenantItems("t1").find((item) => item.label === "Gerichte kracht")?.weekdays).toEqual([]);
   });
 
   it("does not put test inrichting on an empty tenant", () => {

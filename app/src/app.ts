@@ -34,7 +34,7 @@ import {
   wakeAtOnDay,
   mealAtOnDay,
 } from "./loop";
-import { formatLong, formatShort, todayISO } from "./dates";
+import { formatLong, formatShort, todayISO, WEEKDAYS } from "./dates";
 import {
   pendingMisses,
   reviewPrimaryId,
@@ -48,11 +48,13 @@ import {
   USER_ITEM_KINDS,
   USER_ITEM_KIND_LABEL,
   eventsForItem,
+  formatWeekdays,
   formatWork,
   hasCurrent,
   isSeedSuggestion,
   isUserAddedItem,
   isUserItemKind,
+  isWeeklyItem,
   kindFromItem,
   loopEvents,
   primaryItem,
@@ -75,6 +77,7 @@ import {
   isAgeBand,
   isGoalId,
   laterActiveItems,
+  laterActiveLoadItems,
   laterParkedItems,
   needsOnboarding,
   onboardStep,
@@ -466,7 +469,7 @@ function render(): void {
     const age = snapshot.profile.age_band;
     const activeItems = laterActiveItems(snapshot.items);
     const parkedItems = laterParkedItems(snapshot.items);
-    const loadNote = activeLoadNote(activeItems.length);
+    const loadNote = activeLoadNote(laterActiveLoadItems(snapshot.items).length);
     root().innerHTML = `
       ${header}
       <div class="sec-hd">Doelen</div>
@@ -664,18 +667,41 @@ function weekBlock(view: WeekReview): string {
       </div>`;
 }
 
+function canOpenDetail(item: Item): boolean {
+  return hasTemplate(item) || isUserAddedItem(item) || isWeeklyItem(item);
+}
+
 function laterName(item: Item): string {
-  if (hasTemplate(item) || isUserAddedItem(item)) {
+  if (canOpenDetail(item)) {
     return `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`;
   }
   return `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
 }
 
+function weekdayEditor(item: Item): string {
+  if (!isWeeklyItem(item)) return "";
+  const days = item.weekdays ?? [];
+  return `
+      <div class="weekday-edit">
+        <div class="lbl">Dagen</div>
+        <div class="chips weekday-chips">
+          ${WEEKDAYS.map(
+            (day) =>
+              `<button class="chip pick ${days.includes(day.iso) ? "on" : ""}" data-act="weekday-toggle" data-item="${item.id}" data-day="${day.iso}">${day.short}</button>`,
+          ).join("")}
+        </div>
+        <div class="note">${days.length ? "Alleen op die dagen." : "Leeg = niet op Vandaag."}</div>
+      </div>`;
+}
+
 function laterRow(item: Item): string {
   return `
-      <div class="later-row">
-        ${laterName(item)}
-        <button class="btn ghost later-now" data-act="later-now" data-item="${item.id}">Nu</button>
+      <div class="later-block">
+        <div class="later-row">
+          ${laterName(item)}
+          <button class="btn ghost later-now" data-act="later-now" data-item="${item.id}">Nu</button>
+        </div>
+        ${weekdayEditor(item)}
       </div>`;
 }
 
@@ -694,13 +720,18 @@ function laterManageCard(parked: Item[], note: string): string {
 
 function laterEditRow(item: Item): string {
   const parked = item.later;
+  const days = formatWeekdays(item.weekdays);
+  const place = parked ? "Later" : "Nu";
   return `
-      <div class="later-row">
-        <div>
-          ${laterName(item)}
-          <div class="note" style="margin-top:4px">${parked ? "Later" : "Nu"}</div>
+      <div class="later-block">
+        <div class="later-row">
+          <div>
+            ${laterName(item)}
+            <div class="note" style="margin-top:4px">${place}${days ? ` · ${escapeHtml(days)}` : ""}</div>
+          </div>
+          <button class="btn ghost later-now" data-act="${parked ? "later-now" : "later-park"}" data-item="${item.id}">${parked ? "Nu" : "Later"}</button>
         </div>
-        <button class="btn ghost later-now" data-act="${parked ? "later-now" : "later-park"}" data-item="${item.id}">${parked ? "Nu" : "Later"}</button>
+        ${weekdayEditor(item)}
       </div>`;
 }
 
@@ -979,7 +1010,7 @@ function onboardView(step: "goals" | "age" | "themes" | "start"): string {
 }
 
 function itemTitle(item: Item): string {
-  if (!hasTemplate(item) && !isUserAddedItem(item)) {
+  if (!canOpenDetail(item)) {
     return `<div class="ex-nm">${escapeHtml(item.label)}</div>`;
   }
   return `<button class="ex-nm tap" data-act="detail-open" data-item="${item.id}">${escapeHtml(item.label)}</button>`;
@@ -1010,6 +1041,7 @@ function detailView(item: Item): string {
         ${pref ? `<div class="note">Voorkeur. Geen regel.</div>` : ""}
         ${rule && !note && !window && !cond ? `<div class="note">Regel. Geen afvinken.</div>` : ""}
         ${afterAction(item)}
+        ${weekdayEditor(item)}
       </div>
       ${
         template
@@ -1529,6 +1561,17 @@ async function handleAction(target: HTMLElement): Promise<void> {
     if (!id) return;
     await withBusy(async () => {
       await store!.setItemLater(id, act === "later-park");
+      snapshot = await store!.load();
+    });
+    return;
+  }
+
+  if (act === "weekday-toggle") {
+    const id = target.dataset.item;
+    const day = Number(target.dataset.day);
+    if (!id || !Number.isInteger(day)) return;
+    await withBusy(async () => {
+      await store!.toggleItemWeekday(id, day);
       snapshot = await store!.load();
     });
     return;

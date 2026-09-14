@@ -377,6 +377,7 @@ function render(): void {
       ${view.gearDown ? `<div class="banner hot">Lijf vraagt tempo omlaag. Etappe gaat niet omhoog.</div>` : ""}
       ${themeSection(snapshot.profile.themes, "Tik een suggestie of typ zelf. Geen vaste lijst. Later aan te passen.")}
       ${weekBlock(weekReview(snapshot.items, snapshot.events, todayISO(), reviewPrimaryId(snapshot.items)))}
+      ${laterManageCard(laterParkedItems(snapshot.items), "Niet in Vandaag. Terughalen laat het log staan.")}
       <div class="sec-hd">Strength · push-ups</div>
       <div class="card">
         <div class="kv">
@@ -408,7 +409,6 @@ function render(): void {
       </div>
       ${advanceBlock(view)}
       ${horizonNudge(snapshot)}
-      ${laterManageCard(laterParkedItems(snapshot.items), "Niet in Vandaag. Terughalen laat het log staan.")}
       <div class="sec-hd">${icon("ik")} Ik</div>
       <div class="card">
         <div class="field">

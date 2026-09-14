@@ -955,6 +955,20 @@ describe("local store data preserve", () => {
         value: 88.4,
         item_id: null,
       }),
+      event({
+        id: "new-wake",
+        date: "2026-09-11",
+        kind: "body_wake",
+        value: 420,
+        item_id: null,
+      }),
+      event({
+        id: "new-meal",
+        date: "2026-09-11",
+        kind: "body_meal",
+        value: 780,
+        item_id: null,
+      }),
     ];
 
     const store = createLocalStore();
@@ -964,7 +978,21 @@ describe("local store data preserve", () => {
 
     const after = await store.importJson(exportPayload(incoming));
     expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
-    expect(after.events.map((row) => row.id)).toEqual(expect.arrayContaining(["keep-import", "new-kg"]));
+    expect(after.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-import", "new-kg", "new-wake", "new-meal"]),
+    );
+    expect(after.events.find((row) => row.id === "new-kg")).toMatchObject({
+      kind: "body_weight",
+      value: 88.4,
+    });
+    expect(after.events.find((row) => row.id === "new-wake")).toMatchObject({
+      kind: "body_wake",
+      value: 420,
+    });
+    expect(after.events.find((row) => row.id === "new-meal")).toMatchObject({
+      kind: "body_meal",
+      value: 780,
+    });
     expect(after.events.find((row) => row.id === "keep-import")).toMatchObject({
       kind: "done",
       item_id: push.id,
@@ -974,14 +1002,46 @@ describe("local store data preserve", () => {
     expect(after.profile.themes).toEqual(["Kickbox", "Spinnen"]);
     expect(after.profile.goals).toEqual(["kracht"]);
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events.map((row: { id: string }) => row.id)).toEqual(
-      expect.arrayContaining(["keep-import", "new-kg"]),
+      expect.arrayContaining(["keep-import", "new-kg", "new-wake", "new-meal"]),
     );
 
     const again = await store.importJson(exportPayload(after));
     expect(again.events.filter((row) => row.id === "keep-import")).toHaveLength(1);
     expect(again.events.filter((row) => row.id === "new-kg")).toHaveLength(1);
+    expect(again.events.filter((row) => row.id === "new-wake")).toHaveLength(1);
+    expect(again.events.filter((row) => row.id === "new-meal")).toHaveLength(1);
     expect(again.items.filter((item) => item.label === "Push-ups")).toHaveLength(1);
     expect(again.items.find((item) => item.label === "Push-ups")?.id).toBe(push.id);
+  });
+
+  it("advances the etappe on leftover v6 without wiping clocks or events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    existing.onboarded = true;
+    existing.events = [
+      event({ id: "keep-done", date: "2026-09-13", kind: "set", value: 45, item_id: push.id }),
+      event({ id: "keep-kg", date: "2026-09-13", kind: "body_weight", value: 88.4, item_id: null }),
+      event({ id: "keep-wake", date: "2026-09-13", kind: "body_wake", value: 420, item_id: null }),
+      event({ id: "keep-meal", date: "2026-09-13", kind: "body_meal", value: 780, item_id: null }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const before = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!) as Snapshot;
+    expect(before.stage.milestone).toBe(45);
+    const next = await store.advanceStage(before.stage, 50);
+    expect(next.milestone).toBe(50);
+    const after = await store.load();
+    expect(after.stage.milestone).toBe(50);
+    expect(after.items.find((item) => item.id === push.id)?.milestone).toBe(50);
+    expect(after.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-done", "keep-kg", "keep-wake", "keep-meal"]),
+    );
+    expect(after.events).toHaveLength(4);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(4);
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
   });
 
   it("undoes today's last action on leftover v6 without wiping other events", async () => {

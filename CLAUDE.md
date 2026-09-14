@@ -43,7 +43,7 @@ Vandaag: Lijf (slaap, energie, gewicht, opstaan; optioneel). Gewicht is het eers
 - Gear-down blokkeert etappe-omhoog, is geen stop
 - WON'T-skip = `geen zin`; herhaald toont `identity_new` (geen interview)
 
-Koers: thema’s, weekoverzicht, A/B/nu/etappe/venster/trend/rem/actie + Ik-blok.
+Koers: thema’s, weekoverzicht, A/B/nu/etappe/venster/trend/rem/actie + handmatige etappe (geen auto; gear-down blokkeert omhoog) + Ik-blok.
 
 Ik-velden (leeg mag, geen seed-tekst, geen namen in defaults):
 

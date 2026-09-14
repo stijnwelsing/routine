@@ -372,6 +372,7 @@ function render(): void {
   if (state.screen === "koers") {
     root().innerHTML = `
       ${header}
+      ${view.gearDown ? `<div class="banner hot">Lijf vraagt tempo omlaag. Etappe gaat niet omhoog.</div>` : ""}
       ${themeSection(snapshot.profile.themes, "Tik een suggestie of typ zelf. Geen vaste lijst. Later aan te passen.")}
       ${weekBlock(weekReview(snapshot.items, snapshot.events, todayISO(), reviewPrimaryId(snapshot.items)))}
       <div class="sec-hd">Strength · push-ups</div>
@@ -403,6 +404,7 @@ function render(): void {
         <div class="lbl">Volgende actie</div>
         <div class="action-line">${escapeHtml(view.nextAction)}</div>
       </div>
+      ${advanceBlock(view)}
       ${
         shouldPromptHorizon(snapshot.profile.horizon_1y, snapshot.rotated)
           ? `<div class="banner">Zet een 1-jaars B. Etappes roteren.</div>`
@@ -703,6 +705,32 @@ function ownItemsCard(items: Item[]): string {
       <div class="card later-box">
         <div class="note" style="margin-top:0">Label, type of tijd. Weg haalt het uit Vandaag. Log blijft.</div>
         ${own.map((item) => ownItemRow(item)).join("")}
+      </div>`;
+}
+
+function advanceControls(view: ReturnType<typeof loop>): string {
+  if (!view.suggestedMilestone) return "";
+  const next = fmt(view.suggestedMilestone);
+  return `
+        <div class="note" style="margin-top:0">Etappe gehaald. Niet automatisch verder. Voorstel: ${next}.</div>
+        ${
+          state.advanceWarn && snapshot!.profile.identity_constraint
+            ? `<div class="banner">Check: ${escapeHtml(snapshot!.profile.identity_constraint)}. Geen blokkade.</div>
+               <div class="stack" style="margin-top:10px">
+                 <button class="btn primary" data-act="advance-go">Toch verder ${next}</button>
+                 <button class="btn ghost" data-act="advance-cancel">Niet nu</button>
+               </div>`
+            : `<div class="stack" style="margin-top:10px">
+                 <button class="btn primary" data-act="advance" data-n="${view.suggestedMilestone}">Volgende etappe ${next}</button>
+               </div>`
+        }`;
+}
+
+function advanceBlock(view: ReturnType<typeof loop>): string {
+  if (!view.suggestedMilestone) return "";
+  return `
+      <div class="card">
+        ${advanceControls(view)}
       </div>`;
 }
 
@@ -1061,22 +1089,7 @@ function itemCard(
             : ""
         }
         ${afterAction(item)}
-        ${
-          showAdvance
-            ? `<div class="note">Etappe gehaald. Niet automatisch verder. Voorstel: ${fmt(view.suggestedMilestone!)}.</div>
-               ${
-                 state.advanceWarn && snapshot!.profile.identity_constraint
-                   ? `<div class="banner">Check: ${escapeHtml(snapshot!.profile.identity_constraint)}. Geen blokkade.</div>
-                      <div class="stack" style="margin-top:10px">
-                        <button class="btn primary" data-act="advance-go">Toch verder ${fmt(view.suggestedMilestone!)}</button>
-                        <button class="btn ghost" data-act="advance-cancel">Niet nu</button>
-                      </div>`
-                   : `<div class="stack" style="margin-top:10px">
-                        <button class="btn primary" data-act="advance" data-n="${view.suggestedMilestone}">Volgende etappe ${fmt(view.suggestedMilestone!)}</button>
-                      </div>`
-               }`
-            : ""
-        }
+        ${showAdvance ? advanceControls(view) : ""}
         ${primary && nudge ? `<div class="note">${escapeHtml(nudge)}</div>` : ""}
       </div>`;
 }

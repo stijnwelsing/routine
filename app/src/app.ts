@@ -523,11 +523,11 @@ function armConfirm(itemId: string): void {
   );
 }
 
-function confirmBeat(item: Item): string {
+function liveConfirm(item: Item) {
   const started = state.confirmBeats[item.id];
-  if (!started) return "";
+  if (!started) return null;
   const elapsed = Date.now() - started;
-  if (elapsed >= CONFIRM_BEAT_MS) return "";
+  if (elapsed >= CONFIRM_BEAT_MS) return null;
   const day = itemDay(item);
   const confirm = todayConfirm({
     plus: day.plus,
@@ -536,9 +536,26 @@ function confirmBeat(item: Item): string {
     type: item.type,
     track: hasCurrent(item),
   });
-  if (!confirm) return "";
-  const mark = confirm.beat === "check" ? icon("done") : "";
-  return `<div class="confirm-beat ${confirm.tone} ${confirm.beat}" style="animation-delay:-${elapsed}ms" data-confirm="${confirm.beat}" role="status">${mark}<span class="sr-only">${escapeHtml(confirm.text)}</span></div>`;
+  if (!confirm) return null;
+  return { confirm, elapsed };
+}
+
+function confirmClass(item: Item, beat: "check" | "fade"): string {
+  const live = liveConfirm(item);
+  if (!live || live.confirm.beat !== beat) return "";
+  return ` beat-${beat}`;
+}
+
+function confirmMark(item: Item, beat: "check" | "fade"): string {
+  const live = liveConfirm(item);
+  if (!live || live.confirm.beat !== beat) return "";
+  return ` data-confirm="${beat}" style="animation-delay:-${live.elapsed}ms"`;
+}
+
+function confirmStatus(item: Item): string {
+  const live = liveConfirm(item);
+  if (!live) return "";
+  return `<span class="sr-only" role="status" data-confirm="${live.confirm.beat}">${escapeHtml(live.confirm.text)}</span>`;
 }
 
 function undoLine(item: Item): string {
@@ -550,7 +567,7 @@ function undoLine(item: Item): string {
 }
 
 function afterAction(item: Item): string {
-  return `${confirmBeat(item)}${undoLine(item)}`;
+  return `${confirmStatus(item)}${undoLine(item)}`;
 }
 
 function stofCard(item: Item): string {
@@ -563,7 +580,7 @@ function stofCard(item: Item): string {
         ${itemTitle(item)}
         ${note ? `<div class="note">${escapeHtml(note)}</div>` : ""}
         <div class="actions actions-two">
-          <button class="btn ico-btn ${day.done ? "track" : ""}" data-act="done" data-item="${item.id}" ${taken ? "disabled" : ""}>${icon("done")}<span>${doneLabel}</span></button>
+          <button class="btn ico-btn ${day.done ? "track" : ""}${confirmClass(item, "check")}" data-act="done" data-item="${item.id}" ${taken ? "disabled" : ""}${confirmMark(item, "check")}>${icon("done")}<span>${doneLabel}</span></button>
           <button class="btn ico-btn skip ${day.skip ? "on" : ""}" data-act="skip-open" data-item="${item.id}" ${day.logged ? "disabled" : ""}>${icon("skip")}<span>Skip</span></button>
         </div>
         ${
@@ -1029,10 +1046,10 @@ function itemCard(
         <div class="actions ${track ? "" : "actions-two"}">
           ${
             track
-              ? `<button class="btn ico-btn ${day.plus ? "on" : ""}" data-act="plus" data-item="${item.id}" ${plusBlocked ? "disabled" : ""}>${icon("plus")}<span>+1</span></button>`
+              ? `<button class="btn ico-btn ${day.plus ? "on" : ""}${confirmClass(item, "fade")}" data-act="plus" data-item="${item.id}" ${plusBlocked ? "disabled" : ""}${confirmMark(item, "fade")}>${icon("plus")}<span>+1</span></button>`
               : ""
           }
-          <button class="btn ico-btn ${day.done ? "track" : ""}" data-act="done" data-item="${item.id}" ${setTaken ? "disabled" : ""}>${icon("done")}<span>Done</span></button>
+          <button class="btn ico-btn ${day.done ? "track" : ""}${confirmClass(item, "check")}" data-act="done" data-item="${item.id}" ${setTaken ? "disabled" : ""}${confirmMark(item, "check")}>${icon("done")}<span>Done</span></button>
           <button class="btn ico-btn skip ${day.skip ? "on" : ""}" data-act="skip-open" data-item="${item.id}" ${day.logged ? "disabled" : ""}>${icon("skip")}<span>Skip</span></button>
         </div>
         ${

@@ -716,63 +716,76 @@ button.ex-nm.tap {
   line-height: 1.4;
 }
 
-.confirm-beat {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  pointer-events: none;
-  border-radius: inherit;
-  animation: confirm-beat 1.08s ease-out both;
+.btn.ico-btn.beat-fade,
+.btn.ico-btn.beat-fade:disabled {
+  animation: beat-fade 1.08s ease-out both;
 }
 
-.confirm-beat.sage {
-  color: var(--sage);
+.btn.ico-btn.beat-check,
+.btn.ico-btn.beat-check:disabled {
+  animation: beat-check 1.08s ease-out both;
 }
 
-.confirm-beat.fog {
-  color: var(--fog);
+.btn.ico-btn.beat-check .ico {
+  animation: beat-check-mark 1.08s ease-out both;
 }
 
-.confirm-beat.check .ico {
-  width: 22px;
-  height: 22px;
-  color: inherit;
-}
-
-.confirm-beat.fade {
-  background: rgba(240, 236, 228, 0.05);
-}
-
-@keyframes confirm-beat {
+@keyframes beat-fade {
   0% {
-    opacity: 0;
-  }
-  14% {
-    opacity: 1;
-  }
-  58% {
+    background: rgba(240, 236, 228, 0.28);
     opacity: 1;
   }
   100% {
-    opacity: 0;
+    background: rgba(240, 236, 228, 0.08);
+    opacity: 1;
+  }
+}
+
+@keyframes beat-check {
+  0% {
+    background: rgba(61, 107, 90, 0.72);
+    border-color: var(--sage);
+    color: var(--sage);
+  }
+  100% {
+    background: rgba(61, 107, 90, 0.28);
+    border-color: var(--sage);
+    color: var(--sage);
+  }
+}
+
+@keyframes beat-check-mark {
+  0% {
+    transform: scale(0.84);
+    opacity: 0.55;
+  }
+  20% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .confirm-beat {
-    animation: confirm-beat-still 1.08s linear both;
+  .btn.ico-btn.beat-fade,
+  .btn.ico-btn.beat-fade:disabled,
+  .btn.ico-btn.beat-check,
+  .btn.ico-btn.beat-check:disabled,
+  .btn.ico-btn.beat-check .ico {
+    animation: none;
   }
-}
 
-@keyframes confirm-beat-still {
-  0%,
-  70% {
-    opacity: 1;
+  .btn.ico-btn.beat-fade,
+  .btn.ico-btn.beat-fade:disabled {
+    background: rgba(240, 236, 228, 0.2);
   }
-  100% {
-    opacity: 0;
+
+  .btn.ico-btn.beat-check,
+  .btn.ico-btn.beat-check:disabled {
+    background: rgba(61, 107, 90, 0.52);
   }
 }
 

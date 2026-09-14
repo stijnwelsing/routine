@@ -6,10 +6,11 @@ describe("statusTone", () => {
     expect(statusTone("stabiel")).toBe("fog");
   });
 
-  it("uses ember only for a real miss or gear-down", () => {
+  it("uses ember only for Skip/miss (stokt) or gear-down, not a quiet day", () => {
     expect(statusTone("stokt")).toBe("ember");
     expect(statusTone("herstel")).toBe("ember");
     expect(statusTone("zakt")).toBe("fog");
     expect(statusTone("stijgt")).toBe("sage");
+    expect(statusTone("stabiel")).toBe("fog");
   });
 });

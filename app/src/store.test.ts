@@ -802,6 +802,55 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(4);
   });
 
+  it("logs sleep and energy for gear-down without wiping wake, meal, or weight", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    existing.onboarded = true;
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    existing.events = [
+      event({ id: "keep-done", date: "2026-09-13", kind: "done", item_id: push.id }),
+      event({ id: "keep-wake", date: "2026-09-13", kind: "body_wake", value: 420, item_id: null }),
+      event({ id: "keep-meal", date: "2026-09-13", kind: "body_meal", value: 780, item_id: null }),
+      event({ id: "keep-kg", date: "2026-09-13", kind: "body_weight", value: 88.4, item_id: null }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events).toHaveLength(4);
+
+    const sleep = await store.addEvent({
+      date: "2026-09-13",
+      kind: "body_sleep",
+      value: 5.5,
+      skip_reason: null,
+      item_id: null,
+    });
+    const energy = await store.addEvent({
+      date: "2026-09-13",
+      kind: "body_energy",
+      value: 1,
+      skip_reason: null,
+      item_id: null,
+    });
+    const again = await store.load();
+    expect(again.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-done", "keep-wake", "keep-meal", "keep-kg", sleep.id, energy.id]),
+    );
+    expect(again.events).toHaveLength(6);
+    expect(again.events.find((row) => row.id === "keep-wake")).toMatchObject({
+      kind: "body_wake",
+      value: 420,
+    });
+    expect(again.events.find((row) => row.id === "keep-meal")).toMatchObject({
+      kind: "body_meal",
+      value: 780,
+    });
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(6);
+  });
+
   it("keeps a body_weight event on leftover v6 without wiping other events", async () => {
     const existing = seedSnapshot("u1", "2026-09-13", "t1");
     existing.onboarded = true;

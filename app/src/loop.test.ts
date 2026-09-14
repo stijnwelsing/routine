@@ -256,11 +256,16 @@ describe("weekHitrate", () => {
 });
 
 describe("gear down", () => {
-  it("triggers on short sleep or low energy", () => {
+  it("triggers on sleep under 6 or energy 1–2, not on 6u or 3", () => {
     expect(isGearDown(5.5, 4)).toBe(true);
+    expect(isGearDown(5.9, 3)).toBe(true);
+    expect(isGearDown(6, 3)).toBe(false);
+    expect(isGearDown(7, 1)).toBe(true);
     expect(isGearDown(7, 2)).toBe(true);
     expect(isGearDown(7, 3)).toBe(false);
     expect(isGearDown(null, null)).toBe(false);
+    expect(isGearDown(null, 1)).toBe(true);
+    expect(isGearDown(5, null)).toBe(true);
   });
 
   it("blocks etappe-omhoog, not the day's set", () => {
@@ -276,6 +281,51 @@ describe("gear down", () => {
     expect(view.suggestedMilestone).toBeNull();
     expect(view.nextAction).toMatch(/geen stop/i);
     expect(view.trend.word).toBe("herstel");
+  });
+
+  it("keeps +1, Done, and Skip available; only hides the next etappe", () => {
+    const fresh = { ...stage, started_on: "2026-08-29" };
+    const plus = computeLoop(
+      vector,
+      fresh,
+      [
+        event({ date: "2026-08-29", kind: "set", value: 41 }),
+        event({ date: "2026-08-29", kind: "body_energy", value: 1 }),
+      ],
+      "2026-08-29",
+    );
+    expect(plus.gearDown).toBe(true);
+    expect(plus.plusToday).toBe(true);
+    expect(plus.current).toBe(41);
+    expect(plus.suggestedMilestone).toBeNull();
+
+    const done = computeLoop(
+      vector,
+      fresh,
+      [
+        event({ date: "2026-08-29", kind: "done", value: 40 }),
+        event({ date: "2026-08-29", kind: "body_sleep", value: 5.5 }),
+      ],
+      "2026-08-29",
+    );
+    expect(done.gearDown).toBe(true);
+    expect(done.doneToday).toBe(true);
+    expect(done.current).toBe(40);
+    expect(done.suggestedMilestone).toBeNull();
+
+    const skip = computeLoop(
+      vector,
+      fresh,
+      [
+        event({ date: "2026-08-29", kind: "skip", skip_reason: "geen energie" }),
+        event({ date: "2026-08-29", kind: "body_energy", value: 2 }),
+      ],
+      "2026-08-29",
+    );
+    expect(skip.gearDown).toBe(true);
+    expect(skip.skipToday).toBe("geen energie");
+    expect(skip.suggestedMilestone).toBeNull();
+    expect(skip.trend.word).toBe("herstel");
   });
 
   it("ignores weight, wake, and meal for gear-down and the day's set", () => {

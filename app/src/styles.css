@@ -663,6 +663,39 @@ button.ex-nm.tap {
   margin-top: 8px;
 }
 
+.later-block {
+  padding: 10px 0;
+  border-top: 1px solid var(--border);
+}
+
+.later-block:first-of-type {
+  border-top: 0;
+  margin-top: 8px;
+}
+
+.later-block .later-row {
+  border-top: 0;
+  padding: 0;
+  margin-top: 0;
+}
+
+.weekday-edit {
+  margin-top: 8px;
+}
+
+.weekday-chips {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.weekday-chips .chip {
+  min-width: 0;
+  padding: 8px 0;
+  text-align: center;
+}
+
 .later-now {
   min-height: 40px;
   padding: 8px 14px;

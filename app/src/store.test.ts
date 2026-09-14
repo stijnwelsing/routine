@@ -586,6 +586,52 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
+  it("sets weekdays on leftover v6 without inventing seed days or wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    const weekly = existing.items.find((item) => item.label === "Gerichte kracht")!;
+    existing.onboarded = true;
+    existing.events = [
+      event({
+        id: "keep-days",
+        date: "2026-09-10",
+        kind: "set",
+        value: 41,
+        item_id: push.id,
+      }),
+    ];
+    weekly.weekdays = [];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(snap.items.find((item) => item.id === weekly.id)?.weekdays).toEqual([]);
+    expect(snap.events.map((row) => row.id)).toEqual(["keep-days"]);
+
+    const sat = await store.toggleItemWeekday(weekly.id, 6);
+    expect(sat).toMatchObject({ id: weekly.id, weekdays: [6], later: false });
+    const mon = await store.toggleItemWeekday(weekly.id, 1);
+    expect(mon.weekdays).toEqual([1, 6]);
+    await store.toggleItemWeekday(weekly.id, 6);
+    const after = await store.load();
+    expect(after.items.find((item) => item.id === weekly.id)).toMatchObject({
+      weekdays: [1],
+      later: false,
+      removed: false,
+    });
+    expect(after.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(after.events.map((row) => row.id)).toEqual(["keep-days"]);
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+
+    await expect(store.toggleItemWeekday(push.id, 1)).rejects.toThrow("geen weekdagen");
+    const again = await store.load();
+    expect(again.items.find((item) => item.id === weekly.id)?.weekdays).toEqual([1]);
+    expect(again.events.map((row) => row.id)).toEqual(["keep-days"]);
+  });
+
   it("adds a user item on leftover v6 without wiping events or seed rows", async () => {
     const existing = seedSnapshot("u1", "2026-09-13", "t1");
     const push = existing.items.find((item) => item.label === "Push-ups")!;

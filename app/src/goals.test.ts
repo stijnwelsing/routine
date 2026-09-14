@@ -7,6 +7,7 @@ import {
   applyStartSelection,
   canActivateFromLater,
   laterActiveItems,
+  laterActiveLoadItems,
   laterEditableItems,
   laterParkedItems,
   needsOnboarding,
@@ -104,17 +105,18 @@ describe("goals onboarding", () => {
     const started = applyStartSelection(items, [push.id, walk.id, vit.id]);
     const parked = laterParkedItems(started);
     const active = laterActiveItems(started);
-    expect(active).toHaveLength(3);
+    expect(active.filter((item) => item.type !== "weekly")).toHaveLength(3);
+    expect(active.some((item) => item.label === "Gerichte kracht" && !item.later)).toBe(true);
     expect(parked.length).toBeGreaterThan(0);
     expect(parked.some((item) => item.label === "Squats")).toBe(true);
     expect(active.some((item) => item.label === "Push-ups")).toBe(true);
-    expect(activeLoadNote(active.length)).toBeNull();
+    expect(activeLoadNote(laterActiveLoadItems(started).length)).toBeNull();
     expect(canActivateFromLater()).toBe(true);
 
     const leftover = laterActiveItems(items);
     expect(leftover.length).toBeGreaterThan(MAX_START);
     expect(laterParkedItems(items)).toEqual([]);
-    expect(activeLoadNote(leftover.length)).toBe("Meer dan drie is oké. Parkeren kan.");
+    expect(activeLoadNote(laterActiveLoadItems(items).length)).toBe("Meer dan drie is oké. Parkeren kan.");
     expect(canActivateFromLater()).toBe(true);
   });
 
@@ -128,7 +130,7 @@ describe("goals onboarding", () => {
     expect(editable.some((item) => item.label === "Cafeïne 90 min na opstaan")).toBe(false);
     expect(editable.some((item) => item.label === "Scherm uit 22:00")).toBe(false);
     expect(editable.some((item) => item.label === "Bellen met iemand")).toBe(true);
-    expect(editable.some((item) => item.type === "weekly")).toBe(false);
+    expect(editable.some((item) => item.label === "Gerichte kracht" && item.type === "weekly")).toBe(true);
     const own = createUserItem({
       tenantId: "t1",
       label: "Avondwandeling",

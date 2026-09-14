@@ -23,7 +23,7 @@ Vite + vanilla TypeScript. **Vandaag**, **Koers**, **Voortgang**, **Profiel** (m
 - **Vandaag** — Lijf (slaap, energie, gewicht, opstaan, maaltijd; optioneel). Gewicht in kg (`body_weight`), opstaan-tijd als clock (`body_wake`, voedt relative wake / cafeïne 90 min), maaltijd-tijd als clock (`body_meal`, voedt relative meal / wandelen-na-eten). Geen blokkade van de dag. Geen bloed/urine/foto’s, geen health score, geen wearables. Items uit tenant-inrichting. Alleen wat vandaag moet. +1 alleen bij een huidige. Rest Done/Skip. Low carb is een dag-tag (voorkeur), geen Done/Skip. Cafeïne en scherm uit 22:00 zijn stille regels, geen Done/Skip. **Korte rust** is een actie met tijdvenster (08:00–22:00) en conditie (alleen na slaap of energie). Geen extra tekst op de lijst; venster en conditie staan in detail. Tik cafeïne, wandelen, Low carb, scherm uit, korte rust, vitamine D of koud douchen voor bron-tag in detail (`public-framework` / `evidence-informed` / `user preference` / `guideline` / `hypothesis`). Tags niet op de Today-lijst. Koers in één woord.
 - **Koers** — thema’s, weekoverzicht (hits/misses), A, B, nu, etappe, venster, trend, rem, volgende actie, Later (terughalen). Etappe schuift alleen als je zelf tikt; gear-down blokkeert omhoog. **Ik** is een blok op Koers, niet op Vandaag of Profiel.
 - **Voortgang** — dezelfde week-strip, een lijn van de huidige, hits, rustige kg-reeks van `body_weight`. Leeg mag. Geen health score, geen BMI, geen doelgewicht, geen streak-als-core, geen confetti.
-- **Profiel** — doelen, leeftijdsband, thema’s, Nu en Later (terughalen / parkeren) en eigen item (toevoegen, wijzigen, weg) zonder wipe. Na start geen harde 3-cap; nieuwe onboarding blijft max 3 start. Seed-suggestie gaat naar Later, niet hard-delete. Verplaatsen wist geen events. Weg blijft apart. Ik-velden blijven op Koers.
+- **Profiel** — doelen, leeftijdsband, thema’s, Nu en Later (terughalen / parkeren) en eigen item (toevoegen, wijzigen, weg) zonder wipe. Na start geen harde 3-cap; nieuwe onboarding blijft max 3 start. Seed-suggestie gaat naar Later, niet hard-delete. Verplaatsen wist geen events. Weg blijft apart. Ik-velden blijven op Koers. Wekelijks: ma–zo chips in item-detail of Profiel; lege dagen blijven van Vandaag.
 
 Knoppen (lock 29 aug 2026):
 
@@ -42,7 +42,7 @@ Knoppen (lock 29 aug 2026):
 
 Seed lock 29 aug 2026: **A (start / huidige) = 40**, **etappe = 45**, **B = 50**. Eén set, niet verspreid. Unit = reps. 35 is fout (al voorbij). Vandaag toont `40 → 45 → 50`.
 
-Items zijn tenant-inrichting, geen hardcoded Home. Types: dagelijks / wekelijks / leefregel. Geen catalogus. Wekelijks alleen op gezette dagen — dagen niet verzinnen. +1 alleen bij een item met huidige. Ember alleen Skip, gear-down, echte miss. Startstaat rustig.
+Items zijn tenant-inrichting, geen hardcoded Home. Types: dagelijks / wekelijks / leefregel. Geen catalogus. Wekelijks alleen op gezette dagen — dagen niet verzinnen, wel zetten of wijzigen (ma–zo). +1 alleen bij een item met huidige. Ember alleen Skip, gear-down, echte miss. Startstaat rustig.
 
 Ik-blok (alleen Koers, leeg mag, geen seed-tekst):
 

@@ -15,6 +15,21 @@ const MONTHS_NL = [
 
 const DAYS_NL = ["zo", "ma", "di", "wo", "do", "vr", "za"];
 
+/** ISO weekdays, Monday first. Labels match weekdayShort. */
+export const WEEKDAYS = [
+  { iso: 1, short: "ma" },
+  { iso: 2, short: "di" },
+  { iso: 3, short: "wo" },
+  { iso: 4, short: "do" },
+  { iso: 5, short: "vr" },
+  { iso: 6, short: "za" },
+  { iso: 7, short: "zo" },
+] as const;
+
+export function isIsoWeekday(value: number): boolean {
+  return Number.isInteger(value) && value >= 1 && value <= 7;
+}
+
 export function todayISO(now = new Date()): string {
   const y = now.getFullYear();
   const m = String(now.getMonth() + 1).padStart(2, "0");

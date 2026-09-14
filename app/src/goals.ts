@@ -1,4 +1,4 @@
-import { isStofje } from "./items";
+import { isStofje, isWeeklyItem } from "./items";
 import { isConstraint } from "./timing";
 import type { AgeBand, GoalId, Item, Snapshot } from "./types";
 
@@ -34,11 +34,12 @@ export function isStartCandidate(item: Item): boolean {
   );
 }
 
-/** Start-candidates after onboarding. Parked seed rules can come back. No wipe. */
+/** Start-candidates after onboarding. Weekly stays editable so days can be set. No wipe. */
 export function laterEditableItems(items: Item[]): Item[] {
   return items
     .filter((item) => {
       if (item.removed) return false;
+      if (isWeeklyItem(item)) return true;
       if (isStartCandidate(item)) return true;
       return isConstraint(item) && item.later;
     })
@@ -51,6 +52,11 @@ export function laterParkedItems(items: Item[]): Item[] {
 
 export function laterActiveItems(items: Item[]): Item[] {
   return laterEditableItems(items).filter((item) => !item.later);
+}
+
+/** Daily/leefregel load. Weekly days stay out of the three-count. */
+export function laterActiveLoadItems(items: Item[]): Item[] {
+  return laterActiveItems(items).filter((item) => !isWeeklyItem(item));
 }
 
 /** Calm load note. No hard cap after start. */

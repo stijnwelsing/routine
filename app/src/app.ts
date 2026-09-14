@@ -71,9 +71,11 @@ import {
   AGE_BANDS,
   GOALS,
   MAX_START,
+  activeLoadNote,
   isAgeBand,
   isGoalId,
-  laterEditableItems,
+  laterActiveItems,
+  laterParkedItems,
   needsOnboarding,
   onboardStep,
   suggestStartItems,
@@ -353,7 +355,7 @@ function render(): void {
       ${actions.map((item) => itemCard(item, view)).join("")}
       <div class="sec-hd">Later</div>
       <div class="card later-box">
-        <div class="note" style="margin-top:0">Niet in je start. Blijft bewaard.</div>
+        <div class="note" style="margin-top:0">Niet in Vandaag. Terughalen laat het log staan.</div>
         ${later.map((item) => laterRow(item)).join("")}
         <button class="btn ghost later-add" data-nav="profiel">Eigen item</button>
       </div>
@@ -406,6 +408,7 @@ function render(): void {
       </div>
       ${advanceBlock(view)}
       ${horizonNudge(snapshot)}
+      ${laterManageCard(laterParkedItems(snapshot.items), "Niet in Vandaag. Terughalen laat het log staan.")}
       <div class="sec-hd">${icon("ik")} Ik</div>
       <div class="card">
         <div class="field">
@@ -461,7 +464,9 @@ function render(): void {
   if (state.screen === "profiel") {
     const goals = snapshot.profile.goals ?? [];
     const age = snapshot.profile.age_band;
-    const laterItems = laterEditableItems(snapshot.items);
+    const activeItems = laterActiveItems(snapshot.items);
+    const parkedItems = laterParkedItems(snapshot.items);
+    const loadNote = activeLoadNote(activeItems.length);
     root().innerHTML = `
       ${header}
       <div class="sec-hd">Doelen</div>
@@ -481,11 +486,16 @@ function render(): void {
         ).join("")}</div>
       </div>
       ${themeSection(snapshot.profile.themes, "Tik een suggestie of typ zelf. Later aan te passen.")}
-      <div class="sec-hd">Later</div>
+      <div class="sec-hd">Nu</div>
       <div class="card later-box">
-        <div class="note" style="margin-top:0">Parkeren of terughalen. Events blijven.</div>
-        ${laterItems.map((item) => laterEditRow(item)).join("")}
+        <div class="note" style="margin-top:0">${loadNote ?? "In Vandaag. Parkeren laat het log staan."}</div>
+        ${
+          activeItems.length
+            ? activeItems.map((item) => laterEditRow(item)).join("")
+            : `<div class="note">Niets in Nu.</div>`
+        }
       </div>
+      ${laterManageCard(parkedItems, "Niet in Vandaag. Terughalen laat het log staan.")}
       ${ownItemsCard(snapshot.items)}
       ${addItemCard()}
       ${ioCard()}
@@ -666,6 +676,19 @@ function laterRow(item: Item): string {
       <div class="later-row">
         ${laterName(item)}
         <button class="btn ghost later-now" data-act="later-now" data-item="${item.id}">Nu</button>
+      </div>`;
+}
+
+function laterManageCard(parked: Item[], note: string): string {
+  return `
+      <div class="sec-hd">Later</div>
+      <div class="card later-box">
+        <div class="note" style="margin-top:0">${escapeHtml(note)}</div>
+        ${
+          parked.length
+            ? parked.map((item) => laterRow(item)).join("")
+            : `<div class="note">Niets in Later.</div>`
+        }
       </div>`;
 }
 
@@ -996,7 +1019,8 @@ function detailView(item: Item): string {
       </div>`
           : ""
       }
-      ${own ? editItemCard() : seedParkCard(item)}`;
+      ${own ? ownLaterCard(item) : seedParkCard(item)}
+      ${own ? editItemCard() : ""}`;
 }
 
 function editItemCard(): string {
@@ -1026,6 +1050,25 @@ function editItemCard(): string {
           <button class="btn ghost" data-act="item-remove-cancel">Niet nu</button>`
               : `<button class="btn ghost" data-act="item-remove-ask">Weg</button>`
           }
+        </div>
+      </div>`;
+}
+
+function ownLaterCard(item: Item): string {
+  if (item.later) {
+    return `
+      <div class="card quiet">
+        <div class="note" style="margin-top:0">In Later. Weg is apart. Log blijft.</div>
+        <div class="stack">
+          <button class="btn ghost" data-act="later-now" data-item="${item.id}">Nu</button>
+        </div>
+      </div>`;
+  }
+  return `
+      <div class="card quiet">
+        <div class="note" style="margin-top:0">Parkeren haalt het uit Vandaag. Weg is apart. Log blijft.</div>
+        <div class="stack">
+          <button class="btn ghost" data-act="later-park" data-item="${item.id}">Naar Later</button>
         </div>
       </div>`;
 }

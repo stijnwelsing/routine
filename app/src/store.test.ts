@@ -539,6 +539,53 @@ describe("local store data preserve", () => {
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
   });
 
+  it("promotes Later to Nu on leftover v6 without a 3-cap or wiping events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    const squat = existing.items.find((item) => item.label === "Squats")!;
+    const hang = existing.items.find((item) => item.label === "Dead hang")!;
+    const plank = existing.items.find((item) => item.label === "Plank")!;
+    const walk = existing.items.find((item) => item.label === "Wandelen na eten")!;
+    existing.onboarded = true;
+    existing.events = [
+      event({
+        id: "keep-later",
+        date: "2026-09-10",
+        kind: "set",
+        value: 41,
+        item_id: push.id,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    await store.setItemLater(squat.id, true);
+    await store.setItemLater(hang.id, true);
+    await store.setItemLater(plank.id, true);
+    await store.setItemLater(walk.id, true);
+    const parked = await store.load();
+    expect(parked.items.find((item) => item.id === squat.id)?.later).toBe(true);
+    expect(parked.events.map((row) => row.id)).toEqual(["keep-later"]);
+
+    await store.setItemLater(squat.id, false);
+    await store.setItemLater(hang.id, false);
+    await store.setItemLater(plank.id, false);
+    await store.setItemLater(walk.id, false);
+    const after = await store.load();
+    expect(after.items.find((item) => item.id === squat.id)?.later).toBe(false);
+    expect(after.items.find((item) => item.id === hang.id)?.later).toBe(false);
+    expect(after.items.find((item) => item.id === plank.id)?.later).toBe(false);
+    expect(after.items.find((item) => item.id === walk.id)?.later).toBe(false);
+    expect(after.items.filter((item) => !item.later && !item.removed).length).toBeGreaterThan(3);
+    expect(after.events.map((row) => row.id)).toEqual(["keep-later"]);
+    expect(after.items.find((item) => item.label === "Push-ups")?.a).toBe(40);
+    expect(after.items.find((item) => item.id === squat.id)?.removed).toBeFalsy();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(1);
+  });
+
   it("adds a user item on leftover v6 without wiping events or seed rows", async () => {
     const existing = seedSnapshot("u1", "2026-09-13", "t1");
     const push = existing.items.find((item) => item.label === "Push-ups")!;

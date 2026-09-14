@@ -3,8 +3,12 @@ import {
   AGE_BANDS,
   GOALS,
   MAX_START,
+  activeLoadNote,
   applyStartSelection,
+  canActivateFromLater,
+  laterActiveItems,
   laterEditableItems,
+  laterParkedItems,
   needsOnboarding,
   onboardStep,
   suggestStartItems,
@@ -90,6 +94,28 @@ describe("goals onboarding", () => {
     ids = toggleStartId(ids, "c");
     ids = toggleStartId(ids, "d");
     expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("keeps Later first-class after start without a 3-cap", () => {
+    const items = testTenantItems("t1");
+    const push = items.find((item) => item.label === "Push-ups")!;
+    const walk = items.find((item) => item.label === "Wandelen na eten")!;
+    const vit = items.find((item) => item.label === "Vitamine D")!;
+    const started = applyStartSelection(items, [push.id, walk.id, vit.id]);
+    const parked = laterParkedItems(started);
+    const active = laterActiveItems(started);
+    expect(active).toHaveLength(3);
+    expect(parked.length).toBeGreaterThan(0);
+    expect(parked.some((item) => item.label === "Squats")).toBe(true);
+    expect(active.some((item) => item.label === "Push-ups")).toBe(true);
+    expect(activeLoadNote(active.length)).toBeNull();
+    expect(canActivateFromLater()).toBe(true);
+
+    const leftover = laterActiveItems(items);
+    expect(leftover.length).toBeGreaterThan(MAX_START);
+    expect(laterParkedItems(items)).toEqual([]);
+    expect(activeLoadNote(leftover.length)).toBe("Meer dan drie is oké. Parkeren kan.");
+    expect(canActivateFromLater()).toBe(true);
   });
 
   it("lets Later stay editable after start without dropping regels", () => {

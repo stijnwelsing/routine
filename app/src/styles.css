@@ -675,6 +675,10 @@ button.ex-nm.tap {
   margin-top: 8px;
 }
 
+.later-box .note + .note {
+  margin-top: 10px;
+}
+
 .add-item .chips {
   margin-top: 8px;
 }

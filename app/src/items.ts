@@ -321,6 +321,12 @@ export function restoreUserItem(
 
 export type ItemRemovalMode = "removed" | "parked";
 
+/** Later ↔ Nu. Same id. Events stay. Removed stays removed. */
+export function applyItemLater(item: Item, later: boolean): Item | null {
+  if (item.removed) return null;
+  return { ...item, later: Boolean(later) };
+}
+
 /** User-added: soft-gone. Seed: Later. Events stay on the caller. */
 export function applyItemRemoval(item: Item): { item: Item; mode: ItemRemovalMode } | null {
   if (isRemoved(item)) return { item, mode: "removed" };

@@ -45,6 +45,25 @@ export function laterEditableItems(items: Item[]): Item[] {
     .sort((a, b) => a.sort - b.sort);
 }
 
+export function laterParkedItems(items: Item[]): Item[] {
+  return laterEditableItems(items).filter((item) => item.later);
+}
+
+export function laterActiveItems(items: Item[]): Item[] {
+  return laterEditableItems(items).filter((item) => !item.later);
+}
+
+/** Calm load note. No hard cap after start. */
+export function activeLoadNote(count: number): string | null {
+  if (count <= MAX_START) return null;
+  return "Meer dan drie is oké. Parkeren kan.";
+}
+
+/** After start, Later → Nu is never capped. Only fresh onboarding uses MAX_START. */
+export function canActivateFromLater(): boolean {
+  return true;
+}
+
 /** Existing local data skips onboarding. Only a fresh empty session sees the flow. */
 export function needsOnboarding(snapshot: Snapshot): boolean {
   if (snapshot.onboarded !== false) return false;

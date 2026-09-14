@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyItemLater,
   applyItemRemoval,
   canAddItem,
   canRenameItem,
@@ -359,6 +360,11 @@ describe("test tenant items", () => {
       removed: false,
       later: false,
     });
+
+    const moved = applyItemLater(own, true);
+    expect(moved).toMatchObject({ id: own.id, later: true, removed: false, label: "Avondwandeling" });
+    expect(applyItemLater({ ...own, removed: true }, false)).toBeNull();
+    expect(applyItemLater(moved!, false)).toMatchObject({ id: own.id, later: false });
 
     const parked = applyItemRemoval(seed.find((item) => item.label === "Squats")!);
     expect(parked).toMatchObject({ mode: "parked" });

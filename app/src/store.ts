@@ -4,6 +4,7 @@ import { isUndoableEvent } from "./loop";
 import { emptyIdentity } from "./identity";
 import { applyStartSelection } from "./goals";
 import {
+  applyItemLater,
   applyItemRemoval,
   canAddItem,
   canRenameItem,
@@ -237,7 +238,10 @@ export function createLocalStore(): Store {
 
     async setItemLater(itemId, later) {
       const snapshot = readLocal(userId, tenantId);
-      snapshot.items = snapshot.items.map((item) => (item.id === itemId ? { ...item, later } : item));
+      snapshot.items = snapshot.items.map((item) => {
+        if (item.id !== itemId) return item;
+        return applyItemLater(item, later) ?? item;
+      });
       writeLocal(snapshot);
     },
 
@@ -565,7 +569,14 @@ export function createCloudStore(client: SupabaseClient, user: User, tenantId: s
     },
 
     async setItemLater(itemId, later) {
-      const result = await client.from("items").update({ later }).eq("id", itemId).eq("tenant_id", tenantId);
+      const current = (await this.load()).items.find((item) => item.id === itemId);
+      const next = current ? applyItemLater(current, later) : null;
+      if (!next) return;
+      const result = await client
+        .from("items")
+        .update({ later: next.later })
+        .eq("id", itemId)
+        .eq("tenant_id", tenantId);
       if (result.error) throw new Error(`later: ${result.error.message}`);
     },
 

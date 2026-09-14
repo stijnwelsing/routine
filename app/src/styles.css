@@ -716,6 +716,21 @@ button.ex-nm.tap {
   line-height: 1.4;
 }
 
+.nudge,
+.check {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--fog);
+  line-height: 1.45;
+}
+
+.nudge-line {
+  margin: 2px 18px 10px;
+  font-size: 0.82rem;
+  color: var(--fog);
+  line-height: 1.45;
+}
+
 .btn.ico-btn.beat-fade,
 .btn.ico-btn.beat-fade:disabled {
   animation: beat-fade 1.08s ease-out both;

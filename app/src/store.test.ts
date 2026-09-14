@@ -1018,6 +1018,9 @@ describe("local store data preserve", () => {
     const existing = seedSnapshot("u1", "2026-09-13", "t1");
     const push = existing.items.find((item) => item.label === "Push-ups")!;
     existing.onboarded = true;
+    existing.profile.identity_new = "blijf rustig";
+    existing.profile.identity_constraint = "schouders";
+    existing.profile.horizon_1y = null;
     existing.events = [
       event({ id: "keep-done", date: "2026-09-13", kind: "set", value: 45, item_id: push.id }),
       event({ id: "keep-kg", date: "2026-09-13", kind: "body_weight", value: 88.4, item_id: null }),
@@ -1040,6 +1043,10 @@ describe("local store data preserve", () => {
       expect.arrayContaining(["keep-done", "keep-kg", "keep-wake", "keep-meal"]),
     );
     expect(after.events).toHaveLength(4);
+    expect(after.rotated).toBe(true);
+    expect(after.profile.identity_new).toBe(existing.profile.identity_new);
+    expect(after.profile.identity_constraint).toBe(existing.profile.identity_constraint);
+    expect(after.profile.horizon_1y).toBe(existing.profile.horizon_1y);
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(4);
     expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
   });

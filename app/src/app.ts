@@ -3,9 +3,10 @@ import { IMPORT_ERROR } from "./import";
 import {
   IDENTITY_LIMITS,
   clipField,
-  identityNudge,
-  shouldPromptHorizon,
-  shouldWarnConstraint,
+  constraintLine,
+  horizonLine,
+  identityNudgeOnSkip,
+  wouldBreakConstraint,
 } from "./identity";
 import {
   computeCurrent,
@@ -233,7 +234,6 @@ function render(): void {
   }
 
   if (state.screen === "vandaag") {
-    const nudge = identityNudge(snapshot.profile.identity_new, snapshot.events);
     const today = todayISO();
     const ctx = nowContext(today);
     const actions = todayActions(snapshot.items, today).filter((item) => isVisibleToday(item, ctx));
@@ -350,7 +350,7 @@ function render(): void {
           : ""
       }
       <div class="sec-hd">Vandaag</div>
-      ${actions.map((item) => itemCard(item, view, nudge)).join("")}
+      ${actions.map((item) => itemCard(item, view)).join("")}
       <div class="sec-hd">Later</div>
       <div class="card later-box">
         <div class="note" style="margin-top:0">Niet in je start. Blijft bewaard.</div>
@@ -405,11 +405,7 @@ function render(): void {
         <div class="action-line">${escapeHtml(view.nextAction)}</div>
       </div>
       ${advanceBlock(view)}
-      ${
-        shouldPromptHorizon(snapshot.profile.horizon_1y, snapshot.rotated)
-          ? `<div class="banner">Zet een 1-jaars B. Etappes roteren.</div>`
-          : ""
-      }
+      ${horizonNudge(snapshot)}
       <div class="sec-hd">${icon("ik")} Ik</div>
       <div class="card">
         <div class="field">
@@ -593,6 +589,7 @@ function stofCard(item: Item): string {
               ).join("")}</div>`
             : ""
         }
+        ${wontNudge(day.skip)}
         ${afterAction(item)}
       </div>`;
 }
@@ -708,16 +705,38 @@ function ownItemsCard(items: Item[]): string {
       </div>`;
 }
 
+function wontNudge(skipToday: ReturnType<typeof itemDay>["skip"]): string {
+  if (!snapshot) return "";
+  const line = identityNudgeOnSkip(snapshot.profile.identity_new, snapshot.events, skipToday);
+  if (!line) return "";
+  return `<div class="nudge">${escapeHtml(line)}</div>`;
+}
+
+function horizonNudge(snap: Snapshot): string {
+  const line = horizonLine(snap.profile.horizon_1y, snap.rotated);
+  if (!line) return "";
+  return `<div class="nudge-line">${escapeHtml(line)}</div>`;
+}
+
+function constraintCheck(next: number | null): string {
+  if (!snapshot || !wouldBreakConstraint(snapshot.profile.identity_constraint, next)) return "";
+  const line = constraintLine(snapshot.profile.identity_constraint);
+  if (!line) return "";
+  return `<div class="check">${escapeHtml(line)}</div>`;
+}
+
 function advanceControls(view: ReturnType<typeof loop>): string {
   if (!view.suggestedMilestone) return "";
   const next = fmt(view.suggestedMilestone);
+  const warn =
+    state.advanceWarn && wouldBreakConstraint(snapshot!.profile.identity_constraint, view.suggestedMilestone);
   return `
         <div class="note" style="margin-top:0">Etappe gehaald. Niet automatisch verder. Voorstel: ${next}.</div>
+        ${warn ? constraintCheck(view.suggestedMilestone) : ""}
         ${
-          state.advanceWarn && snapshot!.profile.identity_constraint
-            ? `<div class="banner">Check: ${escapeHtml(snapshot!.profile.identity_constraint)}. Geen blokkade.</div>
-               <div class="stack" style="margin-top:10px">
-                 <button class="btn primary" data-act="advance-go">Toch verder ${next}</button>
+          warn
+            ? `<div class="stack" style="margin-top:10px">
+                 <button class="btn primary" data-act="advance-go">Volgende etappe ${next}</button>
                  <button class="btn ghost" data-act="advance-cancel">Niet nu</button>
                </div>`
             : `<div class="stack" style="margin-top:10px">
@@ -1043,7 +1062,6 @@ function ruleLine(item: Item): string {
 function itemCard(
   item: Item,
   view: ReturnType<typeof loop>,
-  nudge: string | null,
 ): string {
   const day = itemDay(item);
   const track = hasCurrent(item);
@@ -1090,7 +1108,7 @@ function itemCard(
         }
         ${afterAction(item)}
         ${showAdvance ? advanceControls(view) : ""}
-        ${primary && nudge ? `<div class="note">${escapeHtml(nudge)}</div>` : ""}
+        ${wontNudge(day.skip)}
       </div>`;
 }
 
@@ -1378,7 +1396,7 @@ async function handleAction(target: HTMLElement): Promise<void> {
 
   if (act === "advance") {
     if (!view.suggestedMilestone) return;
-    if (shouldWarnConstraint(snapshot.profile.identity_constraint) && !state.advanceWarn) {
+    if (wouldBreakConstraint(snapshot.profile.identity_constraint, view.suggestedMilestone) && !state.advanceWarn) {
       state.advanceWarn = true;
       render();
       return;

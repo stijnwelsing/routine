@@ -51,7 +51,7 @@ Ik-blok (alleen Koers, leeg mag, geen seed-tekst):
 - Wat B niet mag schenden (`identity_constraint`, max 140)
 - 1-jaars B (`horizon_1y`, max 140)
 
-Koppeling, geen theater: nieuwe etappe/B waarschuwt als er een constraint staat, geen blokkade. WON'T-skip = chip `geen zin`; herhaald toont `identity_new` als die is ingevuld. Horizon leeg + etappes roteren: één regel om een 1-jaars B te zetten. Herijk blijft uit.
+Koppeling, geen theater: nieuwe etappe/B toont een korte check als `identity_constraint` staat en de nieuwe etappe/B die zou breken — geen blokkade, gebruiker kan door. WON'T-skip = chip `geen zin`; herhaald toont `identity_new` als die is ingevuld, stil als het veld leeg is. Horizon leeg + etappe net geroteerd: één rustige regel om een 1-jaars B te zetten. Geen interview. Herijk blijft uit.
 
 ## Starten
 

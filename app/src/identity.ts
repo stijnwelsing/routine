@@ -9,6 +9,9 @@ export const IDENTITY_LIMITS = {
   horizon_1y: 140,
 } as const;
 
+/** One calm line on Koers after a rotation. No interview. */
+export const HORIZON_LINE = "Zet een 1-jaars B.";
+
 export function clipField(value: string | null | undefined, max: number): string | null {
   const text = value?.trim() ?? "";
   if (!text) return null;
@@ -28,14 +31,47 @@ export function identityNudge(identityNew: string | null, events: LogEvent[]): s
   return sentence;
 }
 
+/** Show the sentence only on a card whose skip-chip is the repeated WON'T. */
+export function identityNudgeOnSkip(
+  identityNew: string | null,
+  events: LogEvent[],
+  skipToday: SkipReason | null,
+): string | null {
+  if (skipToday !== WONT_SKIP) return null;
+  return identityNudge(identityNew, events);
+}
+
 /** Free-text constraint cannot be judged. If it is set, warn on etappe/B raise. Never block. */
 export function shouldWarnConstraint(constraint: string | null): boolean {
   return Boolean(clipField(constraint, IDENTITY_LIMITS.identity_constraint));
 }
 
+/**
+ * A new etappe or B may break a set constraint. Free-text cannot be judged,
+ * so a set constraint plus a proposed next number is a would-break. Never block.
+ */
+export function wouldBreakConstraint(
+  constraint: string | null,
+  next: number | null | undefined,
+): boolean {
+  if (next == null) return false;
+  return shouldWarnConstraint(constraint);
+}
+
+/** Short check. No blockade copy. */
+export function constraintLine(constraint: string | null): string | null {
+  const text = clipField(constraint, IDENTITY_LIMITS.identity_constraint);
+  if (!text) return null;
+  return `Check: ${text}.`;
+}
+
 /** Horizon empty + stages have rotated → one line to set a 1-year B. */
 export function shouldPromptHorizon(horizon: string | null, rotated: boolean): boolean {
   return rotated && !clipField(horizon, IDENTITY_LIMITS.horizon_1y);
+}
+
+export function horizonLine(horizon: string | null, rotated: boolean): string | null {
+  return shouldPromptHorizon(horizon, rotated) ? HORIZON_LINE : null;
 }
 
 export function emptyIdentity(): Pick<

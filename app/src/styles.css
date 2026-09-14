@@ -158,6 +158,7 @@ textarea {
 }
 
 .card {
+  position: relative;
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: var(--r);
@@ -715,16 +716,72 @@ button.ex-nm.tap {
   line-height: 1.4;
 }
 
-.confirm {
-  margin-top: 10px;
-  font-size: 0.82rem;
-  color: var(--fog);
-  letter-spacing: 0.02em;
-  line-height: 1.35;
+.confirm-beat {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  border-radius: inherit;
+  animation: confirm-beat 1.08s ease-out both;
 }
 
-.confirm.sage {
+.confirm-beat.sage {
   color: var(--sage);
+}
+
+.confirm-beat.fog {
+  color: var(--fog);
+}
+
+.confirm-beat.check .ico {
+  width: 22px;
+  height: 22px;
+  color: inherit;
+}
+
+.confirm-beat.fade {
+  background: rgba(240, 236, 228, 0.05);
+}
+
+@keyframes confirm-beat {
+  0% {
+    opacity: 0;
+  }
+  14% {
+    opacity: 1;
+  }
+  58% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confirm-beat {
+    animation: confirm-beat-still 1.08s linear both;
+  }
+}
+
+@keyframes confirm-beat-still {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
 }
 
 .undo {

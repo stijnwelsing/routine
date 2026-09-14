@@ -30,7 +30,7 @@ Vandaag: Lijf (slaap, energie, gewicht, opstaan; optioneel). Gewicht is het eers
 
 - +1 = set gedaan, huidige mag omhoog
 - Done = set op het werkgetal, huidige blijft
-- Na +1/Done: korte rustige bevestiging op de kaart (geen streak/grind/protocol/OS/confetti). Sage alleen ná Done. Ember blijft Skip/miss. Geen health score, geen badges
+- Na +1/Done/Genomen: één subtiele beat op de kaart, dan weg (geen streak/grind/protocol/OS/confetti/toast). Sage check ná Done/Genomen, één soft fade ná +1. Ember blijft Skip/miss/gear-down. Geen health score, geen badges
 - Geen van beide schuift de etappe
 - Milestone: gebruiker kiest, nooit auto-advance
 - Skip = chip, geen miss

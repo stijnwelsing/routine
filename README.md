@@ -29,7 +29,7 @@ Knoppen (lock 29 aug 2026):
 
 - **+1** = set gedaan, huidige mag omhoog
 - **Done** = set gedaan op het werkgetal, huidige blijft
-- Na +1/Done: korte rustige bevestiging op de kaart. Sage alleen ná Done. Ember blijft Skip/miss. Geen health score, geen badges, geen confetti
+- Na +1/Done/Genomen: één subtiele beat op de kaart, dan weg. Sage check ná Done/Genomen, één soft fade ná +1. Ember blijft Skip/miss/gear-down. Geen toast, geen streak/grind/protocol, geen health score, geen badges, geen confetti
 - **Ongedaan** = laatste +1 / Done / Genomen / Skip van dat item vandaag weg. Andere dagen, andere items en Lijf blijven. Geen straf, geen ember
 - Geen van beide schuift de etappe
 - Milestone: gebruiker kiest, nooit auto-advance

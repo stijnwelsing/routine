@@ -81,7 +81,7 @@ import {
 } from "./goals";
 import { lineDots, linePointsAttr, progressView, type WeightPoint } from "./progress";
 import { addTheme, normalizeThemes, themePickerHtml, toggleTheme } from "./themes";
-import { todayConfirm } from "./confirm";
+import { CONFIRM_BEAT_MS, todayConfirm } from "./confirm";
 import {
   conditionNote,
   isConstraint,
@@ -114,6 +114,7 @@ interface AppState {
   editTiming: string;
   removeAsk: boolean;
   importPaste: string;
+  confirmBeats: Record<string, number>;
 }
 
 const state: AppState = {
@@ -133,7 +134,10 @@ const state: AppState = {
   editTiming: "",
   removeAsk: false,
   importPaste: "",
+  confirmBeats: {},
 };
+
+const confirmTimers = new Map<string, number>();
 
 let store: Store | null = null;
 let snapshot: Snapshot | null = null;
@@ -493,7 +497,37 @@ function render(): void {
   }
 }
 
-function confirmLine(item: Item): string {
+function clearConfirm(itemId: string): void {
+  const timer = confirmTimers.get(itemId);
+  if (timer) window.clearTimeout(timer);
+  confirmTimers.delete(itemId);
+  if (!(itemId in state.confirmBeats)) return;
+  const next = { ...state.confirmBeats };
+  delete next[itemId];
+  state.confirmBeats = next;
+}
+
+function armConfirm(itemId: string): void {
+  clearConfirm(itemId);
+  state.confirmBeats = { ...state.confirmBeats, [itemId]: Date.now() };
+  confirmTimers.set(
+    itemId,
+    window.setTimeout(() => {
+      confirmTimers.delete(itemId);
+      if (!(itemId in state.confirmBeats)) return;
+      const next = { ...state.confirmBeats };
+      delete next[itemId];
+      state.confirmBeats = next;
+      render();
+    }, CONFIRM_BEAT_MS),
+  );
+}
+
+function confirmBeat(item: Item): string {
+  const started = state.confirmBeats[item.id];
+  if (!started) return "";
+  const elapsed = Date.now() - started;
+  if (elapsed >= CONFIRM_BEAT_MS) return "";
   const day = itemDay(item);
   const confirm = todayConfirm({
     plus: day.plus,
@@ -503,7 +537,8 @@ function confirmLine(item: Item): string {
     track: hasCurrent(item),
   });
   if (!confirm) return "";
-  return `<div class="confirm ${confirm.tone}" role="status">${escapeHtml(confirm.text)}</div>`;
+  const mark = confirm.beat === "check" ? icon("done") : "";
+  return `<div class="confirm-beat ${confirm.tone} ${confirm.beat}" style="animation-delay:-${elapsed}ms" data-confirm="${confirm.beat}" role="status">${mark}<span class="sr-only">${escapeHtml(confirm.text)}</span></div>`;
 }
 
 function undoLine(item: Item): string {
@@ -515,7 +550,7 @@ function undoLine(item: Item): string {
 }
 
 function afterAction(item: Item): string {
-  return `${confirmLine(item)}${undoLine(item)}`;
+  return `${confirmBeat(item)}${undoLine(item)}`;
 }
 
 function stofCard(item: Item): string {
@@ -1199,13 +1234,16 @@ async function handleAction(target: HTMLElement): Promise<void> {
     if (day.logged || day.skip || (item.b !== null && day.current !== null && day.current >= item.b)) {
       return;
     }
-    await persistEvent({
-      date: today,
-      kind: "set",
-      value: (day.current ?? item.a ?? 0) + 1,
-      skip_reason: null,
-      item_id: item.id,
-    });
+    await persistEvent(
+      {
+        date: today,
+        kind: "set",
+        value: (day.current ?? item.a ?? 0) + 1,
+        skip_reason: null,
+        item_id: item.id,
+      },
+      item.id,
+    );
     return;
   }
 
@@ -1214,13 +1252,16 @@ async function handleAction(target: HTMLElement): Promise<void> {
     if (!item) return;
     const day = itemDay(item);
     if (day.logged || day.skip) return;
-    await persistEvent({
-      date: today,
-      kind: "done",
-      value: day.current ?? item.a,
-      skip_reason: null,
-      item_id: item.id,
-    });
+    await persistEvent(
+      {
+        date: today,
+        kind: "done",
+        value: day.current ?? item.a,
+        skip_reason: null,
+        item_id: item.id,
+      },
+      item.id,
+    );
     return;
   }
 
@@ -1271,6 +1312,7 @@ async function handleAction(target: HTMLElement): Promise<void> {
     const primary = primaryItem(snapshot.items);
     const action = todayActionEvent(eventsForItem(snapshot.events, item, primary?.id), today);
     if (!action) return;
+    clearConfirm(item.id);
     await persistUndo(action.id);
     state.skipItemId = null;
     return;
@@ -1590,10 +1632,12 @@ async function goAdvance(milestone: number): Promise<void> {
 
 async function persistEvent(
   input: Parameters<Store["addEvent"]>[0],
+  confirmItemId?: string,
 ): Promise<void> {
   await withBusy(async () => {
     const event = await store!.addEvent(input);
     snapshot!.events.push(event);
+    if (confirmItemId) armConfirm(confirmItemId);
   });
 }
 

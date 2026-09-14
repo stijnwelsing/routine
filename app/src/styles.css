@@ -281,6 +281,17 @@ textarea {
   color: var(--cream);
 }
 
+.ninp-time {
+  width: 96px;
+  min-width: 88px;
+  color-scheme: dark;
+}
+
+.ninp-time::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
+}
+
 .nunit {
   font-size: 0.58rem;
   letter-spacing: 0.12em;

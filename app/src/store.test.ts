@@ -689,6 +689,56 @@ describe("local store data preserve", () => {
     expect(again.events.map((row) => row.id)).toEqual(["keep-edit", again.events[1].id]);
   });
 
+  it("keeps a body_wake event on leftover v6 without wiping other events", async () => {
+    const existing = seedSnapshot("u1", "2026-09-13", "t1");
+    existing.onboarded = true;
+    const push = existing.items.find((item) => item.label === "Push-ups")!;
+    existing.events = [
+      event({
+        id: "keep-done",
+        date: "2026-09-13",
+        kind: "done",
+        item_id: push.id,
+      }),
+      event({
+        id: "old-wake",
+        date: "2026-09-12",
+        kind: "body_wake",
+        value: 390,
+        item_id: null,
+      }),
+    ];
+    localStorage.setItem(LOCAL_USER_KEY, "u1");
+    localStorage.setItem(LOCAL_TENANT_KEY, "t1");
+    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
+
+    const store = createLocalStore();
+    const snap = await store.load();
+    expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
+    expect(snap.events.map((row) => row.id)).toEqual(expect.arrayContaining(["keep-done", "old-wake"]));
+    expect(snap.events).toHaveLength(2);
+    expect(snap.events.find((row) => row.id === "old-wake")).toMatchObject({
+      kind: "body_wake",
+      value: 390,
+      item_id: null,
+    });
+
+    const logged = await store.addEvent({
+      date: "2026-09-13",
+      kind: "body_wake",
+      value: 420,
+      skip_reason: null,
+      item_id: null,
+    });
+    expect(logged).toMatchObject({ kind: "body_wake", value: 420, item_id: null });
+    const again = await store.load();
+    expect(again.events.map((row) => row.id)).toEqual(
+      expect.arrayContaining(["keep-done", "old-wake", logged.id]),
+    );
+    expect(again.events).toHaveLength(3);
+    expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events).toHaveLength(3);
+  });
+
   it("keeps a body_weight event on leftover v6 without wiping other events", async () => {
     const existing = seedSnapshot("u1", "2026-09-13", "t1");
     existing.onboarded = true;
@@ -850,6 +900,13 @@ describe("local store data preserve", () => {
         item_id: null,
       }),
       event({
+        id: "keep-wake",
+        date: today,
+        kind: "body_wake",
+        value: 420,
+        item_id: null,
+      }),
+      event({
         id: "today-plus",
         date: today,
         kind: "set",
@@ -865,19 +922,23 @@ describe("local store data preserve", () => {
     const snap = await store.load();
     expect(LOCAL_STORAGE_KEY).toBe("routine_loop_v6");
     expect(snap.events.map((row) => row.id)).toEqual(
-      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg", "today-plus"]),
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg", "keep-wake", "today-plus"]),
     );
 
     await store.removeEvent("today-plus");
     const after = await store.load();
     expect(after.events.map((row) => row.id)).toEqual(
-      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg"]),
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg", "keep-wake"]),
     );
     expect(after.events.map((row) => row.id)).not.toContain("today-plus");
-    expect(after.events).toHaveLength(3);
+    expect(after.events).toHaveLength(4);
     expect(after.events.find((row) => row.id === "keep-kg")).toMatchObject({
       kind: "body_weight",
       value: 88.4,
+    });
+    expect(after.events.find((row) => row.id === "keep-wake")).toMatchObject({
+      kind: "body_wake",
+      value: 420,
     });
     expect(after.items.find((item) => item.id === push.id)).toMatchObject({
       label: "Push-ups",
@@ -885,16 +946,17 @@ describe("local store data preserve", () => {
     });
     expect(after.profile.themes).toEqual(["Kickbox"]);
     expect(JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY)!).events.map((row: { id: string }) => row.id)).toEqual(
-      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg"]),
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg", "keep-wake"]),
     );
 
     await expect(store.removeEvent("keep-old")).rejects.toThrow("alleen vandaag");
     await expect(store.removeEvent("keep-kg")).rejects.toThrow("alleen vandaag");
+    await expect(store.removeEvent("keep-wake")).rejects.toThrow("alleen vandaag");
     const again = await store.load();
     expect(again.events.map((row) => row.id)).toEqual(
-      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg"]),
+      expect.arrayContaining(["keep-old", "keep-walk", "keep-kg", "keep-wake"]),
     );
-    expect(again.events).toHaveLength(3);
+    expect(again.events).toHaveLength(4);
   });
 
   it("sees leftover keys as an existing session", () => {

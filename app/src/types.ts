@@ -16,6 +16,7 @@ export type EventKind =
   | "body_sleep"
   | "body_energy"
   | "body_weight"
+  | "body_wake"
   | "set"
   | "done"
   | "skip"
@@ -160,6 +161,8 @@ export interface LoopView {
   sleep: number | null;
   energy: number | null;
   weight: number | null;
+  /** Minutes past midnight, or null when not set today. */
+  wake: number | null;
   doneToday: boolean;
   plusToday: boolean;
   setLoggedToday: boolean;

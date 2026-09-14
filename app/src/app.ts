@@ -16,10 +16,16 @@ import {
   todayPlus,
   todaySkip,
   todaySleep,
+  todayWake,
   lastWeight,
+  lastWake,
   nudgeWeight,
+  nudgeWake,
   parseWeight,
+  parseWake,
+  formatWake,
   todayActionEvent,
+  wakeAtOnDay,
 } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
@@ -160,6 +166,7 @@ function nowContext(today = todayISO()) {
   return timingContext({
     today,
     now: new Date(),
+    wakeAt: wakeAtOnDay(today, todayWake(events, today)),
     sleepSet: todaySleep(events, today) !== null,
     energySet: todayEnergy(events, today) !== null,
   });
@@ -238,6 +245,23 @@ function render(): void {
             <button class="nb" data-act="sleep-dec" aria-label="Slaap omlaag">−</button>
             <div class="ndisp">${view.sleep === null ? "—" : view.sleep.toFixed(1)}</div>
             <button class="nb" data-act="sleep-inc" aria-label="Slaap omhoog">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">Opstaan</div>
+          <div class="num-row">
+            <button class="nb" data-act="wake-dec" aria-label="Opstaan eerder">−</button>
+            <div class="nwrap">
+              <input
+                class="ninp ninp-time"
+                data-id="wake"
+                type="time"
+                enterkeyhint="done"
+                aria-label="Opstaan-tijd"
+                value="${view.wake === null ? "" : formatWake(view.wake)}"
+              >
+            </div>
+            <button class="nb" data-act="wake-inc" aria-label="Opstaan later">+</button>
           </div>
         </div>
         <div class="row">
@@ -1035,6 +1059,11 @@ function bind(): void {
     if (el.dataset.id === "weight") {
       event.preventDefault();
       void persistWeightInput(el.value);
+      return;
+    }
+    if (el.dataset.id === "wake") {
+      event.preventDefault();
+      void persistWakeInput(el.value);
     }
   });
 
@@ -1043,6 +1072,9 @@ function bind(): void {
     if (!(el instanceof HTMLInputElement)) return;
     if (el.dataset.id === "weight") {
       void persistWeightInput(el.value);
+    }
+    if (el.dataset.id === "wake") {
+      void persistWakeInput(el.value);
     }
     if (el.dataset.id === "import-file" && el.files?.[0]) {
       const file = el.files[0];
@@ -1103,6 +1135,17 @@ async function handleAction(target: HTMLElement): Promise<void> {
     );
     if (view.weight === next) return;
     await persistEvent({ date: today, kind: "body_weight", value: next, skip_reason: null, item_id: null });
+    return;
+  }
+
+  if (act === "wake-inc" || act === "wake-dec") {
+    const next = nudgeWake(
+      view.wake,
+      lastWake(snapshot.events),
+      act === "wake-inc" ? 15 : -15,
+    );
+    if (view.wake === next) return;
+    await persistEvent({ date: today, kind: "body_wake", value: next, skip_reason: null, item_id: null });
     return;
   }
 
@@ -1526,6 +1569,20 @@ async function persistWeightInput(raw: string): Promise<void> {
   await persistEvent({
     date: todayISO(),
     kind: "body_weight",
+    value,
+    skip_reason: null,
+    item_id: null,
+  });
+}
+
+async function persistWakeInput(raw: string): Promise<void> {
+  if (!store || !snapshot) return;
+  const value = parseWake(raw);
+  if (value === null) return;
+  if (loop().wake === value) return;
+  await persistEvent({
+    date: todayISO(),
+    kind: "body_wake",
     value,
     skip_reason: null,
     item_id: null,

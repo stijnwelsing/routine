@@ -26,7 +26,7 @@ GTM, Stripe, landing, waitlist, App Store, HealthKit, AI-coach, chatbot, Memory/
 
 **Vandaag**, **Koers**, **Voortgang**, **Profiel**. Max ~4 tabs.
 
-Vandaag: Lijf (slaap, energie, gewicht; optioneel). Gewicht is het eerste meetblad: kg, event `body_weight`, geen blokkade van de dag. Geen bloed/urine/foto’s, geen health score, geen wearables. Rest meetblad later. Items zijn tenant-inrichting (dagelijks / wekelijks / leefregel). Alleen wat vandaag moet. Wekelijks alleen op gezette dagen. +1 alleen op een item met huidige. Rest Done/Skip. Koers ↑/→/↓ één woord. Geen habit-Home, geen catalogus.
+Vandaag: Lijf (slaap, energie, gewicht, opstaan; optioneel). Gewicht is het eerste meetblad: kg, event `body_weight`. Opstaan-tijd is optionele clock (`body_wake`), voedt relative-to-event wake (cafeïne 90 min). Geen blokkade van de dag. Geen bloed/urine/foto’s, geen health score, geen wearables. Rest meetblad later. Items zijn tenant-inrichting (dagelijks / wekelijks / leefregel). Alleen wat vandaag moet. Wekelijks alleen op gezette dagen. +1 alleen op een item met huidige. Rest Done/Skip. Koers ↑/→/↓ één woord. Geen habit-Home, geen catalogus.
 
 - +1 = set gedaan, huidige mag omhoog
 - Done = set op het werkgetal, huidige blijft

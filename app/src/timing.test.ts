@@ -11,8 +11,9 @@ import {
   timingPhase,
   windowNote,
 } from "./timing";
+import { todayWake, wakeAtOnDay } from "./loop";
 import { testTenantItems } from "./seed";
-import type { Item, Timing, TimingContext } from "./types";
+import type { Item, LogEvent, Timing, TimingContext } from "./types";
 
 function ctx(partial: Partial<TimingContext> = {}): TimingContext {
   return {
@@ -98,6 +99,30 @@ describe("timing engine", () => {
     const open = opensAt(timing, ctx({ wakeAt }));
     expect(open?.getHours()).toBe(8);
     expect(open?.getMinutes()).toBe(30);
+  });
+
+  it("opens caffeine 90 min after a logged body_wake", () => {
+    const caffeine = testTenantItems("t1").find((row) => row.label === "Cafeïne 90 min na opstaan")!;
+    const events: LogEvent[] = [
+      {
+        id: "wake-1",
+        tenant_id: "t1",
+        user_id: "u1",
+        item_id: null,
+        date: "2026-09-07",
+        kind: "body_wake",
+        value: 420,
+        skip_reason: null,
+        created_at: "2026-09-07T05:10:00.000Z",
+      },
+    ];
+    const wakeAt = wakeAtOnDay("2026-09-07", todayWake(events, "2026-09-07"));
+    expect(wakeAt?.getHours()).toBe(7);
+    expect(wakeAt?.getMinutes()).toBe(0);
+    const open = opensAt(caffeine.timing, ctx({ wakeAt }));
+    expect(open?.getHours()).toBe(8);
+    expect(open?.getMinutes()).toBe(30);
+    expect(opensAt(caffeine.timing, ctx())).toBeNull();
   });
 
   it("keeps a relative action due when the anchor is not logged yet", () => {

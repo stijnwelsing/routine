@@ -4,16 +4,22 @@ import {
   computeLoop,
   isGearDown,
   isStalled,
+  lastWake,
   lastWeight,
   localStreak,
+  nudgeWake,
   nudgeWeight,
+  formatWake,
+  parseWake,
   parseWeight,
+  todayWake,
   suggestNextMilestone,
   todayActionEvent,
   todayDone,
   todayPlus,
   todaySkip,
   todayWeight,
+  wakeAtOnDay,
   weekHitrate,
   withoutTodayAction,
 } from "./loop";
@@ -266,13 +272,15 @@ describe("gear down", () => {
     expect(view.trend.word).toBe("herstel");
   });
 
-  it("ignores weight for gear-down and the day's set", () => {
+  it("ignores weight and wake for gear-down and the day's set", () => {
     const events = [
       event({ date: "2026-08-29", kind: "body_weight", value: 88.4 }),
+      event({ date: "2026-08-29", kind: "body_wake", value: 420 }),
     ];
     const fresh = { ...stage, started_on: "2026-08-29" };
     const view = computeLoop(vector, fresh, events, "2026-08-29");
     expect(view.weight).toBe(88.4);
+    expect(view.wake).toBe(420);
     expect(view.gearDown).toBe(false);
     expect(view.doneToday).toBe(false);
     expect(view.plusToday).toBe(false);
@@ -307,6 +315,42 @@ describe("body weight", () => {
     expect(parseWeight("x")).toBeNull();
     expect(parseWeight("10")).toBe(40);
     expect(parseWeight("300")).toBe(250);
+  });
+});
+
+describe("body wake", () => {
+  it("reads today's clock minutes and keeps yesterday as last only", () => {
+    const events = [
+      event({ date: "2026-08-28", kind: "body_wake", value: 390, created_at: "2026-08-28T05:00:00.000Z" }),
+      event({ date: "2026-08-29", kind: "body_wake", value: 420, created_at: "2026-08-29T05:00:00.000Z" }),
+    ];
+    expect(todayWake(events, "2026-08-29")).toBe(420);
+    expect(todayWake(events, "2026-08-28")).toBe(390);
+    expect(todayWake(events, "2026-08-30")).toBeNull();
+    expect(lastWake(events)).toBe(420);
+    expect(lastWake([])).toBeNull();
+  });
+
+  it("nudges from last clock or 07:00, and parses typed HH:MM", () => {
+    expect(nudgeWake(null, null, 15)).toBe(435);
+    expect(nudgeWake(null, 420, -15)).toBe(405);
+    expect(nudgeWake(420, 390, 15)).toBe(435);
+    expect(nudgeWake(0, null, -15)).toBe(0);
+    expect(nudgeWake(23 * 60 + 59, null, 15)).toBe(23 * 60 + 59);
+    expect(parseWake("07:00")).toBe(420);
+    expect(parseWake("7:05")).toBe(425);
+    expect(parseWake("")).toBeNull();
+    expect(parseWake("x")).toBeNull();
+    expect(parseWake("24:00")).toBeNull();
+    expect(formatWake(420)).toBe("07:00");
+    expect(formatWake(425)).toBe("07:05");
+    const wakeAt = wakeAtOnDay("2026-09-07", 420);
+    expect(wakeAt?.getFullYear()).toBe(2026);
+    expect(wakeAt?.getMonth()).toBe(8);
+    expect(wakeAt?.getDate()).toBe(7);
+    expect(wakeAt?.getHours()).toBe(7);
+    expect(wakeAt?.getMinutes()).toBe(0);
+    expect(wakeAtOnDay("2026-09-07", null)).toBeNull();
   });
 });
 

@@ -63,6 +63,66 @@ export function parseWeight(raw: string): number | null {
   return Math.round(Math.max(WEIGHT_MIN, Math.min(WEIGHT_MAX, n)) * 10) / 10;
 }
 
+const WAKE_MIN = 0;
+const WAKE_MAX = 23 * 60 + 59;
+const WAKE_FALLBACK = 7 * 60;
+
+export function todayWake(events: LogEvent[], today: string): number | null {
+  const value = latestOf(events, today, "body_wake")?.value;
+  if (value === null || value === undefined) return null;
+  if (!Number.isFinite(value)) return null;
+  return Math.max(WAKE_MIN, Math.min(WAKE_MAX, Math.round(value)));
+}
+
+/** Latest logged wake minutes, any day. First tap from — starts here. */
+export function lastWake(events: LogEvent[]): number | null {
+  const value = events
+    .filter((event) => event.kind === "body_wake" && event.value !== null)
+    .sort(byCreated)
+    .at(-1)?.value;
+  if (value === null || value === undefined) return null;
+  if (!Number.isFinite(value)) return null;
+  return Math.max(WAKE_MIN, Math.min(WAKE_MAX, Math.round(value)));
+}
+
+export function nudgeWake(
+  current: number | null,
+  last: number | null,
+  delta: number,
+): number {
+  const base = current ?? last ?? WAKE_FALLBACK;
+  return Math.max(WAKE_MIN, Math.min(WAKE_MAX, base + delta));
+}
+
+export function parseWake(raw: string): number | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const match = /^(\d{1,2}):(\d{2})$/.exec(trimmed);
+  if (!match) return null;
+  const hours = Number(match[1]);
+  const minutes = Number(match[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return hours * 60 + minutes;
+}
+
+export function formatWake(minutes: number): string {
+  const clamped = Math.max(WAKE_MIN, Math.min(WAKE_MAX, Math.round(minutes)));
+  const hours = Math.floor(clamped / 60);
+  const mins = clamped % 60;
+  return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
+}
+
+/** Clock on that day from minutes past midnight. Missing minutes stay null. */
+export function wakeAtOnDay(today: string, minutes: number | null): Date | null {
+  if (minutes === null) return null;
+  const [year, month, day] = today.split("-").map(Number);
+  if (!year || !month || !day) return null;
+  const date = new Date(year, month - 1, day);
+  const clamped = Math.max(WAKE_MIN, Math.min(WAKE_MAX, Math.round(minutes)));
+  date.setHours(Math.floor(clamped / 60), clamped % 60, 0, 0);
+  return date;
+}
+
 export function isTodayActionKind(kind: EventKind): boolean {
   return kind === "set" || kind === "done" || kind === "skip";
 }
@@ -263,6 +323,7 @@ export function computeLoop(
   const sleep = todaySleep(events, today);
   const energy = todayEnergy(events, today);
   const weight = todayWeight(events, today);
+  const wake = todayWake(events, today);
   const doneToday = todayDone(events, today);
   const plusToday = todayPlus(events, today);
   const logged = setLoggedToday(events, today);
@@ -288,6 +349,7 @@ export function computeLoop(
     sleep,
     energy,
     weight,
+    wake,
     doneToday,
     plusToday,
     setLoggedToday: logged,

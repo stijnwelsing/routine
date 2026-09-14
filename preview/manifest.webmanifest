@@ -1,12 +1,16 @@
 {
   "name": "ARETAN",
   "short_name": "ARETAN",
+  "lang": "nl",
   "display": "standalone",
+  "start_url": "./",
+  "scope": "./",
+  "id": "./",
   "background_color": "#0C0C0C",
   "theme_color": "#0C0C0C",
   "icons": [
-    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml" },
-    { "src": "favicon-32.png", "sizes": "32x32", "type": "image/png" },
-    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "favicon-32.png", "sizes": "32x32", "type": "image/png", "purpose": "any" },
+    { "src": "apple-touch-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
   ]
 }

@@ -685,14 +685,14 @@ button.ex-nm.tap {
 
 .weekday-chips {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
   margin-top: 8px;
 }
 
 .weekday-chips .chip {
   min-width: 0;
-  padding: 8px 0;
+  padding: 8px 4px;
   text-align: center;
 }
 

@@ -11,7 +11,7 @@ Interne naam: Routine. UI-woordmerk: **ARETAN**. Product-domein (bedoeld, niet l
 Drie tekens uit board IMG_3780. Geen vierde, geen vlam, geen tagline.
 
 - **WORDMARK** — header: Bebas Neue ARETAN + lijn (NOW-stip cream, tick sage). Geen icoon-A ernaast.
-- **ICON** — alleen favicon 32 + apple-touch 180 (SVG+PNG). Nooit in de header.
+- **ICON** — alleen favicon 32 + apple-touch 180 (SVG+PNG). Nooit in de header. PWA-naam ARETAN, theme Ink, `start_url` blijft `/preview` (geen root, geen DNS).
 - **MARK** — Koers-nav + statuslijn. Eind · stip · tick · eind.
 
 Kleuren: Ink `#0C0C0C`, kaarten `#161616`, Cream `#F0ECE4`, Fog `#606060`, Sage `#3D6B5A`. Ember `#E8533A` alleen Skip en gear-down.

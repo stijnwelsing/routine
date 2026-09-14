@@ -10,6 +10,8 @@ from pathlib import Path
 
 INK = (0x0C, 0x0C, 0x0C, 255)
 CREAM = (0xF0, 0xEC, 0xE4, 255)
+# Super-sample so the 32 tab icon and 180 home-screen icon stay crisp.
+SS = 4
 
 
 def png_bytes(width: int, height: int, pixels: list[list[tuple[int, int, int, int]]]) -> bytes:
@@ -45,7 +47,7 @@ def paint_line(
     length = math.hypot(dx, dy) or 1.0
     nx, ny = -dy / length, dx / length
     half = width / 2
-    steps = int(length * 3) + 1
+    steps = int(length * 4) + 1
     for i in range(steps + 1):
         t = i / steps
         cx, cy = x0 + dx * t, y0 + dy * t
@@ -79,15 +81,35 @@ def paint_circle(
                     grid[y][x] = blend(grid[y][x], color, cover)
 
 
+def downsample(grid: list[list[tuple[int, int, int, int]]], size: int) -> list[list[tuple[int, int, int, int]]]:
+    out: list[list[tuple[int, int, int, int]]] = []
+    n = SS * SS
+    for y in range(size):
+        row: list[tuple[int, int, int, int]] = []
+        for x in range(size):
+            acc = [0, 0, 0, 0]
+            for oy in range(SS):
+                for ox in range(SS):
+                    px = grid[y * SS + oy][x * SS + ox]
+                    acc[0] += px[0]
+                    acc[1] += px[1]
+                    acc[2] += px[2]
+                    acc[3] += px[3]
+            row.append((acc[0] // n, acc[1] // n, acc[2] // n, acc[3] // n))
+        out.append(row)
+    return out
+
+
 def render(size: int) -> bytes:
-    s = size / 32.0
-    grid = [[INK for _ in range(size)] for _ in range(size)]
+    hi = size * SS
+    s = hi / 32.0
+    grid = [[INK for _ in range(hi)] for _ in range(hi)]
     stroke = 1.5 * s
     paint_line(grid, 9 * s, 27 * s, 16 * s, 5 * s, stroke, CREAM)
     paint_line(grid, 16 * s, 5 * s, 23 * s, 27 * s, stroke, CREAM)
     paint_line(grid, 4 * s, 22 * s, 28 * s, 22 * s, stroke, CREAM)
-    paint_circle(grid, 7 * s, 22 * s, max(1.6 * s, 2.0), CREAM)
-    return png_bytes(size, size, grid)
+    paint_circle(grid, 7 * s, 22 * s, max(1.6 * s, 2.0 * SS), CREAM)
+    return png_bytes(size, size, downsample(grid, size))
 
 
 def main() -> None:

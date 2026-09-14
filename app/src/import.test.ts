@@ -6,7 +6,7 @@ import { LOCAL_STORAGE_KEY } from "./types";
 
 function event(
   id: string,
-  extra: { item_id?: string | null; kind?: "done" | "body_weight" | "set"; value?: number | null } = {},
+  extra: { item_id?: string | null; kind?: "done" | "body_weight" | "body_meal" | "set"; value?: number | null } = {},
 ) {
   return {
     id,
@@ -66,6 +66,7 @@ describe("JSON import merge", () => {
     incoming.events = [
       event("keep-local", { item_id: incomingPush.id, kind: "set", value: 99 }),
       event("new-weight", { kind: "body_weight", value: 88.4 }),
+      event("new-meal", { kind: "body_meal", value: 780 }),
       event("walk-done", { item_id: "walk-1", kind: "done" }),
       event("foreign-push-done", { item_id: incomingPush.id, kind: "done" }),
     ];
@@ -78,13 +79,17 @@ describe("JSON import merge", () => {
       value: null,
     });
     expect(merged.events.map((row) => row.id)).toEqual(
-      expect.arrayContaining(["keep-local", "new-weight", "walk-done", "foreign-push-done"]),
+      expect.arrayContaining(["keep-local", "new-weight", "new-meal", "walk-done", "foreign-push-done"]),
     );
     expect(merged.events.find((row) => row.id === "foreign-push-done")?.item_id).toBe(beforePushId);
     expect(merged.events.find((row) => row.id === "walk-done")?.item_id).toBe("walk-1");
     expect(merged.events.find((row) => row.id === "new-weight")).toMatchObject({
       kind: "body_weight",
       value: 88.4,
+    });
+    expect(merged.events.find((row) => row.id === "new-meal")).toMatchObject({
+      kind: "body_meal",
+      value: 780,
     });
     expect(merged.items.find((item) => item.label === "Push-ups")?.id).toBe(beforePushId);
     expect(merged.items.find((item) => item.label === "Avondwandeling")?.id).toBe("walk-1");
@@ -108,6 +113,7 @@ describe("JSON import merge", () => {
     current.theme_step = true;
     current.events = [
       event("keep-weight", { kind: "body_weight", value: 88.4 }),
+      event("keep-meal", { kind: "body_meal", value: 780 }),
       event("keep-done", { item_id: push.id, kind: "done" }),
     ];
     const payload = exportPayload(current);
@@ -115,8 +121,9 @@ describe("JSON import merge", () => {
     expect(parsed.items.map((item) => item.id)).toEqual(current.items.map((item) => item.id));
 
     const merged = mergeImport(current, parsed);
-    expect(merged.events.map((row) => row.id)).toEqual(["keep-weight", "keep-done"]);
+    expect(merged.events.map((row) => row.id)).toEqual(["keep-weight", "keep-meal", "keep-done"]);
     expect(merged.events[0]).toMatchObject({ kind: "body_weight", value: 88.4 });
+    expect(merged.events[1]).toMatchObject({ kind: "body_meal", value: 780 });
     expect(merged.items.map((item) => item.id)).toEqual(current.items.map((item) => item.id));
     expect(merged.items.map((item) => item.label)).toEqual(current.items.map((item) => item.label));
     expect(merged.profile.goals).toEqual(["kracht", "eten"]);

@@ -1,6 +1,6 @@
 import { addDays, eachDay, formatShort, mondayOfWeek, parseISO, weekdayShort } from "./dates";
 import { eventsForItem, primaryItem, todayActions, todaySociaal, todayStofjes } from "./items";
-import { todayEnergy, todaySleep, todayWake, wakeAtOnDay } from "./loop";
+import { todayEnergy, todayMeal, todaySleep, todayWake, mealAtOnDay, wakeAtOnDay } from "./loop";
 import { isVisibleToday, timingContext } from "./timing";
 import type { Item, LogEvent, SkipReason } from "./types";
 
@@ -76,6 +76,7 @@ function reviewContext(date: string, events: LogEvent[] = []): ReturnType<typeof
     today: date,
     now: midday,
     wakeAt: wakeAtOnDay(date, todayWake(events, date)),
+    mealAt: mealAtOnDay(date, todayMeal(events, date)),
     sleepSet: todaySleep(events, date) !== null,
     energySet: todayEnergy(events, date) !== null,
   });

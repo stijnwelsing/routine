@@ -66,23 +66,49 @@ export function parseWeight(raw: string): number | null {
 const WAKE_MIN = 0;
 const WAKE_MAX = 23 * 60 + 59;
 const WAKE_FALLBACK = 7 * 60;
+const MEAL_FALLBACK = 13 * 60;
 
-export function todayWake(events: LogEvent[], today: string): number | null {
-  const value = latestOf(events, today, "body_wake")?.value;
+function clockMinutes(value: number | null | undefined): number | null {
   if (value === null || value === undefined) return null;
   if (!Number.isFinite(value)) return null;
   return Math.max(WAKE_MIN, Math.min(WAKE_MAX, Math.round(value)));
 }
 
+function lastClock(events: LogEvent[], kind: "body_wake" | "body_meal"): number | null {
+  return clockMinutes(
+    events
+      .filter((event) => event.kind === kind && event.value !== null)
+      .sort(byCreated)
+      .at(-1)?.value,
+  );
+}
+
+export function todayWake(events: LogEvent[], today: string): number | null {
+  return clockMinutes(latestOf(events, today, "body_wake")?.value);
+}
+
 /** Latest logged wake minutes, any day. First tap from — starts here. */
 export function lastWake(events: LogEvent[]): number | null {
-  const value = events
-    .filter((event) => event.kind === "body_wake" && event.value !== null)
-    .sort(byCreated)
-    .at(-1)?.value;
-  if (value === null || value === undefined) return null;
-  if (!Number.isFinite(value)) return null;
-  return Math.max(WAKE_MIN, Math.min(WAKE_MAX, Math.round(value)));
+  return lastClock(events, "body_wake");
+}
+
+export function todayMeal(events: LogEvent[], today: string): number | null {
+  return clockMinutes(latestOf(events, today, "body_meal")?.value);
+}
+
+/** Latest logged meal minutes, any day. First tap from — starts here. */
+export function lastMeal(events: LogEvent[]): number | null {
+  return lastClock(events, "body_meal");
+}
+
+function nudgeClock(
+  current: number | null,
+  last: number | null,
+  delta: number,
+  fallback: number,
+): number {
+  const base = current ?? last ?? fallback;
+  return Math.max(WAKE_MIN, Math.min(WAKE_MAX, base + delta));
 }
 
 export function nudgeWake(
@@ -90,8 +116,15 @@ export function nudgeWake(
   last: number | null,
   delta: number,
 ): number {
-  const base = current ?? last ?? WAKE_FALLBACK;
-  return Math.max(WAKE_MIN, Math.min(WAKE_MAX, base + delta));
+  return nudgeClock(current, last, delta, WAKE_FALLBACK);
+}
+
+export function nudgeMeal(
+  current: number | null,
+  last: number | null,
+  delta: number,
+): number {
+  return nudgeClock(current, last, delta, MEAL_FALLBACK);
 }
 
 export function parseWake(raw: string): number | null {
@@ -105,12 +138,16 @@ export function parseWake(raw: string): number | null {
   return hours * 60 + minutes;
 }
 
+export const parseMeal = parseWake;
+
 export function formatWake(minutes: number): string {
   const clamped = Math.max(WAKE_MIN, Math.min(WAKE_MAX, Math.round(minutes)));
   const hours = Math.floor(clamped / 60);
   const mins = clamped % 60;
   return `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}`;
 }
+
+export const formatMeal = formatWake;
 
 /** Clock on that day from minutes past midnight. Missing minutes stay null. */
 export function wakeAtOnDay(today: string, minutes: number | null): Date | null {
@@ -122,6 +159,8 @@ export function wakeAtOnDay(today: string, minutes: number | null): Date | null 
   date.setHours(Math.floor(clamped / 60), clamped % 60, 0, 0);
   return date;
 }
+
+export const mealAtOnDay = wakeAtOnDay;
 
 export function isTodayActionKind(kind: EventKind): boolean {
   return kind === "set" || kind === "done" || kind === "skip";
@@ -324,6 +363,7 @@ export function computeLoop(
   const energy = todayEnergy(events, today);
   const weight = todayWeight(events, today);
   const wake = todayWake(events, today);
+  const meal = todayMeal(events, today);
   const doneToday = todayDone(events, today);
   const plusToday = todayPlus(events, today);
   const logged = setLoggedToday(events, today);
@@ -350,6 +390,7 @@ export function computeLoop(
     energy,
     weight,
     wake,
+    meal,
     doneToday,
     plusToday,
     setLoggedToday: logged,

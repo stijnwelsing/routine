@@ -11,7 +11,7 @@ import {
   timingPhase,
   windowNote,
 } from "./timing";
-import { todayWake, wakeAtOnDay } from "./loop";
+import { todayMeal, todayWake, mealAtOnDay, wakeAtOnDay } from "./loop";
 import { testTenantItems } from "./seed";
 import type { Item, LogEvent, Timing, TimingContext } from "./types";
 
@@ -123,6 +123,42 @@ describe("timing engine", () => {
     expect(open?.getHours()).toBe(8);
     expect(open?.getMinutes()).toBe(30);
     expect(opensAt(caffeine.timing, ctx())).toBeNull();
+  });
+
+  it("opens walk N min after a logged body_meal", () => {
+    const walk = testTenantItems("t1").find((row) => row.label === "Wandelen na eten")!;
+    const events: LogEvent[] = [
+      {
+        id: "meal-1",
+        tenant_id: "t1",
+        user_id: "u1",
+        item_id: null,
+        date: "2026-09-07",
+        kind: "body_meal",
+        value: 780,
+        skip_reason: null,
+        created_at: "2026-09-07T11:10:00.000Z",
+      },
+    ];
+    const mealAt = mealAtOnDay("2026-09-07", todayMeal(events, "2026-09-07"));
+    expect(mealAt?.getHours()).toBe(13);
+    expect(mealAt?.getMinutes()).toBe(0);
+    const open = opensAt(walk.timing, ctx({ mealAt }));
+    expect(open?.getHours()).toBe(13);
+    expect(open?.getMinutes()).toBe(0);
+    expect(opensAt(walk.timing, ctx())).toBeNull();
+    const delayed: Timing = {
+      ...emptyTiming(),
+      mode: "relative",
+      anchor: "meal",
+      offset_min: 30,
+      frequency: "daily",
+    };
+    const later = opensAt(delayed, ctx({ mealAt }));
+    expect(later?.getHours()).toBe(13);
+    expect(later?.getMinutes()).toBe(30);
+    expect(timingPhase(item({ label: "Wandelen", role: "action", timing: delayed }), ctx({ mealAt, now: new Date(2026, 8, 7, 13, 10, 0) }))).toBe("wait");
+    expect(timingPhase(item({ label: "Wandelen", role: "action", timing: delayed }), ctx({ mealAt, now: new Date(2026, 8, 7, 13, 35, 0) }))).toBe("due");
   });
 
   it("keeps a relative action due when the anchor is not logged yet", () => {

@@ -193,6 +193,9 @@ export function timingNote(item: Item): string | null {
   if (timing.mode === "relative" && timing.anchor === "wake" && timing.offset_min !== null) {
     return `${timing.offset_min} min na opstaan`;
   }
+  if (timing.mode === "relative" && timing.anchor === "meal" && timing.offset_min !== null) {
+    return timing.offset_min === 0 ? "na eten" : `${timing.offset_min} min na eten`;
+  }
   if (timing.mode === "relative" && timing.anchor === "meal") return "na eten";
   if (timing.mode === "clock" && timing.clock) return timing.clock;
   return null;

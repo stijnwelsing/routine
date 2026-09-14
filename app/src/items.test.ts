@@ -382,7 +382,7 @@ describe("test tenant items", () => {
 });
 
 describe("body events", () => {
-  it("keeps sleep, energy, weight, and wake off the item loop", () => {
+  it("keeps sleep, energy, weight, wake, and meal off the item loop", () => {
     const seed = testTenantItems("t1");
     const push = seed.find((item) => item.label === "Push-ups")!;
     const sleep: LogEvent = {
@@ -399,16 +399,19 @@ describe("body events", () => {
     const energy: LogEvent = { ...sleep, id: "e1", kind: "body_energy", value: 3 };
     const weight: LogEvent = { ...sleep, id: "w1", kind: "body_weight", value: 88.4 };
     const wake: LogEvent = { ...sleep, id: "k1", kind: "body_wake", value: 420 };
+    const meal: LogEvent = { ...sleep, id: "m1", kind: "body_meal", value: 780 };
     const done: LogEvent = { ...sleep, id: "d1", kind: "done", item_id: push.id, value: 40 };
     expect(isBodyEvent(weight)).toBe(true);
     expect(isBodyEvent(wake)).toBe(true);
+    expect(isBodyEvent(meal)).toBe(true);
     expect(isBodyEvent(done)).toBe(false);
-    expect(eventsForItem([sleep, energy, weight, wake, done], push, push.id).map((row) => row.id)).toEqual(["d1"]);
-    expect(loopEvents([sleep, energy, weight, wake, done], push).map((row) => row.kind)).toEqual([
+    expect(eventsForItem([sleep, energy, weight, wake, meal, done], push, push.id).map((row) => row.id)).toEqual(["d1"]);
+    expect(loopEvents([sleep, energy, weight, wake, meal, done], push).map((row) => row.kind)).toEqual([
       "body_sleep",
       "body_energy",
       "body_weight",
       "body_wake",
+      "body_meal",
       "done",
     ]);
   });

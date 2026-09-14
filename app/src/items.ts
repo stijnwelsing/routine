@@ -112,7 +112,8 @@ export function isBodyEvent(event: LogEvent): boolean {
     event.kind === "body_sleep" ||
     event.kind === "body_energy" ||
     event.kind === "body_weight" ||
-    event.kind === "body_wake"
+    event.kind === "body_wake" ||
+    event.kind === "body_meal"
   );
 }
 

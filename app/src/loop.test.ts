@@ -4,14 +4,19 @@ import {
   computeLoop,
   isGearDown,
   isStalled,
+  lastMeal,
   lastWake,
   lastWeight,
   localStreak,
+  nudgeMeal,
   nudgeWake,
   nudgeWeight,
+  formatMeal,
   formatWake,
+  parseMeal,
   parseWake,
   parseWeight,
+  todayMeal,
   todayWake,
   suggestNextMilestone,
   todayActionEvent,
@@ -19,6 +24,7 @@ import {
   todayPlus,
   todaySkip,
   todayWeight,
+  mealAtOnDay,
   wakeAtOnDay,
   weekHitrate,
   withoutTodayAction,
@@ -272,15 +278,17 @@ describe("gear down", () => {
     expect(view.trend.word).toBe("herstel");
   });
 
-  it("ignores weight and wake for gear-down and the day's set", () => {
+  it("ignores weight, wake, and meal for gear-down and the day's set", () => {
     const events = [
       event({ date: "2026-08-29", kind: "body_weight", value: 88.4 }),
       event({ date: "2026-08-29", kind: "body_wake", value: 420 }),
+      event({ date: "2026-08-29", kind: "body_meal", value: 780 }),
     ];
     const fresh = { ...stage, started_on: "2026-08-29" };
     const view = computeLoop(vector, fresh, events, "2026-08-29");
     expect(view.weight).toBe(88.4);
     expect(view.wake).toBe(420);
+    expect(view.meal).toBe(780);
     expect(view.gearDown).toBe(false);
     expect(view.doneToday).toBe(false);
     expect(view.plusToday).toBe(false);
@@ -351,6 +359,42 @@ describe("body wake", () => {
     expect(wakeAt?.getHours()).toBe(7);
     expect(wakeAt?.getMinutes()).toBe(0);
     expect(wakeAtOnDay("2026-09-07", null)).toBeNull();
+  });
+});
+
+describe("body meal", () => {
+  it("reads today's clock minutes and keeps yesterday as last only", () => {
+    const events = [
+      event({ date: "2026-08-28", kind: "body_meal", value: 750, created_at: "2026-08-28T11:00:00.000Z" }),
+      event({ date: "2026-08-29", kind: "body_meal", value: 780, created_at: "2026-08-29T11:00:00.000Z" }),
+    ];
+    expect(todayMeal(events, "2026-08-29")).toBe(780);
+    expect(todayMeal(events, "2026-08-28")).toBe(750);
+    expect(todayMeal(events, "2026-08-30")).toBeNull();
+    expect(lastMeal(events)).toBe(780);
+    expect(lastMeal([])).toBeNull();
+  });
+
+  it("nudges from last clock or 13:00, and parses typed HH:MM", () => {
+    expect(nudgeMeal(null, null, 15)).toBe(795);
+    expect(nudgeMeal(null, 780, -15)).toBe(765);
+    expect(nudgeMeal(780, 750, 15)).toBe(795);
+    expect(nudgeMeal(0, null, -15)).toBe(0);
+    expect(nudgeMeal(23 * 60 + 59, null, 15)).toBe(23 * 60 + 59);
+    expect(parseMeal("13:00")).toBe(780);
+    expect(parseMeal("13:15")).toBe(795);
+    expect(parseMeal("")).toBeNull();
+    expect(parseMeal("x")).toBeNull();
+    expect(parseMeal("24:00")).toBeNull();
+    expect(formatMeal(780)).toBe("13:00");
+    expect(formatMeal(795)).toBe("13:15");
+    const mealAt = mealAtOnDay("2026-09-07", 780);
+    expect(mealAt?.getFullYear()).toBe(2026);
+    expect(mealAt?.getMonth()).toBe(8);
+    expect(mealAt?.getDate()).toBe(7);
+    expect(mealAt?.getHours()).toBe(13);
+    expect(mealAt?.getMinutes()).toBe(0);
+    expect(mealAtOnDay("2026-09-07", null)).toBeNull();
   });
 });
 

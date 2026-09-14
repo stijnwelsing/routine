@@ -17,15 +17,21 @@ import {
   todaySkip,
   todaySleep,
   todayWake,
+  todayMeal,
   lastWeight,
   lastWake,
+  lastMeal,
   nudgeWeight,
   nudgeWake,
+  nudgeMeal,
   parseWeight,
   parseWake,
+  parseMeal,
   formatWake,
+  formatMeal,
   todayActionEvent,
   wakeAtOnDay,
+  mealAtOnDay,
 } from "./loop";
 import { formatLong, formatShort, todayISO } from "./dates";
 import {
@@ -167,6 +173,7 @@ function nowContext(today = todayISO()) {
     today,
     now: new Date(),
     wakeAt: wakeAtOnDay(today, todayWake(events, today)),
+    mealAt: mealAtOnDay(today, todayMeal(events, today)),
     sleepSet: todaySleep(events, today) !== null,
     energySet: todayEnergy(events, today) !== null,
   });
@@ -262,6 +269,23 @@ function render(): void {
               >
             </div>
             <button class="nb" data-act="wake-inc" aria-label="Opstaan later">+</button>
+          </div>
+        </div>
+        <div class="row">
+          <div class="lbl">Maaltijd</div>
+          <div class="num-row">
+            <button class="nb" data-act="meal-dec" aria-label="Maaltijd eerder">−</button>
+            <div class="nwrap">
+              <input
+                class="ninp ninp-time"
+                data-id="meal"
+                type="time"
+                enterkeyhint="done"
+                aria-label="Maaltijd-tijd"
+                value="${view.meal === null ? "" : formatMeal(view.meal)}"
+              >
+            </div>
+            <button class="nb" data-act="meal-inc" aria-label="Maaltijd later">+</button>
           </div>
         </div>
         <div class="row">
@@ -1064,6 +1088,11 @@ function bind(): void {
     if (el.dataset.id === "wake") {
       event.preventDefault();
       void persistWakeInput(el.value);
+      return;
+    }
+    if (el.dataset.id === "meal") {
+      event.preventDefault();
+      void persistMealInput(el.value);
     }
   });
 
@@ -1075,6 +1104,9 @@ function bind(): void {
     }
     if (el.dataset.id === "wake") {
       void persistWakeInput(el.value);
+    }
+    if (el.dataset.id === "meal") {
+      void persistMealInput(el.value);
     }
     if (el.dataset.id === "import-file" && el.files?.[0]) {
       const file = el.files[0];
@@ -1146,6 +1178,17 @@ async function handleAction(target: HTMLElement): Promise<void> {
     );
     if (view.wake === next) return;
     await persistEvent({ date: today, kind: "body_wake", value: next, skip_reason: null, item_id: null });
+    return;
+  }
+
+  if (act === "meal-inc" || act === "meal-dec") {
+    const next = nudgeMeal(
+      view.meal,
+      lastMeal(snapshot.events),
+      act === "meal-inc" ? 15 : -15,
+    );
+    if (view.meal === next) return;
+    await persistEvent({ date: today, kind: "body_meal", value: next, skip_reason: null, item_id: null });
     return;
   }
 
@@ -1583,6 +1626,20 @@ async function persistWakeInput(raw: string): Promise<void> {
   await persistEvent({
     date: todayISO(),
     kind: "body_wake",
+    value,
+    skip_reason: null,
+    item_id: null,
+  });
+}
+
+async function persistMealInput(raw: string): Promise<void> {
+  if (!store || !snapshot) return;
+  const value = parseMeal(raw);
+  if (value === null) return;
+  if (loop().meal === value) return;
+  await persistEvent({
+    date: todayISO(),
+    kind: "body_meal",
     value,
     skip_reason: null,
     item_id: null,

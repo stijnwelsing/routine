@@ -4,7 +4,7 @@ import { seedSnapshot } from "./seed";
 import { LOCAL_STORAGE_KEY } from "./types";
 
 describe("JSON export", () => {
-  it("covers the v6 snapshot: items, events, themes, goals, weight, wake", () => {
+  it("covers the v6 snapshot: items, events, themes, goals, weight, wake, meal", () => {
     const snapshot = seedSnapshot("u1", "2026-09-13", "t1");
     snapshot.profile.goals = ["kracht", "eten"];
     snapshot.profile.themes = ["Kickbox"];
@@ -33,6 +33,17 @@ describe("JSON export", () => {
         skip_reason: null,
         created_at: "2026-09-13T05:10:00.000Z",
       },
+      {
+        id: "keep-meal",
+        tenant_id: "t1",
+        user_id: "u1",
+        item_id: null,
+        date: "2026-09-13",
+        kind: "body_meal",
+        value: 780,
+        skip_reason: null,
+        created_at: "2026-09-13T11:10:00.000Z",
+      },
     ];
 
     const before = JSON.stringify(snapshot);
@@ -60,6 +71,7 @@ describe("JSON export", () => {
     expect(parsed.events).toEqual(snapshot.events);
     expect(parsed.events[0]).toMatchObject({ kind: "body_weight", value: 88.4 });
     expect(parsed.events[1]).toMatchObject({ kind: "body_wake", value: 420 });
+    expect(parsed.events[2]).toMatchObject({ kind: "body_meal", value: 780 });
     expect(parsed.rotated).toBe(false);
     expect(parsed.onboarded).toBe(true);
     expect(parsed.theme_step).toBe(true);
